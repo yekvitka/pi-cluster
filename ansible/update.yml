@@ -44,4 +44,15 @@
       # First, check that the file named /var/run/reboot-required exists using a
       # variable named reboot_required_file.
       # The reboot module will only work if that file exists and it is enforced
-      # using ‘when: reboot_required_file.stat.exists’ Ansible condition.
+      # using 'when: reboot_required_file.stat.exists' Ansible condition.
+      
+    - name: Force reboot on all hosts
+      reboot:
+        msg: "Reboot initiated by Ansible manually"
+        connect_timeout: 5
+        reboot_timeout: 300
+        pre_reboot_delay: 0
+        post_reboot_delay: 30
+        test_command: uptime
+      when: force_reboot | default(false) | bool
+      # This task will only run when you set force_reboot=true
