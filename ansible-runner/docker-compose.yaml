@@ -1,5 +1,4 @@
 services:
-  # Ansible-runner
   ansible-runner:
     image: ansible-runner
     build:
@@ -7,12 +6,13 @@ services:
     command: tail -f /dev/null
     container_name: ansible-runner
     restart: unless-stopped
+    user: runner
     volumes:
-      - ./../ansible:/runner
+      - ./../ansible:/ansible:ro
       - ./../kubernetes:/kubernetes
       - ./../metal/x86/pxe-files:/metal/x86/pxe-files
       - ./runner/.gnupg:/home/runner/.gnupg
-      - ./runner/.vault:/home/runner/.vault
+      - ./../ansible/.vault:/home/runner/.vault  # Changed this line
       - ./runner/.secrets:/home/runner/.secrets
       - ./runner/scripts:/home/runner/scripts
       - ./runner/.ssh:/home/runner/.ssh
@@ -20,5 +20,7 @@ services:
       - ./certbot/log:/var/log/letsencrypt
       - ./certbot/config:/etc/letsencrypt
       - ./certbot/work:/var/lib/letsencrypt
-    env_file:
-      - ./runner/env
+    environment:
+      - ANSIBLE_CONFIG=home/picluster/ansible/ansible.cfg
+      - ANSIBLE_VAULT_PASSWORD_FILE=/home/picluster/ansible/.vault/vault_pass.sh
+    working_dir: home/picluster/ansible

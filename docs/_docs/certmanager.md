@@ -416,7 +416,7 @@ Execute all the following commands from $HOME directory.
   apiVersion: cert-manager.io/v1
   kind: ClusterIssuer
   metadata:
-    name: letsencrypt-issuer
+    name: ca-issuer
     namespace: certmanager
     spec:
         acme:

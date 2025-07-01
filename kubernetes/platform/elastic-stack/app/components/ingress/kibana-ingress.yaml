@@ -7,7 +7,7 @@ metadata:
   namespace: elastic
   annotations:
     # Enable cert-manager to create automatically the SSL certificate and store in Secret
-    cert-manager.io/cluster-issuer: letsencrypt-issuer
+    cert-manager.io/cluster-issuer: ca-issuer
     cert-manager.io/common-name: kibana.${CLUSTER_DOMAIN}
 spec:
   ingressClassName: nginx

@@ -65,7 +65,7 @@ Modify [`ansible/group_vars/all.yml`]({{ site.git_edit_address }}/ansible/group_
 
   ```yml
   # Remote user name
-  ansible_user: ricsanfre
+  ansible_user: root
 
   # Ansible ssh private key
   ansible_ssh_private_key_file: ~/.ssh/id_rsa
@@ -136,7 +136,7 @@ As an alternative, a custom CA can be created and use it to sign all certificate
 The following changes need to be done:
 
 - Modify Ansible variable `enable_letsencrypt` to false in `/ansible/vars/picluster.yml` file
-- Modify Kubernetes ingress resources in all applications (`/kubernetes/platform` and `/kubernetes/apps`) so `cert-manager.io/cluster-issuer` annotation points to `ca-issuer` instead of `letsencrypt-issuer`.
+- Modify Kubernetes ingress resources in all applications (`/kubernetes/platform` and `/kubernetes/apps`) so `cert-manager.io/cluster-issuer` annotation points to `ca-issuer` instead of `ca-issuer`.
 
 {{site.data.alerts.end}}
 

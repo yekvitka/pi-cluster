@@ -9,7 +9,7 @@
 - name: Install K3s
   command: "/tmp/k3s_install.sh server"
   environment:
-    INSTALL_K3S_VERSION: "{{ k3s_version }}"
+    INSTALL_K3S_VERSION: ""
   changed_when: true
 
 - name: Create directory .kube

@@ -318,9 +318,9 @@ Finally, when installing kube-prometheus-stack helm chart, installation of the C
 
           # Enable cert-manager to create automatically the SSL certificate and store in Secret
           # Possible Cluster-Issuer values:
-          #   * 'letsencrypt-issuer' (valid TLS certificate using IONOS API)
+          #   * 'ca-issuer' (valid TLS certificate using IONOS API)
           #   * 'ca-issuer' (CA-signed certificate, not valid)
-          cert-manager.io/cluster-issuer: letsencrypt-issuer
+          cert-manager.io/cluster-issuer: ca-issuer
           cert-manager.io/common-name: hubble.picluster.ricsanfre.com
         className: nginx
         hosts: ["hubble.picluster.ricsanfre.com"]

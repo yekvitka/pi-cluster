@@ -4,6 +4,8 @@ cluster-init: true
 server: https://{{ k3s_registration_ip }}:6443
 {% endif %}
 token-file: {{ k3s_token_file }}
+
 {% if 'k3s_master' in group_names %}
+# K3s server-specific configuration
 {{ k3s_server_config | to_nice_yaml }}
 {% endif %}

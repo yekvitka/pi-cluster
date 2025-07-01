@@ -15,6 +15,6 @@
 
 - name: Ensure haproxy is running and enabled
   service:
-    name: "haproxy"
+    name: 'haproxy'
     state: started
     enabled: true

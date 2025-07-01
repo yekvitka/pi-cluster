@@ -3,86 +3,75 @@ all:
   children:
     control:
       hosts:
-        gateway:
-          hostname: gateway
-          ansible_host: 10.0.0.1
-          ip: 10.0.0.1
-          mac: e4:5f:01:28:36:98
         pimaster:
           hostname: pimaster
           ansible_host: localhost
           ansible_connection: local
-    external:
-      hosts:
-        s3:
-          hostname: s3
-          ansible_host: s3.ricsanfre.com
     picluster:
       hosts:
         node1:
-          hostname: node1
           ansible_host: 10.0.0.11
-          ip: 10.0.0.11
-          mac: dc:a6:32:9c:29:b9
+          mac: D8:3A:DD:3B:47:08
+          ansible_ssh_private_key_file: ~/.ssh/id_rsa
+          roles:
+            - haproxy
+
         node2:
-          hostname: node2
           ansible_host: 10.0.0.12
-          ip: 10.0.0.12
-          mac: e4:5f:01:2d:fd:19
+          mac: D8:3A:DD:3B:46:ED
+          ansible_ssh_private_key_file: ~/.ssh/id_rsa
+          k3s_primary_control_node: true
+          roles:
+            - k3s_master
+            - etcd_member
+
         node3:
-          hostname: node3
           ansible_host: 10.0.0.13
-          ip: 10.0.0.13
-          mac: e4:5f:01:2f:49:05
+          mac: D8:3A:DD:D4:99:82
+          ansible_ssh_private_key_file: ~/.ssh/id_rsa
+          roles:
+            - k3s_master
+            - etcd_member
+
         node4:
-          hostname: node4
           ansible_host: 10.0.0.14
-          ip: 10.0.0.14
-          mac: e4:5f:01:2f:54:82
+          mac: D8:3A:DD:D4:8E:FC
+          ansible_ssh_private_key_file: ~/.ssh/id_rsa
+          roles:
+            - k3s_worker
+
         node5:
-          hostname: node5
           ansible_host: 10.0.0.15
-          ip: 10.0.0.15
-          mac: e4:5f:01:d9:ec:5c
-        node6:
-          hostname: node6
-          ansible_host: 10.0.0.16
-          ip: 10.0.0.16
-          mac: d8:3a:dd:0d:be:c8
-        node-hp-1:
-          hostname: node-hp-1
-          ansible-host: 10.0.0.20
-          ip: 10.0.0.20
-          mac: 18:60:24:21:1c:d4
-        node-hp-2:
-          hostname: node-hp-2
-          ansible-host: 10.0.0.21
-          ip: 10.0.0.21
-          mac: 10:e7:c6:16:54:10
-        node-hp-3:
-          hostname: node-hp-3
-          ansible-host: 10.0.0.22
-          ip: 10.0.0.22
-          mac: 10:e7:c6:0a:de:8a
-    raspberrypi:
-      hosts:
-        node[1:6]:
-        gateway:
-    x86:
-      hosts:
-        node-hp-[1:3]:
-    k3s_cluster:
+          mac: D8:3A:DD:3B:47:2F
+          ansible_ssh_private_key_file: ~/.ssh/id_rsa
+          roles:
+            - k3s_worker
+
       children:
         k3s_master:
           hosts:
-            node[2:4]:
+            node[2:3]:
+
         k3s_worker:
           hosts:
-            node[5:6]:
-            node-hp-[1:3]:
+            node[4:5]
+
+    dns:
+      hosts:
+        node1:
+
+    pxe:
+      hosts:
+        node1:
+
     vault:
       hosts:
         node1:
+
     haproxy:
       hosts:
-        node1:
+        node1
+
+    san:
+      hosts:
+        node1

@@ -95,9 +95,9 @@ Installation using `Helm` (Release 3):
       nginx.ingress.kubernetes.io/auth-secret: nginx/basic-auth-secret
       # Enable cert-manager to create automatically the SSL certificate and store in Secret
       # Possible Cluster-Issuer values: 
-      #   * 'letsencrypt-issuer' (valid TLS certificate using IONOS API) 
+      #   * 'ca-issuer' (valid TLS certificate using IONOS API) 
       #   * 'ca-issuer' (CA-signed certificate, not valid)
-      cert-manager.io/cluster-issuer: letsencrypt-issuer
+      cert-manager.io/cluster-issuer: ca-issuer
       cert-manager.io/common-name: longhorn.picluster.ricsanfre.com
   ```
   With this configuration:

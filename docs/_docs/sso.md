@@ -458,9 +458,9 @@ New ConfigMap, containing the JSON files to be imported need to be mounted by ke
     annotations:
       # Enable cert-manager to create automatically the SSL certificate and store in Secret
       # Possible Cluster-Issuer values:
-      #   * 'letsencrypt-issuer' (valid TLS certificate using IONOS API)
+      #   * 'ca-issuer' (valid TLS certificate using IONOS API)
       #   * 'ca-issuer' (CA-signed certificate, not valid)
-      cert-manager.io/cluster-issuer: letsencrypt-issuer
+      cert-manager.io/cluster-issuer: ca-issuer
       cert-manager.io/common-name: oauth2-proxy.picluster.ricsanfre.com
       nginx.ingress.kubernetes.io/proxy-buffer-size: "16k"
     hosts:

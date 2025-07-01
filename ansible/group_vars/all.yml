@@ -2,14 +2,25 @@
 # Group all variables.
 
 # Remote user name
-ansible_user: ricsanfre
+ansible_user: root
 
 # Ansible ssh private key
 ansible_ssh_private_key_file: ~/.ssh/id_rsa
 
+# Certificate validation settings
+ansible_host_key_checking: False
+validate_certs: False
+python_validate_certs: False
+
+# Python package installation settings
+pip_extra_args: "--trusted-host pypi.org --trusted-host files.pythonhosted.org"
+
+# Galaxy settings
+ansible_galaxy_ignore_certs: yes
+
 # Cluster Lab Architecture
 # Whether to use centralized SAN architecture or not
-centralized_san: false
+centralized_san: true
 
 # GitOps Repo
 # Whether the repo is private or not
@@ -20,7 +31,7 @@ git_private_repo: false
 #######################
 # DNS server
 dns_server: 10.0.0.1
-dns_domain: picluster.ricsanfre.com
+dns_domain: homelab.yekvitka.com
 
 ############################
 # restic backup role variables
@@ -36,3 +47,17 @@ restic_backups_dirs:
     exclude:
       - pattern: '.cache'
       - pattern: '.ansible'
+
+# SSL/TLS settings
+ssl_verify: False
+http_validate_certs: False
+
+# Python interpreter settings
+ansible_python_interpreter: auto_silent
+
+# Connection settings
+ansible_connection_timeout: 60
+ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+
+# Package management settings
+pkg_mgr_verify_ssl: False
