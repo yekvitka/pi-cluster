@@ -1,11 +1,34 @@
 ---
 
+- name: Debug - Check k3s service status
+  shell: "systemctl status k3s || echo 'k3s service not active'"
+  register: k3s_status_check
+  changed_when: false
+
+- name: Debug - Show K3s service status
+  debug:
+    msg: "{{ k3s_status_check.stdout_lines }}"
+
+- name: Check if kubectl is available
+  shell: "which kubectl || echo 'kubectl not found'"
+  register: kubectl_check
+  changed_when: false
+
+- name: Debug - Show kubectl availability
+  debug:
+    msg: "kubectl path: {{ kubectl_check.stdout }}"
+
 - name: "Wait for master node to be ready"
-  command:
-    cmd: "kubectl get nodes {{ item }}"
+  shell: "kubectl get nodes {{ item }} -o wide"
+  environment:
+    KUBECONFIG: "/etc/rancher/k3s/k3s.yaml"
   register: nodes
   until:
     - '" Ready "  in nodes.stdout'
-  retries: 10
-  delay: 5
+  retries: 30
+  delay: 10
   with_items: "{{ inventory_hostname }}"
+
+- name: Debug - Show node status
+  debug:
+    msg: "{{ nodes.results[0].stdout_lines | default([]) }}"

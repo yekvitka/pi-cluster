@@ -10,7 +10,102 @@
     mode: '0766'
 
 - name: Install K3s
-  command: "/tmp/k3s_install.sh agent"
+  command: >-
+    /tmp/k3s_install.sh agent 
+    --server https://{{ k3s_api_vip }}:6443
+    --token-file {{ k3s_token_file }}
   environment:
-    INSTALL_K3S_VERSION: ""
+    INSTALL_K3S_VERSION: "{{ k3s_version }}"
   changed_when: true
+  
+- name: Stop k3s-agent service if running
+  systemd:
+    name: k3s-agent
+    state: stopped
+  ignore_errors: true
+
+- name: Check for problematic config files
+  shell: find /var/lib/rancher/k3s -type f \( -name "*.json" -o -name "*.yaml" -o -name "*.conf" \) -exec grep -l "127.0.0.1" {} \; || echo "No files with 127.0.0.1 found"
+  register: problematic_files
+  changed_when: false
+  
+- name: Display problematic files
+  debug:
+    msg: "Files with 127.0.0.1 references: {{ problematic_files.stdout_lines }}"
+
+- name: Fix problematic files (replace 127.0.0.1 with k3s_api_vip)
+  replace:
+    path: "{{ item }}"
+    regexp: '(https?:\/\/)?127\.0\.0\.1(:\d+)?'
+    replace: 'https://{{ k3s_api_vip }}:6443'
+  with_items: "{{ problematic_files.stdout_lines }}"
+  when: problematic_files.stdout != "No files with 127.0.0.1 found"
+  ignore_errors: true
+  register: files_fixed
+
+- name: Find all networking-related config files
+  shell: find /var/lib/rancher/k3s -name "*.json" -o -name "*.yaml" -o -name "*.conf" | grep -v "No files"
+  register: all_config_files
+  ignore_errors: true
+  changed_when: false
+  
+- name: Display all found config files
+  debug:
+    msg: "Config files found: {{ all_config_files.stdout_lines }}"
+    verbosity: 1
+
+- name: Check for localhost entries in config files
+  shell: >
+    find /var/lib/rancher/k3s -name "*.json" -o -name "*.yaml" -o -name "*.conf" | 
+    xargs grep -l "localhost" || echo "No localhost entries found"
+  register: localhost_files
+  ignore_errors: true
+  changed_when: false
+  
+- name: Fix localhost entries
+  replace:
+    path: "{{ item }}"
+    regexp: '(https?:\/\/)?localhost(:\d+)?'
+    replace: 'https://{{ k3s_api_vip }}:6443'
+  with_items: "{{ localhost_files.stdout_lines }}"
+  when: localhost_files.stdout != "No localhost entries found"
+  ignore_errors: true
+  register: localhost_fixed
+
+- name: Remove k3s agent data directory to allow clean restart
+  file:
+    path: /var/lib/rancher/k3s/agent
+    state: absent
+
+- name: Create agent config directory
+  file:
+    path: /etc/rancher/k3s
+    state: directory
+    mode: '0755'
+
+- name: Create explicit agent config file
+  copy:
+    dest: /etc/rancher/k3s/config.yaml
+    content: |
+      server: https://{{ k3s_api_vip }}:6443
+      token-file: {{ k3s_token_file }}
+    mode: '0600'
+      
+- name: Restart k3s agent service
+  systemd:
+    name: k3s-agent
+    state: restarted
+    daemon_reload: true
+
+- name: Wait for the service to stabilize
+  wait_for:
+    timeout: 10
+
+- name: Check agent connection status
+  shell: "journalctl -u k3s-agent | tail -n 20"
+  register: agent_status
+  changed_when: false
+
+- name: Display agent connection status
+  debug:
+    msg: "{{ agent_status.stdout_lines }}"

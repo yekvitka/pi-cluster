@@ -7,9 +7,13 @@
     mode: '0766'
 
 - name: Install K3s
-  command: "/tmp/k3s_install.sh server"
+  command: >-
+    /tmp/k3s_install.sh server 
+    {% if not k3s_primary_control_node | default(true) %}
+    --server https://{{ hostvars[groups['k3s_master'][0]].ansible_host }}:6443
+    {% endif %}
   environment:
-    INSTALL_K3S_VERSION: ""
+    INSTALL_K3S_VERSION: "{{ k3s_version }}"
   changed_when: true
 
 - name: Create directory .kube
@@ -26,3 +30,32 @@
     remote_src: true
     owner: "{{ ansible_user }}"
     mode: "u=rw,g=,o="
+
+- name: Update server URL in k3s.yaml on secondary masters
+  replace:
+    path: /etc/rancher/k3s/k3s.yaml
+    regexp: 'https://127.0.0.1:6443'
+    replace: 'https://{{ hostvars[groups["k3s_master"][0]].ansible_host }}:6443'
+  when: not k3s_primary_control_node | default(true)
+
+- name: Update server URL in kubeconfig on secondary masters
+  replace:
+    path: ~{{ ansible_user }}/.kube/config
+    regexp: 'https://127.0.0.1:6443'
+    replace: 'https://{{ hostvars[groups["k3s_master"][0]].ansible_host }}:6443'
+  when: not k3s_primary_control_node | default(true)
+
+- name: Fix egress selector config for secondary masters
+  include_tasks: fix_egress_selector.yml
+  when: not k3s_primary_control_node | default(true)
+  
+- name: Check server status on secondary masters
+  shell: "journalctl -u k3s | tail -n 20"
+  register: server_status
+  changed_when: false
+  when: not k3s_primary_control_node | default(true)
+
+- name: Display server connection status on secondary masters
+  debug:
+    msg: "{{ server_status.stdout_lines }}"
+  when: not k3s_primary_control_node | default(true)

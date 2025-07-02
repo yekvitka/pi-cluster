@@ -1,0 +1,69 @@
+---
+# Fix egress selector configuration on secondary masters
+
+- name: Check if egress-selector-config.yaml exists
+  stat:
+    path: /var/lib/rancher/k3s/server/etc/egress-selector-config.yaml
+  register: egress_file
+
+- name: Backup existing egress-selector-config.yaml
+  copy:
+    src: /var/lib/rancher/k3s/server/etc/egress-selector-config.yaml
+    dest: /var/lib/rancher/k3s/server/etc/egress-selector-config.yaml.bak
+    remote_src: true
+  when: egress_file.stat.exists
+
+- name: Fix egress-selector-config.yaml
+  replace:
+    path: /var/lib/rancher/k3s/server/etc/egress-selector-config.yaml
+    regexp: '127\.0\.0\.1'
+    replace: '{{ hostvars[groups["k3s_master"][0]].ansible_host }}'
+  when: egress_file.stat.exists
+  register: egress_fixed
+
+- name: Check if dynamic-cert.json exists
+  stat:
+    path: /var/lib/rancher/k3s/server/tls/dynamic-cert.json
+    get_attributes: no
+    get_checksum: no
+    get_mime: no
+  register: dynamic_cert_file
+
+- name: Backup existing dynamic-cert.json
+  copy:
+    src: /var/lib/rancher/k3s/server/tls/dynamic-cert.json
+    dest: /var/lib/rancher/k3s/server/tls/dynamic-cert.json.bak
+    remote_src: true
+  when: dynamic_cert_file.stat.exists
+
+- name: Fix dynamic-cert.json
+  replace:
+    path: /var/lib/rancher/k3s/server/tls/dynamic-cert.json
+    regexp: '127\.0\.0\.1'
+    replace: '{{ hostvars[groups["k3s_master"][0]].ansible_host }}'
+  when: dynamic_cert_file.stat.exists
+  register: dynamic_cert_fixed
+
+- name: Find all config files with 127.0.0.1 references
+  shell: find /var/lib/rancher/k3s -type f -name "*.yaml" -o -name "*.json" | xargs grep -l "127.0.0.1" || echo "No files found"
+  register: ip_files
+  changed_when: false
+
+- name: Display files with 127.0.0.1
+  debug:
+    msg: "Files still containing 127.0.0.1: {{ ip_files.stdout_lines }}"
+
+- name: Fix any remaining files with 127.0.0.1
+  replace:
+    path: "{{ item }}"
+    regexp: '127\.0\.0\.1'
+    replace: '{{ hostvars[groups["k3s_master"][0]].ansible_host }}'
+  with_items: "{{ ip_files.stdout_lines }}"
+  when: ip_files.stdout != "No files found"
+  register: other_files_fixed
+
+- name: Restart k3s if any files were fixed
+  systemd:
+    name: k3s
+    state: restarted
+  when: egress_fixed.changed|default(false) or dynamic_cert_fixed.changed|default(false) or other_files_fixed.changed|default(false)

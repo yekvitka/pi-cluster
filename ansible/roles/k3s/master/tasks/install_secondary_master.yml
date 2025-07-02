@@ -1,0 +1,248 @@
+---
+# This file incorporates fixes from reset_secondary_masters.yml
+# to ensure secondary masters join the cluster properly
+
+- name: Stop existing k3s service if running
+  systemd:
+    name: k3s
+    state: stopped
+  ignore_errors: true
+
+- name: Backup K3s data
+  shell: |
+    if [ -d "/var/lib/rancher/k3s" ]; then
+      timestamp=$(date +%Y%m%d%H%M%S)
+      mkdir -p /root/k3s_backup_$timestamp
+      cp -r /etc/rancher/k3s /root/k3s_backup_$timestamp/ 2>/dev/null || true
+      cp -r /var/lib/rancher/k3s/server/token /root/k3s_backup_$timestamp/ 2>/dev/null || true
+    fi
+  changed_when: true
+
+- name: Check if primary master k3s is running
+  shell: "systemctl is-active k3s"
+  register: k3s_status
+  delegate_to: "{{ groups['k3s_master'][0] }}"
+  changed_when: false
+  ignore_errors: true
+  
+- name: Ensure k3s is running on primary master
+  fail:
+    msg: "K3s is not running on primary master ({{ groups['k3s_master'][0] }}). Please start it first."
+  when: k3s_status.stdout != "active"
+  
+- name: Reset etcd on primary master - remove secondary as member
+  shell: |
+    set +e
+    echo "Checking etcd members..."
+    ETCD_POD=$(kubectl get pods -n kube-system | grep etcd | head -n 1 | awk '{print $1}')
+    if [ -z "$ETCD_POD" ]; then
+      echo "No etcd pod found. Cluster may not be initialized yet."
+      exit 0
+    fi
+    
+    kubectl exec -n kube-system $ETCD_POD -- etcdctl --endpoints=https://127.0.0.1:2379 \
+      --cacert=/var/lib/rancher/k3s/server/tls/etcd/server-ca.crt \
+      --cert=/var/lib/rancher/k3s/server/tls/etcd/server-client.crt \
+      --key=/var/lib/rancher/k3s/server/tls/etcd/server-client.key member list
+    
+    MEMBER_ID=$(kubectl exec -n kube-system $ETCD_POD -- etcdctl --endpoints=https://127.0.0.1:2379 \
+      --cacert=/var/lib/rancher/k3s/server/tls/etcd/server-ca.crt \
+      --cert=/var/lib/rancher/k3s/server/tls/etcd/server-client.crt \
+      --key=/var/lib/rancher/k3s/server/tls/etcd/server-client.key member list | grep {{ ansible_host }} | awk -F', ' '{print $1}')
+    
+    if [ ! -z "$MEMBER_ID" ]; then
+      echo "Removing etcd member $MEMBER_ID for {{ ansible_host }}..."
+      kubectl exec -n kube-system $ETCD_POD -- etcdctl --endpoints=https://127.0.0.1:2379 \
+        --cacert=/var/lib/rancher/k3s/server/tls/etcd/server-ca.crt \
+        --cert=/var/lib/rancher/k3s/server/tls/etcd/server-client.crt \
+        --key=/var/lib/rancher/k3s/server/tls/etcd/server-client.key member remove $MEMBER_ID
+    else
+      echo "No etcd member found for {{ ansible_host }}"
+    fi
+    set -e
+    exit 0
+  delegate_to: "{{ groups['k3s_master'][0] }}"
+  register: etcd_reset
+  changed_when: true
+  ignore_errors: true
+  
+- name: Display etcd reset result
+  debug:
+    msg: "{{ etcd_reset.stdout_lines }}"
+    
+- name: Remove existing K3s data for clean install
+  shell: |
+    # Stop any running containers
+    if command -v k3s-killall.sh &>/dev/null; then
+      k3s-killall.sh || true
+    fi
+    
+    # Remove K3s data directories
+    rm -rf /var/lib/rancher/k3s/server || true
+    rm -rf /etc/rancher/k3s/* || true
+    rm -rf /var/lib/kubelet/* || true
+    rm -rf /var/lib/rancher/k3s/agent || true
+    
+    # Clean up any leftover mounts
+    for mount in $(mount | grep tmpfs | grep '/var/lib/kubelet' | awk '{ print $3 }'); do
+      umount $mount || true
+    done
+  changed_when: true
+
+- name: Create K3s config directory
+  file:
+    path: /etc/rancher/k3s
+    state: directory
+    mode: '0755'
+
+- name: Create K3s config file for secondary master
+  copy:
+    dest: /etc/rancher/k3s/config.yaml
+    content: |
+      server: https://{{ hostvars[groups['k3s_master'][0]].ansible_host }}:6443
+      token-file: {{ k3s_token_file }}
+      tls-san:
+        - {{ ansible_host }}
+        - {{ ansible_hostname }}
+        - {{ inventory_hostname }}
+      disable:
+        - local-storage
+      node-ip: {{ ansible_host }}
+      node-external-ip: {{ ansible_host }}
+      flannel-iface: {{ ansible_default_ipv4.interface | default('eth0') }}
+    mode: '0600'
+
+- name: Ensure token directory exists
+  file:
+    path: /var/lib/rancher/k3s/server
+    state: directory
+    mode: '0755'
+
+- name: Retrieve token from primary master
+  ansible.builtin.slurp:
+    src: /var/lib/rancher/k3s/server/token
+  register: k3s_token_b64
+  delegate_to: "{{ groups['k3s_master'][0] }}"
+  
+- name: Fail if token is empty or invalid
+  fail:
+    msg: "Could not retrieve valid K3s token from primary master"
+  when: k3s_token_b64['content'] is not defined or k3s_token_b64['content'] | b64decode | length < 5
+  
+- name: Write token to file
+  ansible.builtin.copy:
+    content: "{{ k3s_token_b64['content'] | b64decode }}"
+    dest: "{{ k3s_token_file }}"
+    mode: '0600'
+    
+- name: Verify token file is created and not empty
+  stat:
+    path: "{{ k3s_token_file }}"
+  register: token_file_stat
+
+- name: Check token file content
+  shell: "cat {{ k3s_token_file }} | wc -c"
+  register: token_file_size
+  changed_when: false
+  
+- name: Display token file information
+  debug:
+    msg: "Token file exists: {{ token_file_stat.stat.exists }}, Size: {{ token_file_size.stdout }} bytes"
+    
+- name: Fail if token file is empty or missing
+  fail:
+    msg: "K3s token file is empty or missing"
+  when: not token_file_stat.stat.exists or token_file_size.stdout | int < 5
+
+# Continue with standard installation
+- name: Get K3s installation script
+  get_url:
+    url: https://get.k3s.io
+    dest: /tmp/k3s_install.sh
+    mode: '0766'
+
+- name: Install K3s on secondary master
+  shell: |
+    export INSTALL_K3S_VERSION="{{ k3s_version }}"
+    export K3S_TOKEN_FILE="{{ k3s_token_file }}"
+    export INSTALL_K3S_EXEC="server --server https://{{ hostvars[groups['k3s_master'][0]].ansible_host }}:6443"
+    /tmp/k3s_install.sh
+  args:
+    executable: /bin/bash
+  changed_when: true
+
+- name: Wait for the service to stabilize
+  wait_for:
+    timeout: 10
+
+# Fix any 127.0.0.1 references
+- name: Find any files with 127.0.0.1 after install
+  shell: find /var/lib/rancher/k3s -type f \( -name "*.yaml" -o -name "*.json" -o -name "*.conf" \) -exec grep -l "127.0.0.1" {} \; || echo "No files found"
+  register: ip_files
+  changed_when: false
+  
+- name: Display files with 127.0.0.1
+  debug:
+    msg: "Files containing 127.0.0.1: {{ ip_files.stdout_lines }}"
+    
+- name: Fix any files with 127.0.0.1
+  replace:
+    path: "{{ item }}"
+    regexp: '127\.0\.0\.1'
+    replace: '{{ hostvars[groups["k3s_master"][0]].ansible_host }}'
+  with_items: "{{ ip_files.stdout_lines }}"
+  when: ip_files.stdout != "No files found"
+  register: files_fixed
+  
+- name: Restart k3s if files were fixed
+  systemd:
+    name: k3s
+    state: restarted
+    daemon_reload: true
+  when: files_fixed.changed | default(false)
+
+- name: Wait for K3s to register with the cluster
+  shell: |
+    for i in {1..30}; do
+      if systemctl is-active k3s >/dev/null; then
+        echo "K3s service is active"
+        break
+      fi
+      echo "Waiting for k3s service to become active (attempt $i/30)..."
+      sleep 10
+    done
+    
+    # Force reload just to be sure
+    systemctl daemon-reload
+    systemctl restart k3s
+    sleep 5
+    
+    # Final check
+    if ! systemctl is-active k3s >/dev/null; then
+      echo "ERROR: K3s service failed to start"
+      systemctl status k3s
+      exit 1
+    fi
+  register: service_wait
+  changed_when: true
+
+- name: Final check of K3s status
+  shell: "systemctl status k3s | tail -n 20"
+  register: k3s_status
+  changed_when: false
+  
+- name: Display K3s status
+  debug:
+    msg: "{{ k3s_status.stdout_lines }}"
+
+- name: Check for node registration on primary master
+  shell: |
+    kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml get node {{ inventory_hostname }} || echo "Node not registered yet"
+  delegate_to: "{{ groups['k3s_master'][0] }}"
+  register: node_check
+  changed_when: false
+  ignore_errors: true
+
+- name: Display node registration status
+  debug:
+    msg: "{{ node_check.stdout_lines }}"

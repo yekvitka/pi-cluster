@@ -1,6 +1,9 @@
 ---
 # Group all variables.
 
+# Ansible debugging flags
+debug_mode: false  # Set to true for verbose debugging output (use -e debug_mode=true)
+
 # Remote user name
 ansible_user: root
 

@@ -1,0 +1,53 @@
+#!/bin/bash
+# K3s Agent Wrapper Script
+# This script tries multiple endpoints for connecting to K3s API
+
+# Primary endpoint (HAProxy)
+PRIMARY_SERVER="https://{{ k3s_api_vip }}:6443"
+
+# Secondary endpoints (direct to masters)
+{% for host in groups['k3s_master'] %}
+MASTER{{ loop.index }}_SERVER="https://{{ hostvars[host].ansible_host }}:6443"
+{% endfor %}
+
+# Check if an endpoint is reachable
+check_endpoint() {
+    local endpoint=$1
+    echo "Checking endpoint: $endpoint"
+    if curl -k --connect-timeout 5 "$endpoint/healthz" &>/dev/null; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+# Find the first working endpoint
+find_working_endpoint() {
+    # Try primary first
+    if check_endpoint "$PRIMARY_SERVER"; then
+        echo "$PRIMARY_SERVER"
+        return
+    fi
+    
+    # Try masters directly
+    {% for host in groups['k3s_master'] %}
+    if check_endpoint "$MASTER{{ loop.index }}_SERVER"; then
+        echo "$MASTER{{ loop.index }}_SERVER"
+        return
+    fi
+    {% endfor %}
+    
+    # If all failed, return primary anyway
+    echo "$PRIMARY_SERVER"
+}
+
+# Get working server endpoint
+WORKING_SERVER=$(find_working_endpoint)
+echo "Using K3s API endpoint: $WORKING_SERVER"
+
+# Export environment variables
+export K3S_URL="$WORKING_SERVER"
+export K3S_TOKEN="$(cat {{ k3s_token_file }})"
+
+# Execute the real k3s agent
+exec /usr/local/bin/k3s agent "$@"

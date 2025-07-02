@@ -10,18 +10,17 @@ global
 
 defaults
   log global
-  mode tcp
-  option tcplog
+  mode http
+  option httplog
   option dontlognull
   retries 3
+  timeout http-request 10s
   timeout queue 20s
   timeout connect 10s
   timeout client 1h
   timeout server 1h
+  timeout http-keep-alive 10s
   timeout check 10s
-  # HTTP-specific timeout lines like 'timeout http-request' and 'timeout http-keep-alive' removed
-
-  # Error files remain; note that in TCP mode they won't be used for L7 errors
   errorfile 400 /etc/haproxy/errors/400.http
   errorfile 403 /etc/haproxy/errors/403.http
   errorfile 408 /etc/haproxy/errors/408.http
@@ -40,13 +39,14 @@ frontend k8s_apiserver
     default_backend k8s_controlplane
 
 #---------------------------------------------------------------------
-# round robin balancing for apiserver (TCP mode, no HTTP checks)
+# round robin balancing for apiserver
 #---------------------------------------------------------------------
 backend k8s_controlplane
+    option httpchk GET /healthz
+    http-check expect status 200
     mode tcp
-    balance roundrobin
-    option ssl-hello-chk   # or 'option tcp-check' if you prefer a plain TCP check
-
+    option ssl-hello-chk
+    balance     roundrobin
 {% for host in groups['k3s_master'] %}
     server {{ host }} {{ hostvars[host].ansible_host }}:6443 check
 {% endfor %}

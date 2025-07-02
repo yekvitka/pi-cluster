@@ -17,6 +17,10 @@
   
   # k3s config directory
   k3s_config_directory: /etc/rancher/k3s
+  k3s_config_dir: /etc/rancher/k3s
+  k3s_config_file: "{{ k3s_config_dir }}/config.yaml" 
+  k3s_token_file: "{{ k3s_config_dir }}/cluster-token"
+  k3s_registries_file: "{{ k3s_config_dir }}/registries.yaml"
   
   # kubelet configuration
   k3s_kubelet_config: |
@@ -46,8 +50,7 @@
       # - coredns
       # - metrics-server
   
-    tls-san:
-      - "{{ k3s_api_vip }}"  # IP to HAProxy
+    # tls-san is now configured directly in the template for dynamic discovery
   
     # Allows 0644 kubeconfig so that you can read it easily
     write-kubeconfig-mode: 644
@@ -355,4 +358,3 @@
   #######################
   
   gateway_hostname: "gateway.{{ dns_domain }}"
-  

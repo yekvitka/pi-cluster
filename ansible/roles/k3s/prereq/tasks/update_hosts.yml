@@ -1,0 +1,10 @@
+---
+# Add all nodes to /etc/hosts to ensure proper name resolution
+
+- name: Ensure all cluster nodes are in hosts file
+  lineinfile:
+    path: /etc/hosts
+    regexp: "^{{ hostvars[item].ansible_host }}\\s+{{ item }}.*"
+    line: "{{ hostvars[item].ansible_host }} {{ item }}"
+    state: present
+  loop: "{{ groups['picluster'] }}"
