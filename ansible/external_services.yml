@@ -15,7 +15,32 @@
     # Include picluster variables
     - name: Include picluster variables
       include_vars: "vars/picluster.yml"
-
+      
+    # Add entries to /etc/hosts file for local resolution
+    - name: Add entries to hosts file for s3 and vault
+      become: true
+      lineinfile:
+        path: /etc/hosts
+        regexp: "{{ item.domain }}$"
+        line: "{{ node1_ip }} {{ item.domain }}"
+        state: present
+      loop:
+        - { domain: "{{ minio_hostname }}" }
+        - { domain: "{{ vault_hostname }}" }
+        
+    # Also add entries to node1's hosts file
+    - name: Add entries to node1 hosts file for s3 and vault
+      delegate_to: node1
+      become: true
+      lineinfile:
+        path: /etc/hosts
+        regexp: "{{ item.domain }}$"
+        line: "127.0.0.1 {{ item.domain }}"
+        state: present
+      loop:
+        - { domain: "{{ minio_hostname }}" }
+        - { domain: "{{ vault_hostname }}" }
+        
     - name: Copy ionos secret file
       template:
         src: "{{ item.template }}"
@@ -271,13 +296,24 @@
       become: false
       register: vault_login
 
+    # Create write policy
+    - name: Include create_vault_policy task
+      include_tasks:
+        file: tasks/create_vault_policy.yml
+
     # Create write token
     - name: Create KV write token
       community.hashi_vault.vault_token_create:
         url: "https://{{ vault_dns }}:8200"
         policies: ["write"]
+        validate_certs: false
       register: token_data
       become: false
+      
+    - name: Debug token creation
+      debug:
+        msg: "Token created successfully"
+        verbosity: 1
     # Load ansible vault variables into Hashicorp Vault Server
     - name: Load vault credentials
       include_tasks:

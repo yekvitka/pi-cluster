@@ -1,0 +1,30 @@
+---
+# Create a policy that allows write access to the secret path
+- name: Create write policy in Vault
+  ansible.builtin.uri:
+    url: "https://{{ vault_dns }}:8200/v1/sys/policies/acl/write"
+    method: PUT
+    headers:
+      X-Vault-Token: "{{ vault_login.stdout_lines[6] | regex_replace('token\\s+', '') }}"
+    body:
+      policy: |
+        # Allow read and write access to the KV secret store for KV v2 engine
+        path "secret/*" {
+          capabilities = ["create", "read", "update", "delete", "list"]
+        }
+        path "secret/data/*" {
+          capabilities = ["create", "read", "update", "delete", "list"]
+        }
+        path "secret/metadata/*" {
+          capabilities = ["list", "read"]
+        }
+    body_format: json
+    validate_certs: false
+    status_code: [200, 204]
+  become: false
+  register: vault_write_policy_result
+
+- name: Debug Vault write policy result
+  debug:
+    var: vault_write_policy_result
+    verbosity: 1

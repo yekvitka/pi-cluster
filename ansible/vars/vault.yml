@@ -15,11 +15,44 @@ vault:
     basic_auth:
       user: admin
       passwd: s1cret0
+  # Ingress secrets
+  ingress:
+    admin:
+      user: admin
+      password: s1cret0
   # Minio S3 secrets
   minio:
     root:
+      user: minioadmin
+      password: minioadmin
+    admin:
+      user: admin
+      password: adminpassword
+    restic:
+      user: restic
+      key: restic12345678
+    longhorn:
+      user: longhorn
+      key: longhorn12345678
+    velero:
+      user: velero
+      key: velero12345678
+    loki:
+      user: loki
+      key: loki12345678
+    tempo:
+      user: tempo
+      key: tempo12345678
+    barman:
+      user: barman
+      key: barman12345678
+  # Vault secrets
+  vault:
+    root:
+      token: root_token
+    unseal:
+      key: unseal_key
       user: root
-      key: supers1cret0
     restic:
       user: restic
       key: supers1cret0
@@ -48,7 +81,8 @@ vault:
       password: s1cret0
   # Fluentd
   fluentd:
-    shared_key: s1cret0
+    shared_key:
+      value: s1cret0
   # Grafana
   grafana:
     admin:

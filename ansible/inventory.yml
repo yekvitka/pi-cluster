@@ -9,9 +9,7 @@ all:
           ansible_connection: local
     external:
       hosts:
-        s3:
-          hostname: s3
-          ansible_host: s3.ricsanfre.com
+        # Removing external s3 and vault hosts as they'll be hosted on node1
     picluster:
       hosts:
         node1:
@@ -63,6 +61,9 @@ all:
       hosts:
         node1:
     vault:
+      hosts:
+        node1:
+    s3:
       hosts:
         node1:
     haproxy:
