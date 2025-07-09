@@ -1,0 +1,43 @@
+---
+# Playbook for backing up k3s cluster to MinIO
+- name: Backup K3s Cluster to MinIO
+  hosts: k3s_master[0]  # Run on first master node (node2)
+  gather_facts: true
+  become: true
+  tasks:
+    - name: Check if MinIO client is installed
+      command: which mc
+      register: mc_check
+      failed_when: false
+      changed_when: false
+
+    - name: Download and install MinIO client
+      block:
+        - name: Create installation directory
+          file:
+            path: "/tmp/mc-install"
+            state: directory
+            mode: '0755'
+          when: mc_check.rc != 0
+
+        - name: Download MinIO client for ARM64
+          get_url:
+            url: https://dl.min.io/client/mc/release/linux-arm64/mc
+            dest: /usr/local/bin/mc
+            mode: '0755'
+          when: mc_check.rc != 0
+      when: mc_check.rc != 0
+
+    - name: Copy backup script
+      copy:
+        src: "{{ playbook_dir }}/../k3s-backup.sh"
+        dest: "/tmp/k3s-backup.sh"
+        mode: '0755'
+      
+    - name: Execute backup script
+      command: /tmp/k3s-backup.sh
+      register: backup_output
+      
+    - name: Show backup output
+      debug:
+        var: backup_output.stdout_lines

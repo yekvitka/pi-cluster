@@ -1,0 +1,32 @@
+---
+# Playbook for installing Rancher on k3s using a shell script
+- name: Install Rancher on k3s
+  hosts: k3s_master[0]  # Run on first master node (node2)
+  gather_facts: true
+  become: true
+  vars:
+    rancher_namespace: cattle-system
+    rancher_hostname: rancher.picluster.local
+
+  pre_tasks:
+    # Include picluster variables
+    - name: Include picluster variables
+      include_vars: "vars/picluster.yml"
+
+  tasks:
+    # Copy the installation script to node2
+    - name: Copy Rancher installation script
+      copy:
+        src: files/install_rancher.sh
+        dest: /tmp/install_rancher.sh
+        mode: '0755'
+      
+    # Execute the installation script
+    - name: Execute Rancher installation script
+      command: /tmp/install_rancher.sh
+      register: script_output
+      
+    # Show the script output
+    - name: Display script output
+      debug:
+        var: script_output.stdout_lines

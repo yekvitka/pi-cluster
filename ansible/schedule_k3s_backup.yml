@@ -1,0 +1,57 @@
+---
+# Playbook for scheduling regular k3s cluster backups to MinIO
+- name: Schedule Regular K3s Cluster Backups
+  hosts: k3s_master[0]  # Run on first master node (node2)
+  gather_facts: true
+  become: true
+  vars:
+    backup_schedule: "0 3 * * *"  # Default: Daily at 3:00 AM
+    backup_script_path: "/opt/k3s-backup/k3s-backup.sh"
+  tasks:
+    - name: Check if MinIO client is installed
+      command: which mc
+      register: mc_check
+      failed_when: false
+      changed_when: false
+
+    - name: Download and install MinIO client
+      block:
+        - name: Download MinIO client for ARM64
+          get_url:
+            url: https://dl.min.io/client/mc/release/linux-arm64/mc
+            dest: /usr/local/bin/mc
+            mode: '0755'
+          when: mc_check.rc != 0
+      when: mc_check.rc != 0
+
+    - name: Create backup directory
+      file:
+        path: "/opt/k3s-backup"
+        state: directory
+        mode: '0755'
+
+    - name: Copy backup script
+      copy:
+        src: "{{ playbook_dir }}/../k3s-backup.sh"
+        dest: "{{ backup_script_path }}"
+        mode: '0755'
+
+    - name: Set up cron job for regular backups
+      cron:
+        name: "K3s Cluster Backup"
+        minute: "{{ backup_schedule.split(' ')[0] }}"
+        hour: "{{ backup_schedule.split(' ')[1] }}"
+        day: "{{ backup_schedule.split(' ')[2] }}"
+        month: "{{ backup_schedule.split(' ')[3] }}"
+        weekday: "{{ backup_schedule.split(' ')[4] }}"
+        job: "{{ backup_script_path }}"
+        user: root
+
+    - name: Verify script is executable
+      file:
+        path: "{{ backup_script_path }}"
+        mode: '0755'
+
+    - name: Display backup schedule information
+      debug:
+        msg: "K3s backup has been scheduled to run {{ backup_schedule }} (Crontab format)"

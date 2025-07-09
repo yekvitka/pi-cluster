@@ -1,0 +1,19 @@
+---
+# Add Rancher DNS entry to all nodes
+- name: Configure Rancher DNS
+  hosts: k3s_cluster:control
+  become: true
+  vars:
+    rancher_hostname: "rancher.picluster.local"
+  tasks:
+    # Include picluster variables
+    - name: Include picluster variables
+      include_vars: "vars/picluster.yml"
+
+    # Add local DNS entry for rancher
+    - name: Add entry to hosts file for rancher
+      lineinfile:
+        path: /etc/hosts
+        regexp: "{{ rancher_hostname }}$"
+        line: "{{ k3s_api_vip }} {{ rancher_hostname }}"
+        state: present

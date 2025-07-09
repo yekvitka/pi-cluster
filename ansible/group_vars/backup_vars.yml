@@ -1,0 +1,23 @@
+---
+# Restic repository configuration
+restic_repository: "s3:https://{{ minio_hostname }}:9091/restic?s3.signature=v4&s3.path-style=true"
+restic_password: "{{ vault.minio.restic.key }}"
+restic_environment:
+  - name: AWS_ACCESS_KEY_ID
+    value: "{{ vault.minio.restic.user }}"
+  - name: AWS_SECRET_ACCESS_KEY
+    value: "{{ vault.minio.restic.key }}"
+restic_use_ca_cert: true
+restic_ca_cert_file: "/etc/restic/ssl/CA.pem"
+
+# Backup directories
+backup_directories:
+  - /etc
+  - /root
+  - /home
+
+# Restic backup excludes
+backup_excludes:
+  - "*.cache/*"
+  - "*Cache*"
+  - "*/ansible/*"

@@ -105,6 +105,7 @@
         - {{ ansible_host }}
         - {{ ansible_hostname }}
         - {{ inventory_hostname }}
+        - "192.168.50.201"
       disable:
         - local-storage
       node-ip: {{ ansible_host }}
