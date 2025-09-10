@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Rancher UI Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            line-height: 1.6;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 15px;
+            background-color: #0075a8;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            margin: 10px 5px;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+            min-height: 100px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Rancher UI Diagnostic Tool</h1>
+    
+    <p>This tool helps diagnose issues with accessing the Rancher UI.</p>
+    
+    <h2>Access Tests</h2>
+    
+    <a href="https://rancher.picluster.local/dashboard/" class="button" target="_blank">Test HTTPS Access</a>
+    <a href="http://rancher.picluster.local/dashboard/" class="button" target="_blank">Test HTTP Access</a>
+    <a href="https://rancher.picluster.local/ping" class="button" target="_blank">Test API Ping</a>
+    
+    <h2>Browser Information</h2>
+    <pre id="browserInfo">JavaScript is not enabled!</pre>
+    
+    <h2>Network Tests</h2>
+    <button class="button" onclick="testFetch()">Test Fetch API</button>
+    <div class="result" id="fetchResult">Click the button to test...</div>
+    
+    <script>
+        // Display browser information
+        const browserInfoElement = document.getElementById('browserInfo');
+        browserInfoElement.textContent = `
+User Agent: ${navigator.userAgent}
+Platform: ${navigator.platform}
+Cookies Enabled: ${navigator.cookieEnabled}
+Language: ${navigator.language}
+Online: ${navigator.onLine}
+`;
+        
+        // Test fetch API
+        async function testFetch() {
+            const resultElement = document.getElementById('fetchResult');
+            resultElement.textContent = 'Testing...';
+            
+            try {
+                // Try to fetch with https first
+                const response = await fetch('https://rancher.picluster.local/ping', {
+                    method: 'GET',
+                    mode: 'no-cors',
+                });
+                
+                resultElement.textContent = `HTTPS Test Success: 
+Response status: ${response.status}
+Response type: ${response.type}`;
+                
+            } catch (error) {
+                resultElement.textContent = `HTTPS Test Error: ${error.message}\n\nTrying HTTP instead...`;
+                
+                try {
+                    // If https fails, try http
+                    const httpResponse = await fetch('http://rancher.picluster.local/ping', {
+                        method: 'GET',
+                        mode: 'no-cors',
+                    });
+                    
+                    resultElement.textContent += `\n\nHTTP Test Success: 
+Response status: ${httpResponse.status}
+Response type: ${httpResponse.type}`;
+                    
+                } catch (httpError) {
+                    resultElement.textContent += `\n\nHTTP Test Error: ${httpError.message}`;
+                }
+            }
+        }
+    </script>
+</body>
+</html>
