@@ -1,0 +1,122 @@
+---
+# Playbook to deploy essential services to the K3s cluster
+- name: Deploy K3s Cluster Services
+  hosts: node2
+  gather_facts: false
+  tasks:
+    - name: Copy resource quotas file
+      copy:
+        src: files/resource-quotas.yaml
+        dest: /tmp/resource-quotas.yaml
+        mode: '0644'
+
+    - name: Create required namespaces
+      shell: |
+        kubectl create namespace longhorn-system --dry-run=client -o yaml | kubectl apply -f -
+        kubectl create namespace observability --dry-run=client -o yaml | kubectl apply -f -
+        kubectl create namespace flux-system --dry-run=client -o yaml | kubectl apply -f -
+      ignore_errors: yes
+
+    - name: Apply resource quotas
+      shell: >
+        kubectl apply -f /tmp/resource-quotas.yaml
+      ignore_errors: yes
+
+    - name: Add Helm repositories
+      shell: |
+        helm repo add longhorn https://charts.longhorn.io
+        helm repo add grafana https://grafana.github.io/helm-charts
+        helm repo add fluxcd https://charts.fluxcd.io
+        helm repo update
+      ignore_errors: yes
+
+    - name: Deploy Longhorn
+      block:
+        - name: Check if Longhorn is already installed
+          shell: helm list -n longhorn-system | grep longhorn
+          register: longhorn_installed
+          failed_when: false
+          changed_when: false
+
+        - name: Uninstall Longhorn if it exists
+          shell: helm uninstall longhorn -n longhorn-system
+          when: longhorn_installed.rc == 0
+          ignore_errors: yes
+
+        - name: Install Longhorn with resource limits
+          shell: >
+            helm install longhorn longhorn/longhorn --namespace longhorn-system --set service.ui.nodePort=30100 --set persistence.defaultClass=true
+          ignore_errors: yes
+
+    - name: Wait for Longhorn to start (30 seconds)
+      pause:
+        seconds: 30
+
+    - name: Deploy Observability Stack
+      block:
+        - name: Check if Loki is already installed
+          shell: helm list -n observability | grep loki
+          register: loki_installed
+          failed_when: false
+          changed_when: false
+
+        - name: Uninstall Loki if it exists
+          shell: helm uninstall loki -n observability
+          when: loki_installed.rc == 0
+          ignore_errors: yes
+
+        - name: Install Loki Stack with resource limits
+          shell: >
+            helm install loki grafana/loki-stack --namespace observability --set loki.persistence.enabled=true --set loki.persistence.size=10Gi --set promtail.enabled=true --set promtail.resources.limits.cpu=100m --set promtail.resources.limits.memory=128Mi
+          ignore_errors: yes
+
+        - name: Check if Tempo is already installed
+          shell: helm list -n observability | grep tempo
+          register: tempo_installed
+          failed_when: false
+          changed_when: false
+
+        - name: Uninstall Tempo if it exists
+          shell: helm uninstall tempo -n observability
+          when: tempo_installed.rc == 0
+          ignore_errors: yes
+
+        - name: Install Tempo with resource limits
+          shell: >
+            helm install tempo grafana/tempo --namespace observability --set persistence.enabled=true --set persistence.size=5Gi
+          ignore_errors: yes
+
+    - name: Wait for Observability stack to start (30 seconds)
+      pause:
+        seconds: 30
+
+    - name: Deploy FluxCD
+      block:
+        - name: Check if FluxCD is already installed
+          shell: helm list -n flux-system | grep flux
+          register: flux_installed
+          failed_when: false
+          changed_when: false
+
+        - name: Uninstall FluxCD if it exists
+          shell: helm uninstall flux -n flux-system
+          when: flux_installed.rc == 0
+          ignore_errors: yes
+
+        - name: Install FluxCD with GitHub integration
+          shell: >
+            helm install flux fluxcd/flux --namespace flux-system 
+            --set git.url=git@github.com:yekvitka/pi-cluster.git 
+            --set git.branch=master 
+            --set git.path=kubernetes 
+            --set git.user="yekvitka" 
+            --set git.email="kvitka.jr@gmail.com"
+            --set resources.requests.cpu=50m
+            --set resources.requests.memory=64Mi
+            --set resources.limits.cpu=200m
+            --set resources.limits.memory=512Mi
+          ignore_errors: yes
+
+    - name: Wait for all deployments to complete (30 seconds)
+      pause:
+        seconds: 30

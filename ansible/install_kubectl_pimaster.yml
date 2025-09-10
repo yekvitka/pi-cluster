@@ -1,0 +1,13 @@
+---
+- hosts: pimaster
+  become: yes
+  tasks:
+    - name: Install kubectl on pimaster
+      include_role:
+        name: ricsanfre.k8s_cli
+      vars:
+        install_kubectl: true
+        install_helm: true
+        k8s_platform: linux
+        k8s_arch: arm64
+        kubectl_version: "1.28.8"

@@ -1,0 +1,194 @@
+---
+# Playbook to optimize resource usage in K3s cluster
+- name: Optimize K3s Cluster Resources
+  hosts: node2
+  gather_facts: false
+  tasks:
+    - name: Optimize CoreDNS resources
+      shell: >
+        kubectl -n kube-system patch deployment coredns -p '{
+          "spec": {
+            "template": {
+              "spec": {
+                "containers": [
+                  {
+                    "name": "coredns",
+                    "resources": {
+                      "requests": {
+                        "cpu": "100m",
+                        "memory": "70Mi"
+                      },
+                      "limits": {
+                        "cpu": "200m",
+                        "memory": "170Mi"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }'
+      ignore_errors: yes
+
+    - name: Optimize Traefik resources
+      shell: >
+        kubectl -n kube-system patch deployment traefik -p '{
+          "spec": {
+            "template": {
+              "spec": {
+                "containers": [
+                  {
+                    "name": "traefik",
+                    "resources": {
+                      "requests": {
+                        "cpu": "100m",
+                        "memory": "100Mi"
+                      },
+                      "limits": {
+                        "cpu": "200m",
+                        "memory": "200Mi"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }'
+      ignore_errors: yes
+
+    - name: Optimize FluxCD resources
+      shell: >
+        kubectl -n flux-system patch deployment flux -p '{
+          "spec": {
+            "template": {
+              "spec": {
+                "containers": [
+                  {
+                    "name": "flux",
+                    "resources": {
+                      "requests": {
+                        "cpu": "50m",
+                        "memory": "128Mi"
+                      },
+                      "limits": {
+                        "cpu": "200m",
+                        "memory": "512Mi"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }'
+      ignore_errors: yes
+      
+    - name: Optimize Longhorn UI resources
+      shell: >
+        kubectl -n longhorn-system patch deployment longhorn-ui -p '{
+          "spec": {
+            "template": {
+              "spec": {
+                "containers": [
+                  {
+                    "name": "longhorn-ui",
+                    "resources": {
+                      "requests": {
+                        "cpu": "100m",
+                        "memory": "128Mi"
+                      },
+                      "limits": {
+                        "cpu": "200m",
+                        "memory": "256Mi"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }'
+      ignore_errors: yes
+      
+    - name: Optimize Loki resources
+      shell: >
+        kubectl -n observability patch deployment loki -p '{
+          "spec": {
+            "template": {
+              "spec": {
+                "containers": [
+                  {
+                    "name": "loki",
+                    "resources": {
+                      "requests": {
+                        "cpu": "100m",
+                        "memory": "256Mi"
+                      },
+                      "limits": {
+                        "cpu": "300m",
+                        "memory": "512Mi"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }'
+      ignore_errors: yes
+      
+    - name: Optimize Prometheus resources
+      shell: >
+        kubectl -n observability patch deployment prometheus-server -p '{
+          "spec": {
+            "template": {
+              "spec": {
+                "containers": [
+                  {
+                    "name": "prometheus-server",
+                    "resources": {
+                      "requests": {
+                        "cpu": "200m",
+                        "memory": "512Mi"
+                      },
+                      "limits": {
+                        "cpu": "500m",
+                        "memory": "1Gi"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }'
+      ignore_errors: yes
+      
+    - name: Optimize Grafana resources
+      shell: >
+        kubectl -n observability patch deployment grafana -p '{
+          "spec": {
+            "template": {
+              "spec": {
+                "containers": [
+                  {
+                    "name": "grafana",
+                    "resources": {
+                      "requests": {
+                        "cpu": "100m",
+                        "memory": "128Mi"
+                      },
+                      "limits": {
+                        "cpu": "200m",
+                        "memory": "256Mi"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }'
+      ignore_errors: yes

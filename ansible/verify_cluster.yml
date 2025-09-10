@@ -1,0 +1,71 @@
+---
+# Playbook to verify K3s cluster status
+- name: Verify K3s Cluster Status
+  hosts: node2
+  gather_facts: false
+  tasks:
+    - name: Check node status
+      shell: >
+        kubectl get nodes -o wide
+      register: nodes_status
+      ignore_errors: yes
+
+    - name: Display node status
+      debug:
+        msg: "{{ nodes_status.stdout_lines }}"
+      when: nodes_status.stdout_lines is defined
+
+    - name: Check key system components
+      shell: >
+        kubectl get pods -n kube-system | grep -E "coredns|metrics-server|traefik"
+      register: system_components
+      ignore_errors: yes
+
+    - name: Display system components
+      debug:
+        msg: "{{ system_components.stdout_lines }}"
+      when: system_components.stdout_lines is defined
+
+    - name: Check Longhorn status
+      shell: >
+        kubectl get pods -n longhorn-system
+      register: longhorn_status
+      ignore_errors: yes
+
+    - name: Display Longhorn status
+      debug:
+        msg: "{{ longhorn_status.stdout_lines }}"
+      when: longhorn_status.stdout_lines is defined
+
+    - name: Check observability stack
+      shell: >
+        kubectl get pods -n observability
+      register: observability_status
+      ignore_errors: yes
+
+    - name: Display observability status
+      debug:
+        msg: "{{ observability_status.stdout_lines }}"
+      when: observability_status.stdout_lines is defined
+
+    - name: Check FluxCD status
+      shell: >
+        kubectl get pods -n flux-system
+      register: flux_status
+      ignore_errors: yes
+
+    - name: Display FluxCD status
+      debug:
+        msg: "{{ flux_status.stdout_lines }}"
+      when: flux_status.stdout_lines is defined
+
+    - name: Check resource usage
+      shell: >
+        kubectl top nodes
+      register: resource_usage
+      ignore_errors: yes
+
+    - name: Display resource usage
+      debug:
+        msg: "{{ resource_usage.stdout_lines }}"
+      when: resource_usage.stdout_lines is defined
