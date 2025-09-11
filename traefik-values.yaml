@@ -1,0 +1,47 @@
+# Enable access logs
+logs:
+  access:
+    enabled: true
+    format: json
+    filePath: /data/access.log
+
+# Additional deployment configurations
+deployment:
+  # Adding access logs sidecar
+  additionalContainers:
+    - name: stream-accesslog
+      image: busybox
+      args:
+      - /bin/sh
+      - -c
+      - tail -n+1 -F /data/access.log
+      imagePullPolicy: Always
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /data
+        name: data
+
+# Service configuration
+service:
+  annotations:
+    io.cilium/lb-ipam-ips: 10.0.0.13
+
+# Provider configuration
+providers:
+  # Enable cross namespace references
+  kubernetesCRD:
+    enabled: true
+    allowCrossNamespace: true
+  # Enable published service
+  kubernetesIngress:
+    publishedService:
+      enabled: true
+
+# Enable prometheus metric service
+metrics:
+  prometheus:
+    service:
+      enabled: true
+      serviceMonitoring: true
