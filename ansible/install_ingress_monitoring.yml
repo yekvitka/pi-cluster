@@ -1,0 +1,169 @@
+---
+# Playbook for installing Nginx Ingress and monitoring stack
+- name: Install Nginx Ingress and Monitoring Stack
+  hosts: k3s_master[0]  # Run on first master node
+  gather_facts: true
+  become: true
+  vars:
+    monitoring_namespace: monitoring
+    grafana_hostname: grafana.yekvitka.local
+    loki_hostname: loki.yekvitka.local
+    tempo_hostname: tempo.yekvitka.local
+
+  pre_tasks:
+    # Include picluster variables
+    - name: Include picluster variables
+      include_vars: "vars/picluster.yml"
+    
+    # Include vault variables
+    - name: Include vault variables
+      include_vars: "vars/vault.yml"
+
+  tasks:
+    # Copy the Nginx Ingress installation script
+    - name: Copy Nginx Ingress installation script
+      copy:
+        src: files/install_nginx_ingress.sh
+        dest: /tmp/install_nginx_ingress.sh
+        mode: '0755'
+      
+    # Execute the Nginx Ingress installation script
+    - name: Execute Nginx Ingress installation script
+      command: /tmp/install_nginx_ingress.sh
+      register: nginx_output
+      
+    # Show the Nginx script output
+    - name: Display Nginx installation output
+      debug:
+        var: nginx_output.stdout_lines
+    
+    # Copy the monitoring installation script
+    - name: Copy monitoring installation script
+      copy:
+        src: files/install_monitoring.sh
+        dest: /tmp/install_monitoring.sh
+        mode: '0755'
+      
+    # Execute the monitoring installation script
+    - name: Execute monitoring installation script
+      command: /tmp/install_monitoring.sh
+      register: monitoring_output
+      
+    # Show the monitoring script output
+    - name: Display monitoring installation output
+      debug:
+        var: monitoring_output.stdout_lines
+    
+    # Execute the Rancher installation script
+    - name: Execute Rancher installation script
+      command: /tmp/install_rancher.sh
+      register: rancher_output
+      
+    # Show the Rancher script output
+    - name: Display Rancher installation output
+      debug:
+        var: rancher_output.stdout_lines
+    
+    # Create Rancher ingress for Nginx
+    - name: Create Rancher ingress for Nginx
+      k8s:
+        state: present
+        kubeconfig: /etc/rancher/k3s/k3s.yaml
+        definition:
+          apiVersion: networking.k8s.io/v1
+          kind: Ingress
+          metadata:
+            name: rancher-ingress
+            namespace: cattle-system
+            annotations:
+              cert-manager.io/cluster-issuer: selfsigned-issuer
+          spec:
+            ingressClassName: nginx
+            tls:
+            - hosts:
+              - "{{ rancher_hostname }}"
+              secretName: rancher-tls
+            rules:
+            - host: "{{ rancher_hostname }}"
+              http:
+                paths:
+                - path: /
+                  pathType: Prefix
+                  backend:
+                    service:
+                      name: rancher
+                      port:
+                        number: 80
+      register: rancher_ingress
+    
+    # Show the Rancher ingress output
+    - name: Display Rancher ingress output
+      debug:
+        var: rancher_ingress
+
+    # Configure CoreDNS to resolve local domains
+    - name: Update CoreDNS ConfigMap to resolve local domains
+      k8s:
+        state: present
+        kubeconfig: /etc/rancher/k3s/k3s.yaml
+        definition:
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: coredns
+            namespace: kube-system
+          data:
+            Corefile: |
+              .:53 {
+                  errors
+                  health
+                  ready
+                  kubernetes cluster.local in-addr.arpa ip6.arpa {
+                      pods insecure
+                      fallthrough in-addr.arpa ip6.arpa
+                  }
+                  hosts {
+                      {{ k3s_api_vip }} {{ rancher_hostname }} {{ grafana_hostname }} {{ loki_hostname }} {{ tempo_hostname }}
+                      fallthrough
+                  }
+                  prometheus :9153
+                  forward . /etc/resolv.conf
+                  cache 30
+                  loop
+                  reload
+                  loadbalance
+              }
+              yekvitka.local:53 {
+                  errors
+                  cache 30
+                  hosts {
+                      {{ k3s_api_vip }} {{ rancher_hostname }} {{ grafana_hostname }} {{ loki_hostname }} {{ tempo_hostname }} {{ minio_hostname }} {{ vault_hostname }}
+                      fallthrough
+                  }
+              }
+      register: coredns_config
+    
+    # Show the CoreDNS ConfigMap update output
+    - name: Display CoreDNS ConfigMap update output
+      debug:
+        var: coredns_config
+    
+    # Restart CoreDNS to apply changes
+    - name: Restart CoreDNS pods to apply changes
+      command: kubectl --kubeconfig=/etc/rancher/k3s/k3s.yaml -n kube-system delete pod -l k8s-app=kube-dns
+      register: coredns_restart
+    
+    # Show the CoreDNS restart output
+    - name: Display CoreDNS restart output
+      debug:
+        var: coredns_restart.stdout_lines
+    
+    # Wait for all pods to be ready
+    - name: Wait for all pods to be ready
+      command: kubectl --kubeconfig=/etc/rancher/k3s/k3s.yaml wait --for=condition=Ready pods --all --all-namespaces --timeout=300s
+      register: pods_ready
+    
+    # Show the pods ready output
+    - name: Display pods ready output
+      debug:
+        var: pods_ready.stdout_lines

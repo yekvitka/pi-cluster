@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: coredns-custom-hosts
+  namespace: kube-system
+data:
+  CustomHosts: |
+    10.0.0.11 s3.yekvitka.local vault.yekvitka.local
+    10.0.0.13 rancher.yekvitka.local grafana.yekvitka.local loki.yekvitka.local tempo.yekvitka.local

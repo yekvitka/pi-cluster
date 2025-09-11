@@ -8,10 +8,10 @@ service:
 
 # Zone files with initial data and TSIG keys
 zoneFiles:
-  # Main zone file for homelab.yekvitka.com
-  homelab.yekvitka.com: |
-    $ORIGIN homelab.yekvitka.com.
-    @	3600 IN	SOA ns.homelab.yekvitka.com. hostmaster.homelab.yekvitka.com. (
+  # Main zone file for yekvitka.local
+  yekvitka.local: |
+    $ORIGIN yekvitka.local.
+    @	3600 IN	SOA ns.yekvitka.local. hostmaster.yekvitka.local. (
             2025091101 ; serial
             7200       ; refresh (2 hours)
             3600       ; retry (1 hour)
@@ -19,7 +19,7 @@ zoneFiles:
             3600       ; minimum (1 hour)
             )
 
-            3600 IN NS ns.homelab.yekvitka.com.
+            3600 IN NS ns.yekvitka.local.
             3600 IN A  10.0.0.1
 
     ns      3600 IN A  10.0.0.1
@@ -44,7 +44,7 @@ zoneFiles:
 # https://kubernetes.io/docs/tasks/administer-cluster/dns-custom-nameservers/#coredns-configmap-options
 servers:
 - zones:
-  - zone: homelab.yekvitka.com
+  - zone: yekvitka.local
   port: 53
   plugins:
   - name: errors
@@ -58,13 +58,13 @@ servers:
   - name: log
   # Enable DNS dynamic updates
   - name: auto
-    parameters: homelab.yekvitka.com db {
+    parameters: yekvitka.local db {
     configBlock: |-
       reload 10s
       transfer to *
   # Configure file backend with transfer and update capabilities
   - name: file
-    parameters: /etc/coredns/homelab.yekvitka.com homelab.yekvitka.com
+    parameters: /etc/coredns/yekvitka.local yekvitka.local
     configBlock: |-
       transfer to *
       reload 10s

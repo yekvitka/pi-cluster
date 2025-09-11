@@ -6,12 +6,15 @@
 #######################
 
 # Domain name
-dns_domain: "picluster.local"
+dns_domain: "yekvitka.local"
 
 # External services hostnames
-minio_hostname: "s3.picluster.local"
-vault_hostname: "vault.picluster.local"
-rancher_hostname: "rancher.picluster.local"
+minio_hostname: "s3.yekvitka.local"
+vault_hostname: "vault.yekvitka.local"
+rancher_hostname: "rancher.yekvitka.local"
+grafana_hostname: "grafana.yekvitka.local"
+loki_hostname: "loki.yekvitka.local"
+tempo_hostname: "tempo.yekvitka.local"
 enable_letsencrypt: false
 custom_ca: true
 vault_dns: "{{ vault_hostname }}"

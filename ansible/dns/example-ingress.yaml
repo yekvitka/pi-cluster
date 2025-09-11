@@ -7,11 +7,11 @@ metadata:
     kubernetes.io/ingress.class: "nginx"
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
     # External-DNS annotations
-    external-dns.alpha.kubernetes.io/hostname: "example.homelab.yekvitka.com"
+    external-dns.alpha.kubernetes.io/hostname: "example.yekvitka.local"
     external-dns.alpha.kubernetes.io/target: "10.0.0.12"  # Use node IP
 spec:
   rules:
-  - host: example.homelab.yekvitka.com
+  - host: example.yekvitka.local
     http:
       paths:
       - path: /

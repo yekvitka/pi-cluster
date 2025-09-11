@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: coredns
+  namespace: kube-system
+data:
+  Corefile: |
+    .:53 {
+        errors
+        health
+        ready
+        kubernetes cluster.local in-addr.arpa ip6.arpa {
+          pods insecure
+          fallthrough in-addr.arpa ip6.arpa
+        }
+        hosts /etc/coredns/NodeHosts {
+          ttl 60
+          reload 15s
+          fallthrough
+        }
+        prometheus :9153
+        forward . /etc/resolv.conf
+        cache 30
+        loop
+        reload
+        loadbalance
+    }
+    
+    yekvitka.local:53 {
+        errors
+        log
+        hosts {
+          # Node services
+          10.0.0.12 example.yekvitka.local
+          10.0.0.12 test.yekvitka.local
+          
+          # Management UIs
+          10.0.0.13 rancher.yekvitka.local
+          10.0.0.12 grafana.yekvitka.local
+          10.0.0.12 prometheus.yekvitka.local
+          10.0.0.13 traefik.yekvitka.local
+          
+          # Observability stack
+          10.0.0.12 loki.yekvitka.local
+          10.0.0.12 tempo.yekvitka.local
+          10.0.0.12 kibana.yekvitka.local
+          
+          # Security and storage
+          10.0.0.12 vault.yekvitka.local
+          10.0.0.12 longhorn.yekvitka.local
+        }
+        cache 30
+        forward . /etc/resolv.conf
+    }
+  NodeHosts: |
+    10.0.0.12 node2
+    10.0.0.13 node3
+    10.0.0.14 node4
+    10.0.0.15 node5
+    2a02:a310:c197:1700:da3a:ddff:fe3b:46ed node2
+    2a02:a310:c197:1700:da3a:ddff:fe3b:472f node5
+    2a02:a310:c197:1700:da3a:ddff:fed4:8efc node4

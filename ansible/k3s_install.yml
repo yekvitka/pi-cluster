@@ -36,6 +36,9 @@
       tags: ["always"]
   roles:
     - role: k3s/master
+      vars:
+        k3s_server_location: "https://{{ k3s_api_vip }}:6443"
+        k3s_use_ha_cluster: true
     - role: ricsanfre.k8s_cli
 
 - name: Install K3S worker nodes
@@ -51,6 +54,8 @@
       tags: ["always"]
   roles:
     - role: k3s/worker
+      vars:
+        k3s_url: "https://{{ k3s_api_vip }}:6443"
 
 - name: Label K3S worker nodes
   hosts: k3s_master
@@ -79,7 +84,7 @@
       with_items: "{{ groups['k3s_worker'] }}"
       ignore_errors: true
 
-- name: Get Kubernets config file
+- name: Get Kubernetes config file
   hosts: k3s_master
   tags: [kube-config]
   tasks:
@@ -96,6 +101,14 @@
         mode: 0600
       delegate_to: localhost
       run_once: true
+      
+    - name: Update K3s config on all master nodes to use HAProxy VIP
+      ansible.builtin.replace:
+        path: /etc/rancher/k3s/k3s.yaml
+        regexp: 'https://127.0.0.1:6443'
+        replace: 'https://{{ k3s_api_vip }}:6443'
+      delegate_to: "{{ item }}"
+      with_items: "{{ groups['k3s_master'] }}"
 
 - name: Verify cluster is ready
   hosts: k3s_master[0]
