@@ -1,0 +1,40 @@
+## The configuration is set up for RFC2136 DNS provider (typically used for on-premise DNS servers)
+## You can modify this according to your specific DNS provider (Cloudflare, Route53, etc.)
+
+provider: rfc2136
+domainFilters:
+  - homelab.yekvitka.com
+policy: sync
+txtOwnerId: k3s
+# Update interval
+interval: 1m
+# Log level
+logLevel: info
+
+# RFC2136 provider specific configuration
+rfc2136:
+  host: 10.0.0.1
+  port: 53
+  zone: homelab.yekvitka.com
+  tsigKeyname: externaldns-key
+  tsigSecretName: external-dns-rfc2136-credentials
+  tsigSecret: ""
+  secretName: external-dns-rfc2136-credentials
+
+rbac:
+  create: true
+
+serviceAccount:
+  create: true
+  name: external-dns
+
+# The nginx-ingress controller should be the only source
+sources:
+  - service
+  - ingress
+
+# Only process annotations on ingresses and services
+annotationFilter: "kubernetes.io/ingress.class=nginx"
+
+# Automatically create TXT record for hostname validation
+txtPrefix: "ext-dns-"

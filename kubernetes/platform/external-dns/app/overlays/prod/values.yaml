@@ -1,0 +1,3 @@
+# Production specific values
+# Leave empty as we'll use the default values for now
+# You can override specific values here if needed

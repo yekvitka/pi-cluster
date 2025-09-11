@@ -1,0 +1,37 @@
+defaultSettings:
+  defaultDataPath: "/storage"
+
+# Ingress Resource. Longhorn dashboard.
+ingress:
+  ## Enable creation of ingress resource
+  enabled: true
+  ## Add ingressClassName to the Ingress
+  ingressClassName: nginx
+
+  # ingress host
+  host: longhorn.homelab.yekvitka.com
+
+  ## Set this to true in order to enable TLS on the ingress record
+  tls: true
+
+  ## TLS Secret Name
+  tlsSecret: longhorn-tls
+
+  ## Default ingress path
+  path: /
+
+  ## Ingress annotations
+  annotations:
+    # Enable basic auth
+    nginx.ingress.kubernetes.io/auth-type: basic
+    # Secret defined in nginx namespace
+    nginx.ingress.kubernetes.io/auth-secret: nginx/basic-auth-secret
+    # Enable cert-manager to create automatically the SSL certificate and store in Secret
+    # Possible Cluster-Issuer values: 
+    #   * 'letsencrypt-issuer' (valid TLS certificate using IONOS API) 
+    #   * 'ca-issuer' (CA-signed certificate, not valid)
+    cert-manager.io/cluster-issuer: letsencrypt-issuer
+    cert-manager.io/common-name: longhorn.homelab.yekvitka.com
+    # Enable External DNS to automatically create DNS records
+    external-dns.alpha.kubernetes.io/hostname: longhorn.homelab.yekvitka.com
+    external-dns.alpha.kubernetes.io/ttl: "60"

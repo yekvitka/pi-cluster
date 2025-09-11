@@ -10,6 +10,29 @@ service:
 # https://kubernetes.io/docs/tasks/administer-cluster/dns-custom-nameservers/#coredns-configmap-options
 servers:
 - zones:
+  - zone: homelab.yekvitka.com
+  port: 53
+  plugins:
+  - name: errors
+  # Serves a /health endpoint on :8080, required for livenessProbe
+  - name: health
+    configBlock: |-
+      lameduck 5s
+  # Serves a /ready endpoint on :8181, required for readinessProbe
+  - name: ready
+  # Handle our custom domain
+  - name: file
+    parameters: /etc/coredns/homelab.yekvitka.com
+  - name: auto
+    parameters: homelab.yekvitka.com
+  # Forward to upstream DNS servers for unknown domains
+  - name: forward
+    parameters: . 10.0.0.1
+  - name: cache
+    parameters: 30
+  - name: prometheus
+    parameters: 0.0.0.0:9153
+- zones:
   - zone: .
   port: 53
   plugins:
