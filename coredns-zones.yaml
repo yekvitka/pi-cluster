@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: coredns-zones
+  namespace: kube-system
+data:
+  homelab.yekvitka.com.db: |
+    $ORIGIN homelab.yekvitka.com.
+    @	3600 IN	SOA ns.homelab.yekvitka.com. hostmaster.homelab.yekvitka.com. (
+            2022042901 ; serial
+            7200       ; refresh (2 hours)
+            3600       ; retry (1 hour)
+            1209600    ; expire (2 weeks)
+            3600       ; minimum (1 hour)
+            )
+
+            3600 IN NS ns.homelab.yekvitka.com.
+            3600 IN A  10.0.0.1
+
+    ns      3600 IN A  10.0.0.1
+    
+    ; TSIG key for External-DNS
+    key "externaldns-key" {
+        algorithm hmac-sha256;
+        secret "J8kvIwtkvYXLUcVj6mROEBLHy6h3Gle3j91vS8aJB9c=";
+    };
+    
+    ; Allow zone transfers and updates using the key
+    zone "homelab.yekvitka.com" {
+        type master;
+        file "/etc/coredns/zones/homelab.yekvitka.com.db";
+        allow-transfer { key "externaldns-key"; };
+        update-policy {
+            grant externaldns-key zonesub ANY;
+        };
+    };

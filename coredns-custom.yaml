@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: coredns-custom
+  namespace: kube-system
+data:
+  homelab.server: |
+    homelab.yekvitka.com:53 {
+        errors
+        log
+        hosts /etc/coredns/custom/CustomHosts {
+          ttl 60
+          reload 15s
+          fallthrough
+        }
+    }
