@@ -1,4 +1,0 @@
-kubernetes
-hvac
-certbot
-certbot-dns-ionos

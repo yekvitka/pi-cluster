@@ -1,0 +1,51 @@
+---
+- name: Install Cilium CNI via Helm
+  hosts: k3s_cluster
+  become: true
+  vars:
+    cilium_namespace: kube-system
+    cilium_release_name: cilium
+    cilium_helm_repo: https://helm.cilium.io/
+    cilium_values_file: "{{ playbook_dir }}/cilium/cilium-values.yml"
+  tasks:
+    - name: Ensure Helm is installed
+      command: helm version
+      register: helm_version
+      failed_when: helm_version.rc != 0
+      changed_when: false
+      tags: always
+
+    - name: Add Cilium Helm repository
+      command: helm repo add cilium {{ cilium_helm_repo }}
+      args:
+        creates: /tmp/.cilium_repo_added
+      register: cilium_repo_added
+      changed_when: cilium_repo_added.rc == 0
+      tags: cilium
+
+    - name: Update Helm repositories
+      command: helm repo update
+      tags: cilium
+
+    - name: Install/Upgrade Cilium via Helm
+      command: >
+        helm upgrade --install {{ cilium_release_name }} cilium/cilium \
+        --namespace {{ cilium_namespace }} \
+        --values {{ cilium_values_file }} \
+        --wait
+      tags: cilium
+
+    - name: Wait for Cilium pods to be ready
+      shell: |
+        kubectl -n {{ cilium_namespace }} wait --for=condition=Ready pod -l k8s-app=cilium --timeout=300s
+      tags: cilium
+
+    - name: Display Cilium status
+      shell: kubectl -n {{ cilium_namespace }} get pods -l k8s-app=cilium
+      register: cilium_status
+      tags: cilium
+
+    - name: Show Cilium pod status
+      debug:
+        var: cilium_status.stdout
+      tags: cilium

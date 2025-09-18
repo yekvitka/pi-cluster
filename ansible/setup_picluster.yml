@@ -99,15 +99,4 @@
       when: centralized_san
       tags: [iscsi]
 
-      # Local Storage configuration
-    - name: Dedicated Disks
-      block:
-        # iSCSI client (initiator) configuration
-        # iSCSI initiator needs to be configured for Longhorn
-        - name: Configure iSCSI Initiator
-          include_role:
-            name: ricsanfre.iscsi_initiator
-          vars:
-            - open_iscsi_automatic_startup: true
-      when: not centralized_san
-      tags: [storage]
+
