@@ -48,4 +48,4 @@ controller:
   # Set specific LoadBalancer IP address for Ingress service
   service:
     annotations:
-      io.cilium/lb-ipam-ips: 10.0.0.110
+      io.cilium/lb-ipam-ips: ${NGINX_LOAD_BALANCER_IP}
