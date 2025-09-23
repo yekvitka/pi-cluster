@@ -1,37 +1,36 @@
 # Cilium operator config
 operator:
-  # replicas: 1  # Uncomment this if you only have one node
+  replicas: 2  # Match the number of master nodes
   # Roll out cilium-operator pods automatically when configmap is updated.
   rollOutPods: true
 
-  # Install operator on master node
+  # Install operator on control plane nodes
   nodeSelector:
-    node-role.kubernetes.io/master: "true"
+    node-role.kubernetes.io/control-plane: "true"
 
 # Roll out cilium agent pods automatically when ConfigMap is updated.
 rollOutCiliumPods: true
 
 # K8s API service
-k8sServiceHost: 127.0.0.1
-k8sServicePort: 6444
+k8sServiceHost: 10.0.0.11
+k8sServicePort: 6443
 
 # Replace Kube-proxy
 kubeProxyReplacement: true
 kubeProxyReplacementHealthzBindAddr: 0.0.0.0:10256
 
 # -- Configure IP Address Management mode.
-# ref: https://docs.cilium.io/en/stable/network/concepts/ipam/
 ipam:
   operator:
     clusterPoolIPv4PodCIDRList: "10.42.0.0/16"
 
-# Configure L2 announcements (LB-IPAM configuration)
+# Configure L2 announcements
 l2announcements:
   enabled: true
 externalIPs:
   enabled: true
 
-# Increase the k8s api client rate limit to avoid being limited due to increased API usage 
+# Increase the k8s api client rate limit
 k8sClientRateLimit:
   qps: 50
   burst: 200
