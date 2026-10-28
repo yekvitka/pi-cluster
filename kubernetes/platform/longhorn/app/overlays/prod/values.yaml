@@ -1,1 +1,7 @@
 # longhorn helm values (prod overlay)
+# Control plane nodes are tainted: node5 is the only storage node, so keep
+# one replica per volume (more replicas cannot be scheduled: volumes degraded)
+persistence:
+  defaultClassReplicaCount: 1
+defaultSettings:
+  defaultReplicaCount: 1
