@@ -40,3 +40,6 @@ write_files:
 runcmd:
   # Load the DHCPv6 drop-in, networkd is already running at this point
   - [networkctl, reconfigure, eth0, wlan0]
+  # Longhorn data path (defaultDataPath). Without centralized SAN it is a
+  # directory on the node's own disk
+  - [mkdir, -p, /storage]
