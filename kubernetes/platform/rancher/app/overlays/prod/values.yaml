@@ -1,1 +1,19 @@
 # rancher helm values (prod overlay)
+# Single worker (node5) is full with monitoring: run Rancher on one control
+# plane node with a memory limit, so it cannot starve etcd on that node.
+# The chart adds these to its own node affinity and tolerations
+extraNodeSelectorTerms:
+  - key: kubernetes.io/hostname
+    operator: In
+    values:
+      - node3
+extraTolerations:
+  - key: node-role.kubernetes.io/control-plane
+    operator: Exists
+    effect: NoSchedule
+resources:
+  requests:
+    cpu: 250m
+    memory: 768Mi
+  limits:
+    memory: 1200Mi

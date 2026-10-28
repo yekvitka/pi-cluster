@@ -28,8 +28,11 @@ wifis:
     dhcp4: false
     addresses:
       - 192.168.50.WLAN_OCTET/24
-    nameservers:
-      addresses: [8.8.8.8, 8.8.4.4]
+    # No DNS from wlan0: CoreDNS forwards to every node upstream, and only the
+    # gateway (eth0) resolves homelab names
+    ra-overrides:
+      use-dns: false
+      use-domains: false
     access-points:
       "WIFI_SSID":
         password: "WIFI_KEY"
