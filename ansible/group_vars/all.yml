@@ -2,7 +2,7 @@
 # Group all variables.
 
 # Remote user name
-ansible_user: ricsanfre
+ansible_user: root
 
 # Ansible ssh private key
 ansible_ssh_private_key_file: ~/.ssh/id_rsa
@@ -10,6 +10,10 @@ ansible_ssh_private_key_file: ~/.ssh/id_rsa
 # GitOps Repo
 # Whether the repo is private or not
 git_private_repo: false
+
+# Centralized SAN: node1 SSD2 serves one iSCSI LUN per k3s node, mounted at /storage
+# See configure_centralized_san.yml
+centralized_san: true
 
 ###################
 # Default Gateway
@@ -21,7 +25,7 @@ default_gateway: 10.0.0.1
 #######################
 # DNS server
 dns_server: 10.0.0.1
-dns_domain: homelab.ricsanfre.com
+dns_domain: homelab.yekvitka.com
 
 ############################
 # restic backup role variables
@@ -31,9 +35,6 @@ restic_clean_service: false
 restic_backups_dirs:
   - path: '/etc'
   - path: '/root'
-    exclude:
-      - pattern: '.cache'
-  - path: '/home/{{ ansible_user }}'
     exclude:
       - pattern: '.cache'
       - pattern: '.ansible'

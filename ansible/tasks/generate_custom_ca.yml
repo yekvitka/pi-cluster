@@ -1,6 +1,6 @@
 ---
 - name: Create CA key
-  community.crypto..openssl_privatekey:
+  community.crypto.openssl_privatekey:
     path: "{{ selfsigned_certificates_path }}/CA.key"
     size: "{{ ssl_key_size | int }}"
     mode: "0644"
@@ -9,7 +9,7 @@
 - name: Create the CA CSR
   community.crypto.openssl_csr:
     privatekey_path: "{{ selfsigned_certificates_path }}/CA.key"
-    common_name: Ricsanfre CA
+    common_name: Homelab CA
     use_common_name_for_san: false  # since we do not specify SANs, don't use CN as a SAN
     basic_constraints:
       - 'CA:TRUE'

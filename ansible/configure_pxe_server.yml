@@ -1,8 +1,0 @@
----
-- name: Configure PXE server
-  hosts: pxe
-  gather_facts: true
-  tags: [pxe]
-  become: true
-  roles:
-    - role: pxe-server

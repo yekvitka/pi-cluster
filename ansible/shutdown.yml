@@ -8,11 +8,3 @@
       ansible.builtin.command: shutdown -h 1 min
       ignore_errors: true
 
-- name: Shutdown Gateway node
-  hosts: gateway
-  become: true
-  gather_facts: false
-  tasks:
-    - name: Shutdown
-      ansible.builtin.command: shutdown -h 1 min
-      ignore_errors: true

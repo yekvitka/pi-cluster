@@ -33,7 +33,7 @@ spec:
   dependsOn:
     - name: envoy-gateway-app
     - name: cert-manager-config
-    - name: istio-app
+    - name: cilium-config
   path: ./kubernetes/platform/envoy-gateway/config/overlays/prod
   prune: true
   wait: true

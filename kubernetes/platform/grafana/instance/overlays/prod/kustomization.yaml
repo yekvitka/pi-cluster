@@ -9,8 +9,6 @@ components:
   - ../../components/prometheus
   - ../../components/loki
   - ../../components/tempo
-  - ../../components/elasticsearch
   - ../../components/monitoring
   - ../../components/persistence
   - ../../components/route
-  - ../../components/sso

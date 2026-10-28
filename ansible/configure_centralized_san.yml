@@ -1,0 +1,90 @@
+---
+# Centralized SAN (custom, not in upstream)
+# node1 SSD2 -> LVM volume group -> one iSCSI LUN per k3s node
+# k3s nodes mount their LUN at /storage (Longhorn data path)
+#
+# Run after external services (Vault holds the iSCSI CHAP passwords)
+# and before k3s_install.yml
+
+- name: Load iSCSI CHAP credentials from Vault
+  hosts: localhost
+  gather_facts: false
+  vars:
+    vault_secret_file: "{{ lookup('ansible.builtin.env', 'HOME') }}/.secrets/vault.env"
+  tasks:
+    - name: Centralized SAN credentials
+      when: centralized_san
+      block:
+        - name: Get Vault environment from secret file
+          ansible.builtin.set_fact:
+            vault_addr: "{{ lookup('ansible.builtin.ini', 'VAULT_ADDR type=properties file=' ~ vault_secret_file) }}"
+            vault_token: "{{ lookup('ansible.builtin.ini', 'VAULT_TOKEN type=properties file=' ~ vault_secret_file) }}"
+            vault_cacert: "{{ lookup('ansible.builtin.ini', 'VAULT_CACERT type=properties file=' ~ vault_secret_file, errors='ignore') | default('', true) }}"
+
+        - name: Fetch iSCSI CHAP passwords from Vault
+          community.hashi_vault.vault_kv2_get:
+            url: "{{ vault_addr }}"
+            token: "{{ vault_token }}"
+            validate_certs: "{{ not (enable_letsencrypt | default(false)) }}"
+            ca_cert: "{{ vault_cacert | default(omit) }}"
+            mount_point: secret
+            path: "cluster/{{ item }}"
+          loop:
+            - iscsi-node
+            - iscsi-mutual
+          register: iscsi_vault_secrets
+          no_log: true
+
+        - name: Set iSCSI CHAP password facts
+          ansible.builtin.set_fact:
+            iscsi_node_pass: "{{ iscsi_vault_secrets.results[0].secret.password }}"
+            iscsi_mutual_pass: "{{ iscsi_vault_secrets.results[1].secret.password }}"
+          no_log: true
+
+- name: Configure Centralized SAN Target (node1)
+  hosts: san
+  gather_facts: true
+  tags: [san]
+  become: true
+  vars:
+    iscsi_node_pass: "{{ hostvars['localhost'].iscsi_node_pass }}"
+    iscsi_mutual_pass: "{{ hostvars['localhost'].iscsi_mutual_pass }}"
+  tasks:
+    - name: Centralized SAN
+      when: centralized_san
+      block:
+        - name: Include iSCSI target variables
+          ansible.builtin.include_vars:
+            file: vars/centralized_san/centralized_san_target.yml
+        # iSCSI LUNs: LVM Volumes configuration
+        - name: Configure iSCSI LUNs LVM volumes
+          ansible.builtin.include_role:
+            name: ricsanfre.storage
+        # iSCSI Target configuration
+        - name: Configure iSCSI SAN Target
+          ansible.builtin.include_role:
+            name: ricsanfre.iscsi_target
+
+- name: Configure Centralized SAN Initiators (k3s nodes)
+  hosts: k3s_cluster
+  gather_facts: true
+  tags: [san]
+  become: true
+  vars:
+    iscsi_node_pass: "{{ hostvars['localhost'].iscsi_node_pass }}"
+    iscsi_mutual_pass: "{{ hostvars['localhost'].iscsi_mutual_pass }}"
+  tasks:
+    - name: Centralized SAN
+      when: centralized_san
+      block:
+        - name: Include iSCSI initiator variables
+          ansible.builtin.include_vars:
+            file: vars/centralized_san/centralized_san_initiator.yml
+        # iSCSI client (initiator) configuration
+        - name: Configure iSCSI Initiator
+          ansible.builtin.include_role:
+            name: ricsanfre.iscsi_initiator
+        # Mounting iSCSI LUN at /storage
+        - name: Mount iSCSI LUN
+          ansible.builtin.include_role:
+            name: ricsanfre.storage

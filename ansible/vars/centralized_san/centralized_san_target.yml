@@ -1,0 +1,98 @@
+---
+# ------------------------------------------
+# CENTRALIZED SAN
+# ------------------------------------------
+# Variables for configuring iSCSI in node1
+# node1 SD card: OS
+# node1 SSD1: /storage (RustFS, Vault), formatted by cloud-init
+# node1 SSD2: LVM volume group exposed as one iSCSI LUN per k3s node
+# Local Storage and LUNs creation + iSCSI Target Configuration
+
+##############
+# Storage Role
+##############
+
+storage_volumegroups:
+  - name: vg_iscsi
+    devices:
+      # SSD2, by id: USB disk order (sda/sdb) is not stable and /dev/sdb may be SSD1 (/storage).
+      # Replace SSD2_ID with its name from `ls -l /dev/disk/by-id/` on node1
+      - /dev/disk/by-id/SSD2_ID
+
+storage_volumes:
+  - name: vg_iscsi_lv_node2
+    vg: vg_iscsi
+    size: 25%VG
+  - name: vg_iscsi_lv_node3
+    vg: vg_iscsi
+    size: 25%VG
+  - name: vg_iscsi_lv_node4
+    vg: vg_iscsi
+    size: 25%VG
+  - name: vg_iscsi_lv_node5
+    vg: vg_iscsi
+    size: 25%VG
+
+###################
+# iSCSI_Target Role
+###################
+
+# Initiator names must match open_iscsi_initiator_name in setup_picluster.yml
+iscsi_targets:
+  - name: iqn.2026-10.com.yekvitka.homelab:node1
+    disks:
+      - name: lun_node2
+        path: /dev/vg_iscsi/vg_iscsi_lv_node2
+        type: block
+        lunid: 0
+      - name: lun_node3
+        path: /dev/vg_iscsi/vg_iscsi_lv_node3
+        type: block
+        lunid: 1
+      - name: lun_node4
+        path: /dev/vg_iscsi/vg_iscsi_lv_node4
+        type: block
+        lunid: 2
+      - name: lun_node5
+        path: /dev/vg_iscsi/vg_iscsi_lv_node5
+        type: block
+        lunid: 3
+    initiators:
+      - name: iqn.2026-10.com.yekvitka.homelab:node2
+        authentication:
+          userid: iqn.2026-10.com.yekvitka.homelab:node2
+          password: "{{ iscsi_node_pass }}"
+          userid_mutual: iqn.2026-10.com.yekvitka.homelab:node1
+          password_mutual: "{{ iscsi_mutual_pass }}"
+        mapped_luns:
+          - mapped_lunid: 0
+            lunid: 0
+      - name: iqn.2026-10.com.yekvitka.homelab:node3
+        authentication:
+          userid: iqn.2026-10.com.yekvitka.homelab:node3
+          password: "{{ iscsi_node_pass }}"
+          userid_mutual: iqn.2026-10.com.yekvitka.homelab:node1
+          password_mutual: "{{ iscsi_mutual_pass }}"
+        mapped_luns:
+          - mapped_lunid: 0
+            lunid: 1
+      - name: iqn.2026-10.com.yekvitka.homelab:node4
+        authentication:
+          userid: iqn.2026-10.com.yekvitka.homelab:node4
+          password: "{{ iscsi_node_pass }}"
+          userid_mutual: iqn.2026-10.com.yekvitka.homelab:node1
+          password_mutual: "{{ iscsi_mutual_pass }}"
+        mapped_luns:
+          - mapped_lunid: 0
+            lunid: 2
+      - name: iqn.2026-10.com.yekvitka.homelab:node5
+        authentication:
+          userid: iqn.2026-10.com.yekvitka.homelab:node5
+          password: "{{ iscsi_node_pass }}"
+          userid_mutual: iqn.2026-10.com.yekvitka.homelab:node1
+          password_mutual: "{{ iscsi_mutual_pass }}"
+        mapped_luns:
+          - mapped_lunid: 0
+            lunid: 3
+    portals:
+      - ip: 10.0.0.11

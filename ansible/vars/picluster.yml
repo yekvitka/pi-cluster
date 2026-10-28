@@ -7,7 +7,7 @@
 
 # k3s version
 # renovate: datasource=github-releases depName=k3s-io/k3s
-k3s_version: v1.37.0+k3s1
+k3s_version: v1.36.5+k3s1
 
 # k3s master node VIP (loadbalancer)
 k3s_api_vip: 10.0.0.10
@@ -113,14 +113,14 @@ ionos_api_endpoint: https://api.hosting.ionos.com
 
 
 # issuer email
-acme_issuer_email: admin@ricsanfre.com
+acme_issuer_email: admin@yekvitka.com
 
 ###########################
 # RustFS S3 configuration #
 ###########################
 
 # RustFS S3 Server (replaces MinIO)
-rustfs_hostname: "object-store.homelab.ricsanfre.com"
+rustfs_hostname: "object-store.homelab.yekvitka.com"
 rustfs_server_port: "9091"
 rustfs_console_port: "9092"
 rustfs_endpoint: "{{ rustfs_hostname }}:9091"
@@ -189,6 +189,8 @@ vault_hostname: "vault.{{ dns_domain }}"
 vault_version: 2.1.1
 
 vault_dns: "{{ vault_hostname }}"
+# Vault data on node1 SSD1 (/storage), not on the SD card
+vault_data_path: /storage/vault
 vault_enable_tls: true
 custom_ca: false
 vault_init: true

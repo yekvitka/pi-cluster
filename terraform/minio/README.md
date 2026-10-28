@@ -169,7 +169,7 @@ Then edit `terraform.tfvars`:
 ```bash
 export TF_VAR_minio_admin_user="root"
 export TF_VAR_minio_admin_password="your_password"
-export TF_VAR_minio_endpoint="s3.picluster.ricsanfre.com:9000"
+export TF_VAR_minio_endpoint="object-store.homelab.yekvitka.com:9091"
 ```
 
 ### 3. Add/Modify Resources via Individual Files
@@ -385,7 +385,7 @@ If using self-signed certificates, set `minio_ssl_verify = false` in terraform.t
 ### Connection Issues
 Verify Minio endpoint is accessible:
 ```bash
-curl -k https://s3.picluster.ricsanfre.com:9000
+curl -k https://object-store.homelab.yekvitka.com:9091
 ```
 
 ### Policy Errors

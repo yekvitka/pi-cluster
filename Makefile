@@ -28,7 +28,7 @@ ANSIBLE_LOCAL_COLLECTIONS_DIR := $(HOME)/.ansible/collections
 	external-setup \
 	nodes-setup \
 	dns-setup \
-	pxe-setup \
+	san-setup \
 	external-services \
 	configure-os-backup \
 	os-backup \
@@ -94,7 +94,7 @@ clean: k3s-reset external-services-reset ## Reset k3s and external services
 ansible-runner-setup: ## Build and prepare ansible runner
 	$(MAKE) -C ansible-runner
 
-init: os-upgrade nodes-setup external-services configure-os-backup k3s-install k3s-bootstrap ## Full cluster initialization workflow
+init: os-upgrade external-setup nodes-setup dns-setup external-services san-setup configure-os-backup k3s-install k3s-bootstrap ## Full cluster initialization workflow
 
 secret-files: ## Create encrypted/local secret files for Ansible runs
 	$(RUNNER) ansible-playbook create_secret_files.yml
@@ -111,8 +111,8 @@ nodes-setup: ## Configure node prerequisites
 dns-setup: ## Configure authoritative DNS
 	$(RUNNER) ansible-playbook configure_dns_authoritative.yml
 
-pxe-setup: ## Configure PXE server
-	$(RUNNER) ansible-playbook configure_pxe_server.yml
+san-setup: ## Configure centralized SAN (node1 iSCSI target, k3s nodes /storage). Needs Vault
+	$(RUNNER) ansible-playbook configure_centralized_san.yml
 
 external-services: ## Deploy and configure external services
 	$(RUNNER) ansible-playbook external_services.yml

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository overview
 
-Pi Kubernetes Cluster — a homelab monorepo for a hybrid ARM/x86 K3s cluster, automated with Ansible and FluxCD. Contains host provisioning, external services (Vault/RustFS), Kubernetes platform apps, and a Jekyll docs site.
+Pi Kubernetes Cluster — a homelab monorepo for a Raspberry Pi K3s cluster (fork of github.com/ricsanfre/pi-cluster), automated with Ansible and FluxCD. Contains host provisioning, external services (Vault/RustFS), Kubernetes platform apps, and a Jekyll docs site.
 
 ## Tool versions (managed via mise)
 
@@ -82,15 +82,6 @@ make shutdown-picluster
 ANSIBLE_RUNNER_MODE=local ./ansible-runner/ansible-runner.sh ansible-playbook --version
 ```
 
-### Docs site
-
-```bash
-cd docs
-bundle config set --local path 'vendor/bundle'
-bundle install
-bundle exec jekyll build
-```
-
 ## Architecture
 
 ### Layered automation flow
@@ -103,9 +94,9 @@ The cluster is designed to be fully redeployable from scratch using this chain.
 
 ### Ansible layer (`ansible/`)
 
-- **Inventory**: `ansible/inventory.yml` defines host groups: `picluster` (all nodes), `k3s_master` (nodes 2-4), `k3s_worker` (nodes 5-6 + HP nodes), `raspberrypi` (ARM), `x86` (HP mini PCs). External services (Vault, RustFS, DNS) run on `node1`.
+- **Inventory**: `ansible/inventory.yml` defines host groups: `picluster` (node1-node5), `k3s_master` (node2-node4), `k3s_worker` (node5), `raspberrypi` (all nodes), `san` (node1). All nodes boot Ubuntu 24.04 from SD card; Ansible connects as `root`. The gateway (10.0.0.1) runs OpenWrt and is not in the inventory: see `metal/openwrt/`. External services (Vault, RustFS, DNS) run on `node1`.
 - **Playbooks**: Top-level playbooks in `ansible/*.yml` — each maps to a Makefile target. Key ones: `setup_picluster.yml` (node/external host config, tag-filtered), `k3s_install.yml`, `k3s_bootstrap.yml` (installs FluxCD and bootstraps cluster services), `external_services.yml` (Vault/RustFS deployment), `deploy_rustfs.yml` (RustFS S3 server install).
-- **Roles**: Custom roles in `ansible/roles/` — `basic_setup`, `dns`, `haproxy`, `pxe-server`.
+- **Roles**: Custom roles in `ansible/roles/` — `basic_setup`, `dns`. Centralized SAN (custom): `configure_centralized_san.yml` makes node1 SSD2 an iSCSI target and mounts one LUN per k3s node at `/storage` (Longhorn data path). node1 SSD1 is `/storage` for RustFS and Vault.
 - **Group vars**: `ansible/group_vars/all.yml` (global), `k3s_cluster.yml`, `k3s_master.yml`, `external.yml`, `control.yml`.
 - **Python deps**: Managed by `uv` via `ansible/pyproject.toml` and `ansible/uv.lock`. Key deps: `ansible-core==2.20.5`, `kubernetes`, `hvac` (Vault client), `certbot` + `certbot-dns-ionos`.
 - **Lint config**: `ansible/.yamllint` (extends default, 180-char line limit as warning, ignores `.venv/`, roles, docs).
@@ -172,10 +163,6 @@ Local development environment using `k3d` (K3s in Docker):
 - `helmfile.yaml` bootstraps base services (Prometheus, Cilium, CoreDNS, Istio)
 - Dev overlays in `kubernetes/platform/*/app/overlays/dev/` and `kubernetes/clusters/dev/`
 
-### Test workloads (`test/`)
-
-Service-specific validation: `kafka/`, `mongodb/`, `tracing/`, `velero/`. These contain client configs and test scripts for verifying deployed services.
-
 ## CI
 
 GitHub Actions in `.github/workflows/ci.yml`: runs `yamllint .` inside `ansible/` directory on PRs and pushes to `master`.
@@ -186,7 +173,7 @@ GitHub Actions in `.github/workflows/ci.yml`: runs `yamllint .` inside `ansible/
 - Do not run host `ansible-playbook` directly — always use the runner wrapper.
 - `scripts/` directory is empty; any existing scripts expect a live cluster and valid kubeconfig.
 - Treat `make lint-ci` failures on pre-existing issues in untouched files as informational, not blockers.
-- Avoid touching generated/vendor trees: `docs/vendor/`, `docs/_site/`, `docs/.bundle/`, `ansible/.ansible/`, `ansible-runner/runner/.kube/cache/`.
+- Avoid touching generated/vendor trees: `ansible/.ansible/`, `ansible-runner/runner/.kube/cache/`.
 
 ## FluxCD PR branch workflow
 
@@ -197,7 +184,7 @@ When validating changes from a feature branch in the live cluster:
 3. Commit and push
 4. Patch in-cluster GitRepository to the same branch and reconcile:
    ```bash
-   GR_NAME="$(kubectl -n flux-system get gitrepository -o jsonpath='{range .items[?(@.spec.url=="https://github.com/ricsanfre/pi-cluster")]}{.metadata.name}{"\n"}{end}' | head -n1)"
+   GR_NAME="$(kubectl -n flux-system get gitrepository -o jsonpath='{range .items[?(@.spec.url=="https://github.com/yekvitka/pi-cluster")]}{.metadata.name}{"\n"}{end}' | head -n1)"
    kubectl -n flux-system patch gitrepository "${GR_NAME}" --type merge -p '{"spec":{"ref":{"branch":"<branch>"}}}'
    flux reconcile source git "${GR_NAME}" -n flux-system
    flux reconcile kustomization flux-system -n flux-system --with-source
@@ -210,8 +197,8 @@ When validating changes from a feature branch in the live cluster:
 
 ## Search strategy
 
-- Start with targeted path-scoped searches: `ansible/**`, `terraform/**`, `kubernetes/**`, `dev/**`, `test/**`
-- Exclude noisy trees: `docs/vendor/`, `docs/_site/`, `docs/.bundle/`, `ansible/.ansible/`, `ansible/.venv/`
+- Start with targeted path-scoped searches: `ansible/**`, `terraform/**`, `kubernetes/**`, `dev/**`
+- Exclude noisy trees: `ansible/.ansible/`, `ansible/.venv/`
 
 ## Git Commit Guidelines
 - Never add Co-Authored-By to commit messages
