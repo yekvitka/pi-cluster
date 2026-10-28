@@ -1,4 +1,5 @@
-# Cloud-init net configuration 
+# Cloud-init net configuration
+# Placeholders replaced by `make prepare-nodeX`: NODE_OCTET, WLAN_OCTET, WIFI_SSID, WIFI_KEY
 
 version: 2
 ethernets:
@@ -6,12 +7,33 @@ ethernets:
     dhcp4: false
     dhcp6: false
     addresses:
-      - 10.0.0.X/24
+      - 10.0.0.NODE_OCTET/24
     routes:
       - to: default
         via: 10.0.0.1
+        metric: 100
     nameservers:
       addresses:
         - 10.0.0.1
       search:
         - homelab.yekvitka.com
+    # The home router advertises its own IPv6 DNS servers on the shared segment.
+    # The DHCPv6 ones are disabled by a networkd drop-in in user-data
+    ra-overrides:
+      use-dns: false
+      use-domains: false
+# Backup uplink to the home network
+wifis:
+  wlan0:
+    dhcp4: false
+    addresses:
+      - 192.168.50.WLAN_OCTET/24
+    nameservers:
+      addresses: [8.8.8.8, 8.8.4.4]
+    access-points:
+      "WIFI_SSID":
+        password: "WIFI_KEY"
+    routes:
+      - to: default
+        via: 192.168.50.1
+        metric: 200

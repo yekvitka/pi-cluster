@@ -20,6 +20,22 @@ users:
       # Replaced by `make prepare-nodeX` with the key in metal/rpi/cloud-init/root.pub
       - SSH_PUB_KEY
 
+write_files:
+  # The home router also hands out its IPv6 DNS servers over DHCPv6 (see network-config)
+  - path: /etc/systemd/network/10-netplan-eth0.network.d/no-dhcp6-dns.conf
+    content: |
+      [DHCPv6]
+      UseDNS=false
+      UseDomains=false
+  # Network is configured once, at first boot: do not rewrite netplan afterwards
+  - path: /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
+    content: |
+      network: {config: disabled}
+
+runcmd:
+  # Load the DHCPv6 drop-in, networkd is already running at this point
+  - [networkctl, reconfigure, eth0]
+
 # node1: OS on SD card
 # SSD1: whole disk ext4 mounted at /storage (RustFS, Vault)
 # SSD2: left untouched, configured by Ansible as iSCSI LVM volume group (configure_centralized_san.yml)
