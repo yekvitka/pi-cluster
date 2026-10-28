@@ -40,7 +40,7 @@
             release_namespace: kube-system
             create_namespace: true
           environment:
-            KUBECONFIG: "/home/{{ ansible_user }}/.kube/config"
+            KUBECONFIG: /etc/rancher/k3s/k3s.yaml
           retries: 5
           delay: 15
           tags:
@@ -56,7 +56,7 @@
             release_namespace: grafana
             include_crds: true
           environment:
-            KUBECONFIG: "/home/{{ ansible_user }}/.kube/config"
+            KUBECONFIG: /etc/rancher/k3s/k3s.yaml
           register: grafana_operator_template
           changed_when: false
           tags:
@@ -98,7 +98,7 @@
               --field-manager=ansible-grafana-operator-crds
               -f {{ grafana_operator_crds_file.path }}
           environment:
-            KUBECONFIG: "/home/{{ ansible_user }}/.kube/config"
+            KUBECONFIG: /etc/rancher/k3s/k3s.yaml
           register: grafana_operator_crds
           changed_when: >-
             'created' in grafana_operator_crds.stdout
@@ -164,7 +164,7 @@
             create_namespace: false
             release_values: "{{ cilium_merged_values }}"
           environment:
-            KUBECONFIG: "/home/{{ ansible_user }}/.kube/config"
+            KUBECONFIG: /etc/rancher/k3s/k3s.yaml
           retries: 5
           delay: 15
           tags:
@@ -205,7 +205,7 @@
             create_namespace: false
             release_values: "{{ coredns_merged_values }}"
           environment:
-            KUBECONFIG: "/home/{{ ansible_user }}/.kube/config"
+            KUBECONFIG: /etc/rancher/k3s/k3s.yaml
           retries: 5
           delay: 15
           tags:
@@ -247,7 +247,7 @@
             create_namespace: false
             release_values: "{{ kubevip_merged_values }}"
           environment:
-            KUBECONFIG: "/home/{{ ansible_user }}/.kube/config"
+            KUBECONFIG: /etc/rancher/k3s/k3s.yaml
           retries: 5
           delay: 15
           tags:

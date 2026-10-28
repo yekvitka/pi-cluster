@@ -25,7 +25,7 @@ HOME_NET="${HOME_NET:-192.168.50.0/24}"
 HOME_ROUTER="${HOME_ROUTER:-192.168.50.1}"
 WAN_IP="${WAN_IP:-192.168.50.200}"
 LAN_IP="10.0.0.1"
-DOMAIN="homelab.yekvitka.com"
+DOMAIN="homelab.yekvitka.net"
 # node1: bind9 (authoritative DNS), Vault, RustFS (S3)
 NODE1="10.0.0.11"
 # k3s API virtual IP (kube-vip on node2-node4)

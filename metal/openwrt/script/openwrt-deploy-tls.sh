@@ -4,8 +4,8 @@
 
 set -euo pipefail
 
-CERT_PATH="$HOME/.certbot/config/live/gateway.homelab.yekvitka.com/fullchain.pem"
-KEY_PATH="$HOME/.certbot/config/live/gateway.homelab.yekvitka.com/privkey.pem"
+CERT_PATH="$HOME/.certbot/config/live/gateway.homelab.yekvitka.net/fullchain.pem"
+KEY_PATH="$HOME/.certbot/config/live/gateway.homelab.yekvitka.net/privkey.pem"
 REMOTE_HOST="gateway"
 REMOTE_CERT="/etc/uhttpd.crt"
 REMOTE_KEY="/etc/uhttpd.key"
