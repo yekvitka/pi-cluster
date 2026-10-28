@@ -1,5 +1,5 @@
 .PHONY: default create-local-directories start-ansible-runner
-LOCAL_DIRS := ${HOME}/.ansible ${HOME}/.ansible/collections ${HOME}/.ansible/roles ${HOME}/.secrets ${HOME}/.ssh ${HOME}/.kube ${HOME}/.certbot/logs ${HOME}/.certbot/config ${HOME}/.certbot/work
+LOCAL_DIRS := ${HOME}/.ansible ${HOME}/.ansible/collections ${HOME}/.ansible/roles ${HOME}/.secrets ${HOME}/.ssh ${HOME}/.kube ${HOME}/.certbot/log ${HOME}/.certbot/config ${HOME}/.certbot/work
 
 default: start-ansible-runner
 

@@ -14,6 +14,13 @@ set -e
 : "${WIFI_KEY:?set WIFI_KEY}"
 
 WIFI_COUNTRY="${WIFI_COUNTRY:-PL}"
+# Band of the home access point (2g, 5g)
+WIFI_BAND="${WIFI_BAND:-5g}"
+# 0: no DHCP server on the LAN. eth0 shares the segment with the home network,
+# a second DHCP server would answer home devices. Nodes use static IPs.
+LAN_DHCP="${LAN_DHCP:-0}"
+# 1: do not reboot at the end (first boot from /etc/uci-defaults)
+NO_REBOOT="${NO_REBOOT:-0}"
 HOME_NET="${HOME_NET:-192.168.50.0/24}"
 HOME_ROUTER="${HOME_ROUTER:-192.168.50.1}"
 WAN_IP="${WAN_IP:-192.168.50.200}"
@@ -55,18 +62,36 @@ uci set network.wwan.ipaddr="$WAN_IP"
 uci set network.wwan.netmask='255.255.255.0'
 uci set network.wwan.gateway="$HOME_ROUTER"
 
-uci set wireless.radio0.disabled='0'
-uci set wireless.radio0.country="$WIFI_COUNTRY"
-# Remove the default access point, the radio is used only as uplink
-uci -q delete wireless.default_radio0 || true
-uci -q delete wireless.wwan || true
-uci set wireless.wwan=wifi-iface
-uci set wireless.wwan.device='radio0'
-uci set wireless.wwan.mode='sta'
-uci set wireless.wwan.network='wwan'
-uci set wireless.wwan.ssid="$WIFI_SSID"
-uci set wireless.wwan.encryption='psk2'
-uci set wireless.wwan.key="$WIFI_KEY"
+# On first boot the radio can show up after uci-defaults start: wait for it
+if ! uci -q get wireless.radio0 >/dev/null; then
+  i=0
+  while [ $i -lt 30 ] && [ -z "$(ls /sys/class/ieee80211/ 2>/dev/null)" ]; do
+    sleep 1
+    i=$((i + 1))
+  done
+  wifi config || true
+fi
+
+if uci -q get wireless.radio0 >/dev/null; then
+  uci set wireless.radio0.disabled='0'
+  uci set wireless.radio0.country="$WIFI_COUNTRY"
+  uci set wireless.radio0.band="$WIFI_BAND"
+  uci set wireless.radio0.channel='auto'
+  # Remove the default access point, the radio is used only as uplink
+  uci -q delete wireless.default_radio0 || true
+  uci -q delete wireless.wwan || true
+  uci set wireless.wwan=wifi-iface
+  uci set wireless.wwan.device='radio0'
+  uci set wireless.wwan.mode='sta'
+  uci set wireless.wwan.network='wwan'
+  uci set wireless.wwan.ssid="$WIFI_SSID"
+  uci set wireless.wwan.encryption='psk2'
+  uci set wireless.wwan.key="$WIFI_KEY"
+else
+  # The rest still applies: the gateway stays reachable on the LAN (10.0.0.1)
+  echo "WARNING: radio0 not found, Wi-Fi uplink not configured. Re-run this script." >&2
+  logger -t gateway-setup "radio0 not found, Wi-Fi uplink not configured"
+fi
 
 ########################
 # DHCP / DNS (dnsmasq)
@@ -90,6 +115,11 @@ uci set dhcp.@dnsmasq[0].localservice='0'
 uci set dhcp.lan.start='150'
 uci set dhcp.lan.limit='100'
 uci set dhcp.lan.leasetime='12h'
+if [ "$LAN_DHCP" = "1" ]; then
+  uci -q delete dhcp.lan.ignore || true
+else
+  uci set dhcp.lan.ignore='1'
+fi
 uci set dhcp.lan.dhcpv4='server'
 uci set dhcp.lan.dhcpv6='disabled'
 uci set dhcp.lan.ra='disabled'
@@ -103,11 +133,12 @@ static_lease() {
   uci set dhcp."$1".mac="$2"
   uci set dhcp."$1".ip="$3"
 }
-static_lease node1 D8:3A:DD:3B:47:08 10.0.0.11
-static_lease node2 D8:3A:DD:3B:46:ED 10.0.0.12
-static_lease node3 D8:3A:DD:D4:99:82 10.0.0.13
-static_lease node4 D8:3A:DD:D4:8E:FC 10.0.0.14
-static_lease node5 D8:3A:DD:3B:47:2F 10.0.0.15
+# eth0 MACs (wlan0 is eth0 + 1)
+static_lease node1 D8:3A:DD:3B:47:07 10.0.0.11
+static_lease node2 D8:3A:DD:3B:46:EC 10.0.0.12
+static_lease node3 D8:3A:DD:D4:99:81 10.0.0.13
+static_lease node4 D8:3A:DD:D4:8E:FB 10.0.0.14
+static_lease node5 D8:3A:DD:3B:47:2E 10.0.0.15
 
 ########################
 # Firewall
@@ -153,5 +184,6 @@ if [ -s /etc/dropbear/authorized_keys ]; then
 fi
 
 uci commit
+[ "$NO_REBOOT" = "1" ] && exit 0
 echo "Configuration committed. Rebooting: reconnect at $LAN_IP or $WAN_IP"
 reboot

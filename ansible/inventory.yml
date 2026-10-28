@@ -13,27 +13,27 @@ all:
           hostname: node1
           ansible_host: 10.0.0.11
           ip: 10.0.0.11
-          mac: D8:3A:DD:3B:47:08
+          mac: D8:3A:DD:3B:47:07
         node2:
           hostname: node2
           ansible_host: 10.0.0.12
           ip: 10.0.0.12
-          mac: D8:3A:DD:3B:46:ED
+          mac: D8:3A:DD:3B:46:EC
         node3:
           hostname: node3
           ansible_host: 10.0.0.13
           ip: 10.0.0.13
-          mac: D8:3A:DD:D4:99:82
+          mac: D8:3A:DD:D4:99:81
         node4:
           hostname: node4
           ansible_host: 10.0.0.14
           ip: 10.0.0.14
-          mac: D8:3A:DD:D4:8E:FC
+          mac: D8:3A:DD:D4:8E:FB
         node5:
           hostname: node5
           ansible_host: 10.0.0.15
           ip: 10.0.0.15
-          mac: D8:3A:DD:3B:47:2F
+          mac: D8:3A:DD:3B:47:2E
     raspberrypi:
       hosts:
         node[1:5]:

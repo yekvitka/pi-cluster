@@ -41,9 +41,12 @@ The centralized SAN is not part of upstream: `ansible/configure_centralized_san.
    ```shell
    make img/ubuntu-24.04.5-preinstalled-server-arm64+raspi.img.xz
    make burn-image USB=/dev/sdX
+   export WIFI_SSID='<home ssid>' WIFI_KEY='<home wifi password>'   # wlan0 backup uplink
    make prepare-node1 USB=/dev/sdX SSD1_ID=<node1 SSD1 /dev/disk/by-id name>
    make prepare-node2 USB=/dev/sdX   # node3..node5 the same way
    ```
+
+   Nodes get 10.0.0.1N on eth0 (DNS from the gateway) and 192.168.50.20N on wlan0.
 
 3. Set node1 SSD2 id in `ansible/vars/centralized_san/centralized_san_target.yml` (`SSD2_ID`).
 4. From the repo root on pimaster:
