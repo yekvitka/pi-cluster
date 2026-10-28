@@ -72,7 +72,9 @@
       ansible.builtin.include_tasks:
         file: tasks/create_rustfs_bearer_token.yml
 
+    # Only cert-manager ACME DNS-01 (letsencrypt-issuer) uses them
     - name: Load IONOS credentials
+      when: enable_letsencrypt | default(false)
       ansible.builtin.include_tasks:
         file: tasks/load_ionos_credentials_into_vault.yml
 
