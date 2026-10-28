@@ -12,7 +12,6 @@ services:
       - ./../ansible:/ansible
       - ./../kubernetes:/kubernetes
       - ./../terraform:/terraform
-      - ./../metal/x86/pxe-files:/metal/x86/pxe-files
       - ${HOME}/.secrets:/home/runner/.secrets
       - ${HOME}/.ssh/id_rsa:/home/runner/.ssh/id_rsa:ro
       - ${HOME}/.ssh/id_rsa.pub:/home/runner/.ssh/id_rsa.pub:ro
