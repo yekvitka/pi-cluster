@@ -3,7 +3,7 @@
 variable "minio_endpoint" {
   type        = string
   description = "Minio server endpoint (hostname:port)"
-  default     = "object-store.homelab.yekvitka.com:9091"
+  default     = "object-store.homelab.yekvitka.net:9091"
 }
 
 variable "minio_region" {

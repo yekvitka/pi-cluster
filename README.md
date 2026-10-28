@@ -14,7 +14,7 @@ Fork of [ricsanfre/pi-cluster](https://github.com/ricsanfre/pi-cluster). Archite
 | node2–node4 | 10.0.0.12–14 | K3s control plane (embedded etcd). k3s API virtual IP 10.0.0.10 (kube-vip) |
 | node5 | 10.0.0.15 | K3s worker |
 
-DNS domain: `homelab.yekvitka.com` (Let's Encrypt certificates via IONOS DNS-01).
+DNS domain: `homelab.yekvitka.net` (Let's Encrypt certificates via IONOS DNS-01).
 
 ### Storage
 
@@ -29,7 +29,7 @@ The centralized SAN is not part of upstream: `ansible/configure_centralized_san.
 - 5 Raspberry Pis + OpenWrt gateway; no x86 nodes, no PXE server.
 - Centralized iSCSI SAN on node1 (above).
 - Ansible connects as `root`; SSH key from `metal/rpi/cloud-init/root.pub`.
-- Rancher added as a Flux platform app (`kubernetes/platform/rancher`), at `https://rancher.homelab.yekvitka.com`.
+- Rancher added as a Flux platform app (`kubernetes/platform/rancher`), at `https://rancher.homelab.yekvitka.net`.
 - k3s held on 1.36.x: Rancher 2.15 supports Kubernetes < 1.37 (`.github/renovate.json5`).
 - Only core and monitoring platform apps are enabled in `kubernetes/clusters/prod/infra/kustomization.yaml`. The other upstream apps stay in `kubernetes/platform/` and can be re-enabled there.
 

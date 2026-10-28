@@ -113,14 +113,14 @@ ionos_api_endpoint: https://api.hosting.ionos.com
 
 
 # issuer email
-acme_issuer_email: admin@yekvitka.com
+acme_issuer_email: admin@yekvitka.net
 
 ###########################
 # RustFS S3 configuration #
 ###########################
 
 # RustFS S3 Server (replaces MinIO)
-rustfs_hostname: "object-store.homelab.yekvitka.com"
+rustfs_hostname: "object-store.homelab.yekvitka.net"
 rustfs_server_port: "9091"
 rustfs_console_port: "9092"
 rustfs_endpoint: "{{ rustfs_hostname }}:9091"

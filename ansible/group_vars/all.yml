@@ -31,7 +31,7 @@ default_gateway: 10.0.0.1
 #######################
 # DNS server
 dns_server: 10.0.0.1
-dns_domain: homelab.yekvitka.com
+dns_domain: homelab.yekvitka.net
 
 ############################
 # restic backup role variables
