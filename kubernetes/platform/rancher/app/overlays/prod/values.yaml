@@ -17,3 +17,11 @@ resources:
     memory: 768Mi
   limits:
     memory: 1200Mi
+# Use the chart catalogs packaged in the image: no git clone / fetch of the
+# rancher, partner and rke2 chart repos on every start (heavy SD card writes)
+useBundledSystemChart: true
+# First start on a Raspberry Pi takes more than the default 2 minutes
+startupProbe:
+  timeoutSeconds: 5
+  periodSeconds: 10
+  failureThreshold: 60
