@@ -28,9 +28,21 @@
 # usb-storage quirks (VID:PID:flags), e.g. "u" disables UAS for USB-SATA adapters
 # that time out under write load. Replaces any existing usb-storage.quirks value
 - name: Set usb-storage quirks in kernel command line
-  ansible.builtin.replace:
-    path: /boot/firmware/cmdline.txt
-    regexp: '^(.*?)(\s*usb-storage\.quirks=\S*)?\s*$'
-    replace: '\1 usb-storage.quirks={{ rpi_usb_storage_quirks | join(",") }}'
   when: rpi_usb_storage_quirks | length > 0
-  notify: Reboot
+  block:
+    - name: Read kernel command line
+      ansible.builtin.slurp:
+        src: /boot/firmware/cmdline.txt
+      register: rpi_cmdline
+
+    # cmdline.txt is a single line of words: drop any usb-storage.quirks word and
+    # append the wanted one. copy only reports a change when the content differs
+    - name: Write kernel command line with usb-storage quirks
+      ansible.builtin.copy:
+        dest: /boot/firmware/cmdline.txt
+        content: >-
+          {{ ((rpi_cmdline.content | b64decode).split()
+          | reject('match', 'usb-storage[.]quirks=') | list
+          + ['usb-storage.quirks=' ~ (rpi_usb_storage_quirks | join(','))]) | join(' ') }}
+        mode: "0755"
+      notify: Reboot
