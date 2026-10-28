@@ -32,6 +32,7 @@ The centralized SAN is not part of upstream: `ansible/configure_centralized_san.
 - Rancher added as a Flux platform app (`kubernetes/platform/rancher`), at `https://rancher.homelab.yekvitka.net`.
 - k3s held on 1.36.x: Rancher 2.15 supports Kubernetes < 1.37 (`.github/renovate.json5`).
 - Only core and monitoring platform apps are enabled in `kubernetes/clusters/prod/infra/kustomization.yaml`. The other upstream apps stay in `kubernetes/platform/` and can be re-enabled there.
+- Sized for 4 GB Raspberry Pis with a single worker: control plane nodes (node2–node4) keep the `NoSchedule` taint (etcd on SD cards), so apps run on node5. Logs (Loki, Fluentd, Fluent Bit), traces (Tempo, OpenTelemetry collector) and Velero are disabled. Rancher runs on node3 with a 1200 MiB memory limit (`kubernetes/platform/rancher/app/overlays/prod/values.yaml`).
 
 ## Build
 

@@ -27,6 +27,11 @@ write_files:
       [DHCPv6]
       UseDNS=false
       UseDomains=false
+  - path: /etc/systemd/network/10-netplan-wlan0.network.d/no-dhcp6-dns.conf
+    content: |
+      [DHCPv6]
+      UseDNS=false
+      UseDomains=false
   # Network is configured once, at first boot: do not rewrite netplan afterwards
   - path: /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
     content: |
@@ -34,4 +39,4 @@ write_files:
 
 runcmd:
   # Load the DHCPv6 drop-in, networkd is already running at this point
-  - [networkctl, reconfigure, eth0]
+  - [networkctl, reconfigure, eth0, wlan0]
