@@ -24,3 +24,13 @@
     create: true
     mode: "0755"
   notify: Reboot
+
+# usb-storage quirks (VID:PID:flags), e.g. "u" disables UAS for USB-SATA adapters
+# that time out under write load. Replaces any existing usb-storage.quirks value
+- name: Set usb-storage quirks in kernel command line
+  ansible.builtin.replace:
+    path: /boot/firmware/cmdline.txt
+    regexp: '^(.*?)(\s*usb-storage\.quirks=\S*)?\s*$'
+    replace: '\1 usb-storage.quirks={{ rpi_usb_storage_quirks | join(",") }}'
+  when: rpi_usb_storage_quirks | length > 0
+  notify: Reboot
