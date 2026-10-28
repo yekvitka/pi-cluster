@@ -21,7 +21,7 @@
   register: ca_csr
 
 - name: Sign the CA CSR
-  community.crypto.X509_certificate:
+  community.crypto.x509_certificate:
     path: "{{ selfsigned_certificates_path }}/CA.pem"
     csr_path: "{{ selfsigned_certificates_path }}/CA.csr"
     privatekey_path: "{{ selfsigned_certificates_path }}/CA.key"

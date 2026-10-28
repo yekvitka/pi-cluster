@@ -158,6 +158,7 @@
               become: false
           vars:
             server_hostname: "{{ rustfs_hostname }}"
+            server_ip: "{{ hostvars[groups['s3'][0]]['ip'] }}"
 
 # Install and Configure RustFS with Vault Integration
 - name: Install RustFS S3 Storage Server

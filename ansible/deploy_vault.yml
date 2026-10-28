@@ -149,6 +149,7 @@
               become: false
           vars:
             server_hostname: "{{ vault_hostname }}"
+            server_ip: "{{ hostvars[groups['vault'][0]]['ip'] }}"
 
 # Install and Configure Vault Server
 - name: Install Vault Server
