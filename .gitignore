@@ -27,6 +27,7 @@
 
 # Metal
 /metal/openwrt/config
+/metal/openwrt/img
 
 # IDE
 .vscode/
