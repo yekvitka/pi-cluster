@@ -1,0 +1,7 @@
+---
+# node5 node variables
+
+# The SSD uses a Realtek RTL9201 USB-SATA adapter: with UAS, writes time out
+# (uas_eh_abort_handler) and fail with I/O errors. Use usb-storage instead
+rpi_usb_storage_quirks:
+  - "0bda:9201:u"
