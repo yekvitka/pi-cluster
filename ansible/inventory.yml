@@ -7,9 +7,6 @@ all:
           hostname: pimaster
           ansible_host: localhost
           ansible_connection: local
-    external:
-      hosts:
-        # Removing external s3 and vault hosts as they'll be hosted on node1
     picluster:
       hosts:
         node1:
