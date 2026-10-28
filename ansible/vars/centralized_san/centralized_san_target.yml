@@ -15,9 +15,10 @@
 storage_volumegroups:
   - name: vg_iscsi
     devices:
-      # SSD2, by id: USB disk order (sda/sdb) is not stable and /dev/sdb may be SSD1 (/storage).
-      # Replace SSD2_ID with its name from `ls -l /dev/disk/by-id/` on node1
-      - /dev/disk/by-id/SSD2_ID
+      # SSD2, by USB port: sda/sdb order is not stable, and both SSDs report the
+      # same serial so /dev/disk/by-id cannot tell them apart.
+      # SSD2 in USB port 1, SSD1 (/storage) in USB port 2: see `ls -l /dev/disk/by-path/` on node1
+      - /dev/disk/by-path/platform-fd500000.pcie-pci-0000:01:00.0-usb-0:1:1.0-scsi-0:0:0:0
 
 storage_volumes:
   - name: vg_iscsi_lv_node2
@@ -36,6 +37,11 @@ storage_volumes:
 ###################
 # iSCSI_Target Role
 ###################
+
+# The role (v1.0.0) also installs python3-distutils, which Ubuntu 24.04 no longer ships.
+# Loaded with include_vars, so this overrides the role vars
+iscsi_packages:
+  - targetcli-fb
 
 # Initiator names must match open_iscsi_initiator_name in setup_picluster.yml
 iscsi_targets:

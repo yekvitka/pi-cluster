@@ -16,3 +16,6 @@ rpi_packages:
   # - linux-modules-extra-raspi
   - fake-hwclock
   - bridge-utils
+
+# usb-storage quirks for the kernel command line (VID:PID:flags). Empty: unchanged
+rpi_usb_storage_quirks: []
