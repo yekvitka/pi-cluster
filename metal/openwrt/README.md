@@ -11,7 +11,7 @@ Services provided by the gateway:
 
 - Routing, firewall and NAT (cluster LAN → home network)
 - DHCP for 10.0.0.0/24: disabled by default (`LAN_DHCP=0`). The cluster LAN and the home network share one switch, so a second DHCP server would answer home devices; nodes use static IPs. With `LAN_DHCP=1` (dedicated cluster switch): static leases for node1–node5, dynamic pool 10.0.0.150–10.0.0.249 (10.0.0.64/26 is reserved for Kubernetes LoadBalancer IPs, 10.0.0.10 for the k3s API)
-- DNS forwarder: `homelab.yekvitka.com` and `0.10.in-addr.arpa` go to bind9 on node1 (10.0.0.11), everything else to 1.1.1.1 / 8.8.8.8
+- DNS forwarder: `homelab.yekvitka.net` and `0.10.in-addr.arpa` go to bind9 on node1 (10.0.0.11), everything else to 1.1.1.1 / 8.8.8.8
 - NTP server on the LAN
 
 Everything else runs on node1 (bind9, Vault, RustFS S3, iSCSI SAN). The k3s API is the kube-vip virtual IP 10.0.0.10 on node2–node4.
@@ -74,7 +74,7 @@ routes:
     via: 192.168.50.200
 ```
 
-To resolve cluster names from pimaster, use the gateway (192.168.50.200) as DNS server for `homelab.yekvitka.com`.
+To resolve cluster names from pimaster, use the gateway (192.168.50.200) as DNS server for `homelab.yekvitka.net`.
 
 ## Static leases
 
@@ -82,4 +82,4 @@ Nodes configure their static IPs in cloud-init (`metal/rpi/cloud-init/nodes/netw
 
 ## LuCI TLS certificate
 
-`make openwrt-certbot-tls` (repo root) requests a Let's Encrypt certificate for `gateway.homelab.yekvitka.com` and deploys it with `script/openwrt-deploy-tls.sh`.
+`make openwrt-certbot-tls` (repo root) requests a Let's Encrypt certificate for `gateway.homelab.yekvitka.net` and deploys it with `script/openwrt-deploy-tls.sh`.
