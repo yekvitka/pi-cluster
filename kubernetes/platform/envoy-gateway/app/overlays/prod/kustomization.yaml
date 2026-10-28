@@ -7,7 +7,6 @@ resources:
 
 components:
   - ../../components/opentelemetry
-  - ../../components/istio
 
 configMapGenerator:
   - name: envoy-gateway-helm-values

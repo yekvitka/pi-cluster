@@ -1,0 +1,37 @@
+#cloud-config
+
+# Set TimeZone and Locale
+timezone: UTC
+locale: en_US.UTF-8
+
+# Hostname
+hostname: nodeX
+
+# cloud-init not managing hosts file. only hostname is added
+manage_etc_hosts: localhost
+
+# No default ubuntu user: login as root with SSH key only
+disable_root: false
+ssh_pwauth: false
+users:
+  - name: root
+    lock_passwd: true
+    ssh_authorized_keys:
+      # Replaced by `make prepare-nodeX` with the key in metal/rpi/cloud-init/root.pub
+      - SSH_PUB_KEY
+
+# node1: OS on SD card
+# SSD1: whole disk ext4 mounted at /storage (RustFS, Vault)
+# SSD2: left untouched, configured by Ansible as iSCSI LVM volume group (configure_centralized_san.yml)
+# SSD1 addressed by id: with two USB disks sda/sdb order is not stable.
+# SSD1_ID is replaced by `make prepare-node1 SSD1_ID=...`
+# overwrite: false -> an existing filesystem (data) is never reformatted
+fs_setup:
+  - label: DATA
+    filesystem: ext4
+    device: /dev/disk/by-id/SSD1_ID
+    partition: none
+    overwrite: false
+
+mounts:
+  - [ "LABEL=DATA", "/storage", "ext4", "defaults,nofail", "0", "2" ]

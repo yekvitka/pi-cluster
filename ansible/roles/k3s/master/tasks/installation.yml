@@ -125,11 +125,13 @@
           register: cilium_base_values
           delegate_to: localhost
 
+        # istio-config component is only used by the dev overlay (Istio not deployed in prod)
         - name: Read Cilium component values.yaml
           ansible.builtin.slurp:
             src: ../../../../kubernetes/platform/cilium/app/components/istio-config/values.yaml
           register: cilium_component_values
           delegate_to: localhost
+          when: overlay == 'dev'
 
         - name: Read Cilium overlay values.yaml
           ansible.builtin.slurp:
@@ -143,7 +145,7 @@
               {{
                 (cilium_base_values.content | b64decode | from_yaml | default({}))
                 | combine(
-                    cilium_component_values.content | b64decode | from_yaml | default({}),
+                    cilium_component_values.content | default('e30=') | b64decode | from_yaml | default({}),
                     recursive=True
                   )
                 | combine(

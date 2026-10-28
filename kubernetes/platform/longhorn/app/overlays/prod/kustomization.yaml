@@ -6,7 +6,6 @@ resources:
   - ../../base
 
 components:
-  - ../../components/route
   - ../../components/backup
   - ../../components/monitor
 

@@ -1,36 +1,6 @@
 ---
 
-# - name: Configure Pi Cluster Gateway (Ubuntu)
-#   hosts: gateway
-#   gather_facts: true
-#   tags: [gateway]
-#   become: true
-#   roles:
-
-#     # OS basic setup tasks
-#     - role: basic_setup
-#       tags: [os]
-
-#     # Security Hardening
-#     - role: ricsanfre.security
-#       tags: [security]
-
-#     # DNS Resolver Forwarder configuration
-#     # DHCP server configuration
-#     - role: ricsanfre.dnsmasq
-#       tags: [dns]
-
-#     # Update DNS server to point to DNSmasq
-#     - role: dns
-#       tags: [dns]
-
-#     # Firewall (nftables) configuration
-#     - role: ricsanfre.firewall
-#       tags: [firewall]
-
-#     # NTP Server configuration
-#     - role: ricsanfre.ntp
-#       tags: [ntp]
+# Gateway runs OpenWrt and is not managed by Ansible. See metal/openwrt/README.md
 
 - name: Configure External Node
   hosts: node1
@@ -78,6 +48,6 @@
           include_role:
             name: ricsanfre.iscsi_initiator
           vars:
-            open_iscsi_initiator_name: "iqn.2021-07.com.ricsanfre.homelab:{{ ansible_facts['nodename'] }}"
+            open_iscsi_initiator_name: "iqn.2026-10.com.yekvitka.homelab:{{ ansible_facts['nodename'] }}"
             open_iscsi_automatic_startup: true
       tags: [storage]

@@ -1,8 +1,0 @@
----
-# Install Apache server
-- name: Install Kick-start HTTP server
-  ansible.builtin.include_tasks: install_ks_http_server.yml
-
-# Install TFTP server
-- name: Install TFTP server
-  ansible.builtin.include_tasks: install_tftp_server.yml

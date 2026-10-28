@@ -8,7 +8,6 @@ resources:
 components:
   - ../../components/tempo-exporter
   - ../../components/prometheus-exporter
-  - ../../components/elasticsearch-exporter
   - ../../components/loki-exporter
   - ../../components/route
   - ../../components/oltp-http-cors

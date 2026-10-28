@@ -31,3 +31,5 @@
 # IDE
 .vscode/
 .idea/
+# Per-machine SSH public key pasted for cloud-init (metal/rpi/Makefile)
+/metal/rpi/cloud-init/root.pub

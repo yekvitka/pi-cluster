@@ -38,28 +38,6 @@ mountDockerContainersDirectory: false
 
 ## Additional environment variables to set for fluentd pods
 env:
-  # Elastic operator creates elastic service name with format cluster_name-es-http
-  - name:  FLUENT_ELASTICSEARCH_HOST
-    valueFrom:
-      configMapKeyRef:
-        name: fluentd-env
-        key: elasticsearchHost
-    # value: efk-es-http
-    # Default elasticsearch default port
-  - name:  FLUENT_ELASTICSEARCH_PORT
-    value: "9200"
-  # Elasticsearch user
-  - name: FLUENT_ELASTICSEARCH_USER
-    valueFrom:
-      secretKeyRef:
-        name: fluentd-secrets
-        key: es-username
-  # Elastic operator stores elastic user password in a secret
-  - name: FLUENT_ELASTICSEARCH_PASSWORD
-    valueFrom:
-      secretKeyRef:
-        name: fluentd-secrets
-        key: es-password
   # Fluentd forward security
   - name: FLUENT_AGGREGATOR_SHARED_KEY
     valueFrom:
@@ -92,19 +70,13 @@ extraFilesConfigMapNameOverride: fluentd-extra-files
 ##
 configMapConfigs: []
 
-# Volumes and VolumeMounts (only template and and certificates)
+# Volumes and VolumeMounts (certificates)
 volumes:
   - name: fluentd-tls
     secret:
       secretName: fluentd-tls
-  - name: etcfluentd-template
-    configMap:
-      name: fluentd-template
-      defaultMode: 0777
 
 volumeMounts:
-  - name: etcfluentd-template
-    mountPath: /etc/fluent/template
   - mountPath: /etc/fluent/certs
     name: fluentd-tls
     readOnly: true

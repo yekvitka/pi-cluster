@@ -1,0 +1,54 @@
+---
+# ------------------------------------------
+# CENTRALIZED SAN
+# ------------------------------------------
+# Variables for configuring iSCSI in k3s nodes
+# iSCSI Initiator Configuration + Mounting iSCSI LUN at /storage
+
+################################
+# iSCSI-initiator role variables
+################################
+
+# Same initiator name as setup_picluster.yml (allowed in centralized_san_target.yml)
+open_iscsi_initiator_name: "iqn.2026-10.com.yekvitka.homelab:{{ ansible_facts['nodename'] }}"
+open_iscsi_automatic_startup: true
+open_iscsi_targets:
+  - name: node1-target
+    discover: true
+    auto_portal_startup: true
+    auto_node_startup: true
+    portal: 10.0.0.11
+    target: iqn.2026-10.com.yekvitka.homelab:node1
+    login: true
+    node_auth: CHAP
+    node_user: "{{ open_iscsi_initiator_name }}"
+    node_pass: "{{ iscsi_node_pass }}"
+    node_user_in: iqn.2026-10.com.yekvitka.homelab:node1
+    node_pass_in: "{{ iscsi_mutual_pass }}"
+
+#############################################
+# Storage role variables. Mount iSCSI volumes
+#############################################
+
+storage_volumegroups:
+  - name: vg_iscsi
+    devices:
+      # Stable path of the LUN mapped by node1, independent of local disk naming
+      - /dev/disk/by-path/ip-10.0.0.11:3260-iscsi-iqn.2026-10.com.yekvitka.homelab:node1-lun-0
+storage_volumes:
+  - name: vg_iscsi_lv_node
+    vg: vg_iscsi
+    size: 100%VG
+storage_filesystems:
+  - name: /dev/vg_iscsi/vg_iscsi_lv_node
+    filesystem: ext4
+storage_mounts:
+  - name: /storage
+    src: /dev/vg_iscsi/vg_iscsi_lv_node
+    owner: root
+    group: root
+    mode: "0755"
+    opts: _netdev
+    boot: true
+    dump: 0
+    passno: 2
