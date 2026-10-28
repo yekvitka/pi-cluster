@@ -16,7 +16,7 @@ ethernets:
       addresses:
         - 10.0.0.1
       search:
-        - homelab.yekvitka.com
+        - homelab.yekvitka.net
     # The home router advertises its own IPv6 DNS servers on the shared segment.
     # The DHCPv6 ones are disabled by a networkd drop-in in user-data
     ra-overrides:
