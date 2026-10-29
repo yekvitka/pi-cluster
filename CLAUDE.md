@@ -143,7 +143,7 @@ kubernetes/
 
 **Flux reconciliation flow**: Flux watches the Git repo → `<service>-app` Kustomization creates namespace + HelmRelease → `<service>-config` depends on `<service>-app` and applies config resources.
 
-**Enabled in prod** (`clusters/prod/infra/kustomization.yaml`): cert-manager, cilium, coredns, csi-external-snapshotter, descheduler, envoy-gateway, external-dns, external-secrets, flux, grafana, kube-prometheus-stack, longhorn, metrics-server, system-upgrade, vault, kube-vip. Disabled to fit 4 GB Pis: fluent, loki, otel-collector, tempo, velero, rancher. Other services in `platform/` (istio, kiali, kafka, keycloak, elastic-stack, eck-operator, databases, …) have no prod Kustomization.
+**Enabled in prod** (`clusters/prod/infra/kustomization.yaml`): cert-manager, cilium, coredns, csi-external-snapshotter, descheduler, envoy-gateway, external-dns, external-secrets, flux, grafana, kube-prometheus-stack, longhorn, metrics-server, system-upgrade, vault, velero, kube-vip. Disabled to fit 4 GB Pis: fluent, loki, otel-collector, tempo, rancher. Other services in `platform/` (istio, kiali, kafka, keycloak, elastic-stack, eck-operator, databases, …) have no prod Kustomization.
 
 **Key FluxCD patterns**:
 - Environment-specific values go in `overlays/{dev,prod}/values.yaml`, never duplicate base manifests.
