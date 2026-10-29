@@ -25,3 +25,23 @@ alertmanager:
     # Longhorn volume: Longhorn runs on workers only
     nodeSelector:
       node_type: worker
+
+# k3s serves API server, etcd, scheduler and controller metrics on the kubelet
+# /metrics endpoint: their histograms were ~70% of all series. This list
+# replaces the chart default, so the first rule repeats it
+kubelet:
+  serviceMonitor:
+    metricRelabelings:
+      # Chart default
+      - action: drop
+        sourceLabels: [__name__, le]
+        regex: (csi_operations|storage_operation_duration)_seconds_bucket;(0.25|2.5|15|25|120|600)(\.0)?
+      # Chart default of kubeApiServer, which does not apply on k3s: drop the
+      # fine-grained buckets, the ones used by the SLO alerts stay
+      - action: drop
+        sourceLabels: [__name__, le]
+        regex: (etcd_request|apiserver_request_slo|apiserver_request_sli|apiserver_request)_duration_seconds_bucket;(0\.15|0\.2|0\.3|0\.35|0\.4|0\.45|0\.6|0\.7|0\.8|0\.9|1\.25|1\.5|1\.75|2|3|3\.5|4|4\.5|6|7|8|9|15|20|40|45|50)(\.0)?
+      # Histograms of internal details, rarely needed: keep _count and _sum only
+      - action: drop
+        sourceLabels: [__name__]
+        regex: (apiserver_watch_list_duration_seconds|apiserver_request_body_size_bytes|apiserver_watch_cache_read_wait_seconds|apiserver_watch_events_sizes|apiserver_response_sizes|workqueue_queue_duration_seconds|workqueue_work_duration_seconds|scheduler_plugin_execution_duration_seconds)_bucket
