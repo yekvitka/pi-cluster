@@ -96,7 +96,10 @@ prometheus:
     scrapeClasses:
       - name: cluster-relabeling
         default: true
-        metricRelabelings:
+        # relabelings (target labels), not metricRelabelings: the label must also
+        # be on the series Prometheus generates per target (up, scrape_*), or
+        # alerts joining on cluster (e.g. KubeletDown) never match
+        relabelings:
           - sourceLabels: [cluster]
             regex: ^$
             action: replace
