@@ -7,3 +7,13 @@ resources:
 
 components:
   - ../../components/monitoring
+
+patches:
+  # Single worker: one Envoy proxy replica
+  - target:
+      kind: EnvoyProxy
+      name: envoy
+    patch: |-
+      - op: replace
+        path: /spec/provider/kubernetes/envoyDeployment/replicas
+        value: 1

@@ -25,6 +25,20 @@ k3s_kubelet_config: |
   kind: KubeletConfiguration
   shutdownGracePeriod: 30s
   shutdownGracePeriodCriticalPods: 10s
+  # Memory for k3s itself (server: API server + etcd + controllers, ~1.5 GB;
+  # agent + containerd on workers) and the OS. The scheduler does not hand it
+  # out and the kubepods cgroup limit keeps pods out of it
+  kubeReserved:
+    memory: {{ '1700Mi' if 'k3s_master' in group_names else '600Mi' }}
+  systemReserved:
+    memory: 300Mi
+  # Evict pods while the node still responds (4 GB Pis without swap).
+  # Setting evictionHard replaces all kubelet defaults: keep the disk ones
+  evictionHard:
+    memory.available: 300Mi
+    nodefs.available: 10%
+    imagefs.available: 15%
+    nodefs.inodesFree: 5%
 
 
 # k3s server-config
@@ -66,8 +80,9 @@ k3s_server_config:
     - traefik
     - metrics-server
   write-kubeconfig-mode: 644
-  node-taint:
-    - 'node-role.kubernetes.io/control-plane:NoSchedule'
+  # Control plane nodes only run system pods, unless k3s_control_plane_taint is
+  # false (host_vars). Applied when the node registers
+  node-taint: "{{ ['node-role.kubernetes.io/control-plane:NoSchedule'] if k3s_control_plane_taint | default(true) | bool else [] }}"
   etcd-expose-metrics: true
   kubelet-arg:
     - 'config=/etc/rancher/k3s/kubelet.config'

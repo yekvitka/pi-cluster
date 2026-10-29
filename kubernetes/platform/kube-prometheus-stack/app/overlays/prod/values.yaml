@@ -2,6 +2,9 @@
 
 prometheus:
   prometheusSpec:
+    # Longhorn volume: Longhorn runs on workers only
+    nodeSelector:
+      node_type: worker
     # node5 (4 GB, single worker) has ~1.3 GB free next to the core apps. A hard
     # limit below that: Prometheus is OOM-killed and restarted instead of the
     # node running out of memory and hanging
@@ -16,3 +19,9 @@ prometheus:
     evaluationInterval: 60s
     retention: 12h
     retentionSize: 1GB
+
+alertmanager:
+  alertmanagerSpec:
+    # Longhorn volume: Longhorn runs on workers only
+    nodeSelector:
+      node_type: worker
