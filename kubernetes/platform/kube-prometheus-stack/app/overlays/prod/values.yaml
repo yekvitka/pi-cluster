@@ -8,7 +8,7 @@ prometheus:
     # Fewer samples and a smaller TSDB keep memory use under the limit
     scrapeInterval: 60s
     evaluationInterval: 60s
-    retention: 12h
+    retention: 6h
     retentionSize: 1GB
 
 alertmanager:
