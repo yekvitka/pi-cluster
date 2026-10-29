@@ -3,3 +3,13 @@ kind: Kustomization
 
 resources:
   - ../../base
+
+patches:
+  # Single worker: one snapshot controller replica
+  - target:
+      kind: Deployment
+      name: snapshot-controller
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
