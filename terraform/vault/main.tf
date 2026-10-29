@@ -242,7 +242,7 @@ resource "random_string" "password_first_char" {
 resource "random_password" "password_remaining" {
   for_each = local.secrets
 
-  length  = lookup(
+  length = lookup(
     {
       for key, secret in local.secrets :
       key => try(secret.password_length, var.generated_password_length)
