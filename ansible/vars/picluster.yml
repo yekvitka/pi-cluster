@@ -84,6 +84,11 @@ k3s_server_config:
   # false (host_vars). Applied when the node registers
   node-taint: "{{ ['node-role.kubernetes.io/control-plane:NoSchedule'] if k3s_control_plane_taint | default(true) | bool else [] }}"
   etcd-expose-metrics: true
+  # etcd snapshots (every 12h, last 5) also uploaded to RustFS bucket k3s-etcd.
+  # S3 endpoint and credentials: kube-system secret managed by External Secrets
+  # (kubernetes/platform/k3s-etcd-backup)
+  etcd-s3: true
+  etcd-s3-config-secret: k3s-etcd-snapshot-s3-config
   kubelet-arg:
     - 'config=/etc/rancher/k3s/kubelet.config'
   # kube-proxy-arg:

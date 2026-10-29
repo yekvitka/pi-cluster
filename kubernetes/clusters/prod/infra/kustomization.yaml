@@ -14,6 +14,7 @@ resources:
   - external-secrets-app.yaml
   - flux-app.yaml
   - grafana-app.yaml
+  - k3s-etcd-backup-app.yaml
   - kube-prometheus-stack-app.yaml
   - longhorn-app.yaml
   - metrics-server-app.yaml
