@@ -19,3 +19,6 @@ prometheus:
           credentials_file: /vault/secrets/token
         static_configs:
         - targets: [vault.${CLUSTER_DOMAIN}:8200]
+          # additionalScrapeConfigs bypass the default scrape class: set cluster here
+          labels:
+            cluster: ${CLUSTER_NAME:-pi-cluster}
