@@ -46,3 +46,21 @@
           + ['usb-storage.quirks=' ~ (rpi_usb_storage_quirks | join(','))]) | join(' ') }}
         mode: "0755"
       notify: Reboot
+
+# BCM2835 hardware watchdog: systemd pets it, a hung node (kernel or systemd
+# frozen for rpi_watchdog_sec) is rebooted by the hardware. Max timeout is ~15s
+- name: Create systemd manager drop-in directory
+  ansible.builtin.file:
+    path: /etc/systemd/system.conf.d
+    state: directory
+    mode: "0755"
+
+- name: Enable hardware watchdog in systemd
+  ansible.builtin.copy:
+    dest: /etc/systemd/system.conf.d/watchdog.conf
+    content: |
+      [Manager]
+      RuntimeWatchdogSec={{ rpi_watchdog_sec }}s
+      RebootWatchdogSec=2min
+    mode: "0644"
+  notify: Reexec systemd
