@@ -39,7 +39,7 @@ The centralized iSCSI SAN (node1 serving one LUN per k3s node) is disabled (`cen
 ### Known limits (4 GB Raspberry Pis)
 
 - Rancher deploys its own controllers (Fleet, CAPI, Turtles, webhook, system-upgrade-controller) with tolerations for the control plane taint. On 4 GB control plane nodes with etcd on SD cards this exhausts them, so `rancher-app` is removed from `kubernetes/clusters/prod/infra/kustomization.yaml` until the control plane nodes have SSDs or more memory. Its files stay in `kubernetes/platform/rancher` (bundled catalogs, 10 minute startup probe, 1200Mi limit).
-- Prometheus has a 700Mi memory limit (512Mi request), below node5's free memory: it is OOM-killed and restarted instead of hanging the node. In prod it keeps memory under the limit with a 60s scrape interval, 12h / 1GB retention and trimmed kubelet histograms (`app/overlays/prod/values.yaml`).
+- Prometheus has a 700Mi memory limit (512Mi request), below node5's free memory: it is OOM-killed and restarted instead of hanging the node. In prod it keeps memory under the limit with a 60s scrape interval, 6h / 1GB retention and trimmed kubelet histograms (`app/overlays/prod/values.yaml`).
 
 ## pimaster (control host)
 

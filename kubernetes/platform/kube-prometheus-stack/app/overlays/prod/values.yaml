@@ -8,7 +8,7 @@ prometheus:
     # Fewer samples and a smaller TSDB keep memory use under the limit
     scrapeInterval: 60s
     evaluationInterval: 60s
-    retention: 12h
+    retention: 6h
     retentionSize: 1GB
 
 alertmanager:
@@ -36,3 +36,11 @@ kubelet:
       - action: drop
         sourceLabels: [__name__]
         regex: (apiserver_watch_list_duration_seconds|apiserver_request_body_size_bytes|apiserver_watch_cache_read_wait_seconds|apiserver_watch_events_sizes|apiserver_response_sizes|workqueue_queue_duration_seconds|workqueue_work_duration_seconds|scheduler_plugin_execution_duration_seconds)_bucket
+      # Not used by any alert rule or dashboard (the API server dashboard uses
+      # apiserver_request_duration_seconds _sum/_count, the SLO alerts the _sli_ buckets)
+      - action: drop
+        sourceLabels: [__name__]
+        regex: (etcd_request_duration_seconds|apiserver_request_duration_seconds|apiserver_admission_controller_admission_duration_seconds|prober_probe_duration_seconds|apiserver_flowcontrol_request_execution_seconds|apiserver_flowcontrol_priority_level_request_utilization|rest_client_request_size_bytes|rest_client_response_size_bytes)_bucket
+      - action: drop
+        sourceLabels: [__name__]
+        regex: kubernetes_feature_enabled|apiextensions_openapi_v[23]_regeneration_count
