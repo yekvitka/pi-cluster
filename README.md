@@ -28,16 +28,17 @@ The centralized iSCSI SAN (node1 serving one LUN per k3s node) is disabled (`cen
 ## Differences from upstream
 
 - 5 Raspberry Pis + OpenWrt gateway; no x86 nodes, no PXE server.
+- BCM2835 hardware watchdog enabled on every Pi (`rpi_watchdog_sec`, basic_setup role): a hung node reboots itself.
 - Optional centralized iSCSI SAN on node1, disabled (above).
 - Ansible connects as `root`; SSH key from `metal/rpi/cloud-init/root.pub`.
-- Rancher added as a Flux platform app (`kubernetes/platform/rancher`), at `https://rancher.homelab.yekvitka.net`.
+- Rancher available as a Flux platform app (`kubernetes/platform/rancher`), not enabled in prod (see Known limits).
 - k3s held on 1.36.x: Rancher 2.15 supports Kubernetes < 1.37 (`.github/renovate.json5`).
 - Only core and monitoring platform apps are enabled in `kubernetes/clusters/prod/infra/kustomization.yaml`. The other upstream apps stay in `kubernetes/platform/` and can be re-enabled there.
-- Sized for 4 GB Raspberry Pis with a single worker: control plane nodes (node2–node4) keep the `NoSchedule` taint (etcd on SD cards), so apps run on node5. Logs (Loki, Fluentd, Fluent Bit), traces (Tempo, OpenTelemetry collector) and Velero are disabled. Rancher runs on node3 with a 1200 MiB memory limit (`kubernetes/platform/rancher/app/overlays/prod/values.yaml`).
+- Sized for 4 GB Raspberry Pis with a single worker: control plane nodes (node2–node4) keep the `NoSchedule` taint (etcd on SD cards), so apps run on node5. Logs (Loki, Fluentd, Fluent Bit), traces (Tempo, OpenTelemetry collector) and Velero are disabled. Rancher is not enabled.
 
 ### Known limits (4 GB Raspberry Pis)
 
-- Rancher deploys its own controllers (Fleet, CAPI, Turtles, webhook, system-upgrade-controller) with tolerations for the control plane taint. On 4 GB control plane nodes with etcd on SD cards this exhausts them: the Rancher HelmRelease is suspended in the cluster until the control plane nodes have SSDs or more memory.
+- Rancher deploys its own controllers (Fleet, CAPI, Turtles, webhook, system-upgrade-controller) with tolerations for the control plane taint. On 4 GB control plane nodes with etcd on SD cards this exhausts them, so `rancher-app` is removed from `kubernetes/clusters/prod/infra/kustomization.yaml` until the control plane nodes have SSDs or more memory. Its files stay in `kubernetes/platform/rancher` (bundled catalogs, 10 minute startup probe, 1200Mi limit).
 - kube-prometheus-stack as configured (Prometheus limit 1800Mi) does not fit next to the core apps on node5: its HelmRelease is suspended until Prometheus gets a memory limit below node5's free memory or a bigger worker is added.
 
 ## Build
