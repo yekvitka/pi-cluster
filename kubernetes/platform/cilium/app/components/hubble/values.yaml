@@ -15,8 +15,9 @@ hubble:
       - http
     serviceMonitor:
       enabled: true
-      # scrape interval
-      interval: "10s"
+      # scrape interval: the Cilium dashboards use fixed [1m] rate windows, so at least
+      # 3 samples a minute. 20s instead of 10s: half the samples in memory
+      interval: "20s"
       # -- Relabeling configs for the ServiceMonitor hubble
       relabelings:
         - action: replace
