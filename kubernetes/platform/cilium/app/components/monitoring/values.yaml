@@ -19,8 +19,9 @@ prometheus:
   enabled: true
   serviceMonitor:
     enabled: true
-    # scrape interval
-    interval: "10s"
+    # scrape interval: the Cilium dashboards use fixed [1m] rate windows, so at least
+    # 3 samples a minute. 20s instead of 10s: half the samples in memory
+    interval: "20s"
     # -- Relabeling configs for the ServiceMonitor hubble
     relabelings:
       - action: replace
@@ -28,6 +29,11 @@ prometheus:
           - __meta_kubernetes_pod_node_name
         targetLabel: node
         replacement: $${1}
+    # Histograms not used by the Cilium dashboards: keep _count and _sum only
+    metricRelabelings:
+      - action: drop
+        sourceLabels: [__name__]
+        regex: cilium_(k8s_client_api_latency_time|hive_jobs_timer_run_duration|agent_api_process_time)_seconds_bucket
     trustCRDsExist: true
 # Enable Grafana dashboards for cilium-agent
 # grafana can import dashboards based on the label and value
