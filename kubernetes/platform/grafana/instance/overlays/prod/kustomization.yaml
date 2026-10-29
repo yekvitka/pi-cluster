@@ -10,3 +10,14 @@ components:
   - ../../components/monitoring
   - ../../components/persistence
   - ../../components/route
+
+patches:
+  # Longhorn volume (grafana-pvc): Longhorn runs on workers only
+  - target:
+      kind: Grafana
+      name: grafana
+    patch: |-
+      - op: add
+        path: /spec/deployment/spec/template/spec/nodeSelector
+        value:
+          node_type: worker
