@@ -73,12 +73,15 @@ prometheus:
       - memory-snapshot-on-shutdown
     ##
     ## Limit POD Resources
+    # 4 GB Pis: the worker has ~1.3 GB free next to the core apps. A hard
+    # limit below that: Prometheus is OOM-killed and restarted instead of the
+    # node running out of memory and hanging
     resources:
       requests:
         cpu: 100m
-        memory: 1Gi
+        memory: 512Mi
       limits:
-        memory: 1800Mi
+        memory: 700Mi
     ##
     ## POD Storage Spec
     storageSpec:
