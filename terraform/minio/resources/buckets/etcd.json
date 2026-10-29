@@ -1,0 +1,6 @@
+{
+  "name": "k3s-etcd",
+  "versioning": false,
+  "object_lock": false,
+  "description": "k3s etcd snapshots"
+}
