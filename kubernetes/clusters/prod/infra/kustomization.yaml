@@ -1,7 +1,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 # Disabled to fit 4 GB Raspberry Pis with a single worker (node5):
-# fluent-app, loki-app, otel-collector-app, tempo-app, velero-app
+# fluent-app, loki-app, otel-collector-app, tempo-app
 # rancher-app: Rancher runs its controllers on the control plane nodes (see README)
 resources:
   - cert-manager-app.yaml
@@ -14,10 +14,12 @@ resources:
   - external-secrets-app.yaml
   - flux-app.yaml
   - grafana-app.yaml
+  - k3s-etcd-backup-app.yaml
   - kube-prometheus-stack-app.yaml
   - longhorn-app.yaml
   - metrics-server-app.yaml
   - system-upgrade-app.yaml
   - vault-app.yaml
+  - velero-app.yaml
   - kube-vip-app.yaml
 

@@ -1,1 +1,12 @@
 # velero helm values (prod overlay)
+
+# Stateless: keep it off node5 (Longhorn, monitoring), little memory left there
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: node_type
+              operator: NotIn
+              values:
+                - worker
