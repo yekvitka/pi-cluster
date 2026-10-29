@@ -1,0 +1,5 @@
+{
+  "access_key": "etcd",
+  "policies": ["etcd"],
+  "description": "k3s etcd snapshots S3 user"
+}
