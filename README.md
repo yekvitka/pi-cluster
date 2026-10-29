@@ -9,7 +9,7 @@ Fork of [ricsanfre/pi-cluster](https://github.com/ricsanfre/pi-cluster). Archite
 | Host | IP | Role |
 |---|---|---|
 | gateway | 10.0.0.1 / 192.168.50.200 | OpenWrt router: firewall/NAT, DHCP, DNS forwarder, NTP ([metal/openwrt](metal/openwrt/README.md)) |
-| pimaster | 192.168.50.100 | Ansible control node (VM on the home network, route to 10.0.0.0/24 via the gateway) |
+| pimaster | 192.168.50.100 / 10.0.0.16 | Ansible control node (VM on the shared home/cluster segment, see [pimaster](#pimaster-control-host)) |
 | node1 | 10.0.0.11 | External services: bind9 (authoritative DNS), Vault, RustFS (S3) |
 | node2–node4 | 10.0.0.12–14 | K3s control plane (embedded etcd). k3s API virtual IP 10.0.0.10 (kube-vip) |
 | node5 | 10.0.0.15 | K3s worker, boots from a USB SSD |
@@ -40,6 +40,56 @@ The centralized iSCSI SAN (node1 serving one LUN per k3s node) is disabled (`cen
 
 - Rancher deploys its own controllers (Fleet, CAPI, Turtles, webhook, system-upgrade-controller) with tolerations for the control plane taint. On 4 GB control plane nodes with etcd on SD cards this exhausts them, so `rancher-app` is removed from `kubernetes/clusters/prod/infra/kustomization.yaml` until the control plane nodes have SSDs or more memory. Its files stay in `kubernetes/platform/rancher` (bundled catalogs, 10 minute startup probe, 1200Mi limit).
 - kube-prometheus-stack as configured (Prometheus limit 1800Mi) does not fit next to the core apps on node5: its HelmRelease is suspended until Prometheus gets a memory limit below node5's free memory or a bigger worker is added.
+
+## pimaster (control host)
+
+Ubuntu 24.04 VM, not managed by Ansible. The cluster LAN and the home network share one switch, so pimaster has an address on both and reaches the nodes directly, without the gateway route. Netplan replaces the installer config (cloud-init network config is disabled in `/etc/cloud/cloud.cfg.d/99-disable-network-config.cfg`):
+
+```yaml
+# /etc/netplan/50-cloud-init.yaml
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    enp0s1:
+      dhcp4: false
+      addresses:
+      - 192.168.50.100/24
+      - 10.0.0.16/24
+      nameservers:
+        addresses:
+        - 10.0.0.1
+        search:
+        - homelab.yekvitka.net
+      routes:
+      - to: 0.0.0.0/0
+        via: 192.168.50.1
+        metric: 100
+      - to: 0.0.0.0/0
+        via: 10.0.0.1
+        metric: 200
+```
+
+DNS comes only from the gateway, as on the nodes. The home router hands out its own IPv6 DNS servers, so a networkd drop-in ignores them:
+
+```ini
+# /etc/systemd/network/10-netplan-enp0s1.network.d/no-ipv6-dns.conf
+[IPv6AcceptRA]
+UseDNS=false
+UseDomains=false
+
+[DHCPv6]
+UseDNS=false
+UseDomains=false
+```
+
+Apply with `sudo netplan apply`, check with `resolvectl status enp0s1`.
+
+Disk: 32 GB. The Ubuntu installer gives the root LV only half of the volume group. Extend it to the whole VG:
+
+```shell
+sudo lvextend -r -l +100%FREE /dev/ubuntu-vg/ubuntu-lv
+```
 
 ## Build
 
