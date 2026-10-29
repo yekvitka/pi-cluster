@@ -5,3 +5,25 @@ persistence:
   defaultClassReplicaCount: 1
 defaultSettings:
   defaultReplicaCount: 1
+  # Instance managers, engine images and the CSI plugin on workers only
+  systemManagedComponentsNodeSelector: "node_type:worker"
+
+# Longhorn only on workers (node_type=worker, k3s agent config): no Longhorn
+# components or data on the control plane nodes (etcd on SD cards). Pods with
+# Longhorn volumes must run on workers too
+longhornManager:
+  nodeSelector:
+    node_type: worker
+longhornDriver:
+  nodeSelector:
+    node_type: worker
+longhornUI:
+  replicas: 1
+  nodeSelector:
+    node_type: worker
+# Single worker: one replica of each CSI sidecar
+csi:
+  attacherReplicaCount: 1
+  provisionerReplicaCount: 1
+  resizerReplicaCount: 1
+  snapshotterReplicaCount: 1
