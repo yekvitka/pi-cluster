@@ -128,7 +128,7 @@ Rancher 2.15 runs on pimaster in Docker (`rancher/docker-compose.yaml`, 3 GB mem
 
 ```shell
 sudo -u pimaster make rancher-up   # start / restart (compose uses pimaster's $HOME)
-docker logs rancher 2>&1 | grep "Bootstrap Password:"   # first login
+docker exec rancher kubectl -n cattle-system get secret bootstrap-secret -o go-template='{{ .data.bootstrapPassword | base64decode }}{{ "\n" }}'   # first login (user admin)
 ```
 
 ## Move a control plane node to SSD boot
