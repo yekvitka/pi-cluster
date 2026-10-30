@@ -2,6 +2,8 @@
 
 Homelab K3s cluster on Raspberry Pis, automated with Ansible and FluxCD.
 
+<img src="docs/images/pi-cluster.jpg" alt="The Raspberry Pi cluster: five Pis in a rack, wired to a Netgear ProSAFE switch" width="480">
+
 Fork of [ricsanfre/pi-cluster](https://github.com/ricsanfre/pi-cluster). Architecture, playbooks and Flux layout follow upstream; see the upstream documentation at https://picluster.ricsanfre.com for how each component works. This README covers only what differs here.
 
 ## Hardware and roles
