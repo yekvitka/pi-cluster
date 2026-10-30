@@ -1,13 +1,13 @@
 IMG=ubuntu-24.04.5-preinstalled-server-arm64+raspi.img.xz
 URL_IMG=https://cdimage.ubuntu.com/releases/24.04/release/${IMG}
-# REPLACE WITH YOUR SD CARD (`lsblk`). OS boots from SD card on all nodes
+# REPLACE WITH YOUR BOOT DISK (`lsblk`). OS boots from SD card, node3 and node5 from a USB SSD
 USB=/dev/sda
 SYSTEM_BOOT_MOUNT=/tmp/pi-disk
 # node1: SD card OS, SSD1 formatted and mounted at /storage (RustFS, Vault)
 USER_DATA_NODE1=user-data-node1
 # node1 SSD1 name in /dev/disk/by-id (e.g. usb-Samsung_SSD_...-0:0), without partition suffix
 SSD1_ID=
-# k3s nodes: /storage is an iSCSI LUN served by node1 (centralized SAN)
+# k3s nodes: /storage is a directory on the boot disk (iSCSI LUN with centralized SAN)
 USER_DATA_NODES=user-data
 NETWORK_CONFIG_NODES=network-config
 # root SSH public key (pimaster ~/.ssh/id_rsa.pub), inserted into every node user-data
