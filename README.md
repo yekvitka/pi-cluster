@@ -11,7 +11,7 @@ Fork of [ricsanfre/pi-cluster](https://github.com/ricsanfre/pi-cluster). Archite
 | Host | IP | Role |
 |---|---|---|
 | gateway | 10.0.0.1 / 192.168.50.200 | OpenWrt router: firewall/NAT, DHCP, DNS forwarder, NTP ([metal/openwrt](metal/openwrt/README.md)) |
-| pimaster | 192.168.50.100 / 10.0.0.16 | Ansible control node (VM on the shared home/cluster segment, see [pimaster](#pimaster-control-host)) |
+| pimaster | 192.168.50.100 / 10.0.0.16 | Ansible control node and Rancher server (VM on the shared home/cluster segment, see [pimaster](#pimaster-control-host)) |
 | node1 | 10.0.0.11 | External services: bind9 (authoritative DNS), Vault, RustFS (S3) |
 | node2–node4 | 10.0.0.12–14 | K3s control plane (embedded etcd). k3s API virtual IP 10.0.0.10 (kube-vip). node3 boots from a USB SSD and is a Longhorn storage node |
 | node5 | 10.0.0.15 | K3s worker, boots from a USB SSD, Longhorn storage node |
@@ -33,19 +33,19 @@ The centralized iSCSI SAN (node1 serving one LUN per k3s node) is disabled (`cen
 - BCM2835 hardware watchdog enabled on every Pi (`rpi_watchdog_sec`, basic_setup role): a hung node reboots itself.
 - Optional centralized iSCSI SAN on node1, disabled (above).
 - Ansible connects as `root`; SSH key from `metal/rpi/cloud-init/root.pub`.
-- Rancher available as a Flux platform app (`kubernetes/platform/rancher`), not enabled in prod (see Known limits).
+- Rancher runs on pimaster in Docker (`rancher/docker-compose.yaml`) and manages the cluster as an imported cluster, see [Rancher](#rancher). The in-cluster Flux app (`kubernetes/platform/rancher`) is kept, not enabled in prod (see Known limits).
 - k3s held on 1.36.x: Rancher 2.15 supports Kubernetes < 1.37 (`.github/renovate.json5`).
 - Only core and monitoring platform apps are enabled in `kubernetes/clusters/prod/infra/kustomization.yaml`. The other upstream apps stay in `kubernetes/platform/` and can be re-enabled there.
-- Sized for 4 GB Raspberry Pis with a single worker: node2 keeps the control plane `NoSchedule` taint (etcd only), node3 and node4 also run light, stateless workloads (`k3s_control_plane_taint: false` in their host_vars). Longhorn runs on the SSD nodes only (`node_storage=longhorn`: node3 and node5). Prometheus, Alertmanager and Grafana stay pinned to the worker (`node_type=worker`) and keep a second replica of their volumes on node3. The kubelet reserves memory for k3s and the OS (`k3s_kubelet_config`: 1700Mi on the control plane, 600Mi on workers, plus 300Mi system) and evicts pods below 300Mi free. Logs (Loki, Fluentd, Fluent Bit) and traces (Tempo, OpenTelemetry collector) are disabled. Velero backs up the cluster daily at 04:00 (30 days) to RustFS: resources to the `k3s-velero` bucket, Longhorn volumes as Longhorn backups to `k3s-longhorn`. k3s etcd snapshots (every 12h, last 5) are kept on each server and uploaded to the `k3s-etcd` bucket; k3s reads the S3 settings from the `kube-system/k3s-etcd-snapshot-s3-config` secret (External Secrets, Vault `s3/etcd`). Rancher is not enabled.
+- Sized for 4 GB Raspberry Pis with a single worker: node2 keeps the control plane `NoSchedule` taint (etcd only), node3 and node4 also run light, stateless workloads (`k3s_control_plane_taint: false` in their host_vars). Longhorn runs on the SSD nodes only (`node_storage=longhorn`: node3 and node5). Prometheus, Alertmanager and Grafana stay pinned to the worker (`node_type=worker`) and keep a second replica of their volumes on node3. The kubelet reserves memory for k3s and the OS (`k3s_kubelet_config`: 1700Mi on the control plane, 600Mi on workers, plus 300Mi system) and evicts pods below 300Mi free. Logs (Loki, Fluentd, Fluent Bit) and traces (Tempo, OpenTelemetry collector) are disabled. Velero backs up the cluster daily at 04:00 (30 days) to RustFS: resources to the `k3s-velero` bucket, Longhorn volumes as Longhorn backups to `k3s-longhorn`. k3s etcd snapshots (every 12h, last 5) are kept on each server and uploaded to the `k3s-etcd` bucket; k3s reads the S3 settings from the `kube-system/k3s-etcd-snapshot-s3-config` secret (External Secrets, Vault `s3/etcd`). Rancher runs outside the cluster, on pimaster.
 
 ### Known limits (4 GB Raspberry Pis)
 
-- Rancher deploys its own controllers (Fleet, CAPI, Turtles, webhook, system-upgrade-controller) with tolerations for the control plane taint. On 4 GB control plane nodes with etcd on SD cards this exhausts them, so `rancher-app` is removed from `kubernetes/clusters/prod/infra/kustomization.yaml` until the control plane nodes have SSDs or more memory. Its files stay in `kubernetes/platform/rancher` (bundled catalogs, 10 minute startup probe, 1200Mi limit).
+- Rancher deploys its own controllers (Fleet, CAPI, Turtles, webhook, system-upgrade-controller) with tolerations for the control plane taint. On 4 GB control plane nodes with etcd on SD cards this exhausts them, so `rancher-app` is removed from `kubernetes/clusters/prod/infra/kustomization.yaml` and Rancher runs on pimaster instead (an SSD does not help: memory is the limit). Its files stay in `kubernetes/platform/rancher` (bundled catalogs, 10 minute startup probe, 1200Mi limit).
 - Prometheus has a 700Mi memory limit (512Mi request), below node5's free memory: it is OOM-killed and restarted instead of hanging the node. In prod it keeps memory under the limit with a 60s scrape interval, 6h / 1GB retention and trimmed kubelet histograms (`app/overlays/prod/values.yaml`).
 
 ## pimaster (control host)
 
-Ubuntu 24.04 VM, not managed by Ansible. The cluster LAN and the home network share one switch, so pimaster has an address on both and reaches the nodes directly, without the gateway route. Netplan replaces the installer config (cloud-init network config is disabled in `/etc/cloud/cloud.cfg.d/99-disable-network-config.cfg`):
+Ubuntu 24.04 VM (6 GB memory, 6 CPUs: Rancher needs about 2–3 GB), not managed by Ansible. The cluster LAN and the home network share one switch, so pimaster has an address on both and reaches the nodes directly, without the gateway route. Netplan replaces the installer config (cloud-init network config is disabled in `/etc/cloud/cloud.cfg.d/99-disable-network-config.cfg`):
 
 ```yaml
 # /etc/netplan/50-cloud-init.yaml
@@ -116,10 +116,19 @@ sudo lvextend -r -l +100%FREE /dev/ubuntu-vg/ubuntu-lv
    make init              # os-upgrade, node setup, DNS, Vault/RustFS, SAN, k3s, Flux bootstrap
    ```
 
-Rancher bootstrap password:
+## Rancher
+
+Rancher 2.15 runs on pimaster in Docker (`rancher/docker-compose.yaml`, 3 GB memory limit), at https://rancher.homelab.yekvitka.net. The Pis only run its agents: the cluster is imported.
+
+- Certificate: Let's Encrypt via certbot DNS-01 in the runner (`make rancher-cert`, `ansible/rancher_certificate.yml`), mounted into the container. Rerun `make rancher-cert` to renew, then `make rancher-up`.
+- DNS: `rancher` A record to 10.0.0.16, a `DNSEndpoint` published by external-dns (`kubernetes/platform/external-dns/config`).
+- Settings in the compose file (`CATTLE_<SETTING>`, read-only in the UI): server URL; `agent-tls-mode: system-store` (public CA); `imported-cluster-version-management: false`, so k3s upgrades stay with system-upgrade-controller and Rancher does not install its own.
+- Data in the `rancher_rancher-data` Docker volume (Docker is the snap package: it cannot bind-mount paths outside `/home`). Not covered by Velero or the node backups.
+- Imported cluster `pi-cluster`: cattle-cluster-agent limited to 512Mi (128Mi request) and preferring node2, fleet-agent to 256Mi (`clusterAgentDeploymentCustomization` / `fleetAgentDeploymentCustomization` on the Rancher `Cluster`).
 
 ```shell
-kubectl get secret -n cattle-system bootstrap-secret -o go-template='{{ .data.bootstrapPassword | base64decode }}'
+sudo -u pimaster make rancher-up   # start / restart (compose uses pimaster's $HOME)
+docker logs rancher 2>&1 | grep "Bootstrap Password:"   # first login
 ```
 
 ## Move a control plane node to SSD boot
