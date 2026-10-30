@@ -1,1 +1,7 @@
 # cilium helm values (prod overlay)
+# Hubble relay and UI unused (no route, no CLI): keep Hubble metrics only
+hubble:
+  relay:
+    enabled: false
+  ui:
+    enabled: false
