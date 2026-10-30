@@ -19,7 +19,7 @@ git_private_repo: false
 
 # Centralized SAN: node1 SSD2 serves one iSCSI LUN per k3s node, mounted at /storage
 # See configure_centralized_san.yml
-# false: Longhorn uses /storage on each node's own disk (node5 boots from SSD)
+# false: Longhorn uses /storage on each node's own disk (node3, node5 boot from SSD)
 centralized_san: false
 
 ###################

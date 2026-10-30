@@ -2,5 +2,5 @@
 # node4 node variables
 
 # Control plane node that also runs light, stateless workloads (no Longhorn
-# components or data: Longhorn runs on node_type=worker nodes only)
+# components or data: Longhorn runs on node_storage=longhorn nodes only)
 k3s_control_plane_taint: false
