@@ -143,7 +143,7 @@ kubernetes/
 
 **Flux reconciliation flow**: Flux watches the Git repo → `<service>-app` Kustomization creates namespace + HelmRelease → `<service>-config` depends on `<service>-app` and applies config resources.
 
-**Enabled in prod** (`clusters/prod/infra/kustomization.yaml`): cert-manager, cilium, coredns, csi-external-snapshotter, envoy-gateway, external-dns, external-secrets, flux, grafana, kube-prometheus-stack, longhorn, metrics-server, system-upgrade, vault, velero, kube-vip. Disabled to fit 4 GB Pis: descheduler, tofu-controller, Alertmanager, Hubble relay/UI, fluent, loki, otel-collector, tempo, rancher (Rancher runs on pimaster in Docker instead: `rancher/docker-compose.yaml`, imported cluster). Other services in `platform/` (istio, kiali, kafka, keycloak, elastic-stack, eck-operator, databases, …) have no prod Kustomization.
+**Enabled in prod** (`clusters/prod/infra/kustomization.yaml`): cert-manager, cilium, coredns, csi-external-snapshotter, envoy-gateway, external-dns, external-secrets, flux, grafana, kube-prometheus-stack, longhorn, metrics-server, system-upgrade, vault, velero, kube-vip. Disabled to fit 4 GB Pis: descheduler, tofu-controller, Alertmanager, Hubble relay/UI, fluent, loki, otel-collector, tempo. Rancher is removed: its cluster agent overloaded the 4 GB control plane (see README). Other services in `platform/` (istio, kiali, kafka, keycloak, elastic-stack, eck-operator, databases, …) have no prod Kustomization.
 
 **Key FluxCD patterns**:
 - Environment-specific values go in `overlays/{dev,prod}/values.yaml`, never duplicate base manifests.
