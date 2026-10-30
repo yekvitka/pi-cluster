@@ -8,7 +8,6 @@ resources:
   - cilium-app.yaml
   - coredns-app.yaml
   - csi-external-snapshotter-app.yaml
-  - descheduler-app.yaml
   - envoy-gateway-app.yaml
   - external-dns-app.yaml
   - external-secrets-app.yaml
