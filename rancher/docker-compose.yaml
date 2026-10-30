@@ -1,0 +1,33 @@
+services:
+  # Rancher server on pimaster (Docker install), outside the 4 GB Pi cluster.
+  # The cluster is imported: only the Rancher agents run on the Pis
+  rancher:
+    image: rancher/rancher:v2.15.2
+    container_name: rancher
+    restart: unless-stopped
+    # Required by the Docker install (embedded k3s)
+    privileged: true
+    # Keep memory for the ansible runner
+    mem_limit: 3g
+    # Let's Encrypt certificate (make rancher-cert): no Rancher generated CA
+    command: --no-cacerts
+    # Rancher settings (CATTLE_<SETTING>), read-only in the UI
+    environment:
+      CATTLE_SERVER_URL: https://rancher.homelab.yekvitka.net
+      # Public CA: agents verify the server with the system trust store
+      CATTLE_AGENT_TLS_MODE: system-store
+      # k3s upgrades stay with system-upgrade-controller and its plans
+      # (kubernetes/platform/system-upgrade): Rancher does not install its own
+      CATTLE_IMPORTED_CLUSTER_VERSION_MANAGEMENT: "false"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      # Named volume: snap Docker cannot bind-mount paths outside /home
+      - rancher-data:/var/lib/rancher
+      # Renewed certificate: restart the container (make rancher-up)
+      - ${HOME}/.certbot/config/live/rancher.homelab.yekvitka.net/fullchain.pem:/etc/rancher/ssl/cert.pem:ro
+      - ${HOME}/.certbot/config/live/rancher.homelab.yekvitka.net/privkey.pem:/etc/rancher/ssl/key.pem:ro
+
+volumes:
+  rancher-data:

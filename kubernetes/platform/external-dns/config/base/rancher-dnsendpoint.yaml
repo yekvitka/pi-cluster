@@ -1,0 +1,14 @@
+# DNS record for Rancher on pimaster (outside the cluster, rancher/docker-compose.yaml).
+# external-dns (crd source) publishes it to bind9 on node1
+apiVersion: externaldns.k8s.io/v1alpha1
+kind: DNSEndpoint
+metadata:
+  name: rancher
+  namespace: external-dns
+spec:
+  endpoints:
+    - dnsName: rancher.${CLUSTER_DOMAIN}
+      recordType: A
+      recordTTL: 600
+      targets:
+        - 10.0.0.16
