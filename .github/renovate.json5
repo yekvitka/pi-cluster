@@ -52,8 +52,8 @@
   },
   packageRules: [
     {
-      // Rancher 2.15 supports Kubernetes < 1.37: hold k3s on 1.36.x until Rancher supports 1.37
-      description: 'Hold k3s below 1.37 (Rancher compatibility)',
+      // Stay on k3s 1.36.x: patch releases only, minor upgrades are done by hand
+      description: 'Hold k3s below 1.37',
       matchPackageNames: ['k3s-io/k3s'],
       allowedVersions: '<1.37.0',
     },
