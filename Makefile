@@ -45,8 +45,6 @@ ANSIBLE_LOCAL_COLLECTIONS_DIR := $(HOME)/.ansible/collections
 	deploy-vault \
 	deploy-minio \
 	deploy-rustfs \
-	rancher-cert \
-	rancher-up \
 	configure-minio \
 	configure-vault \
 	load-external-services-keys \
@@ -164,12 +162,6 @@ deploy-minio: ## Deploy MinIO workloads (legacy, use deploy-rustfs)
 
 deploy-rustfs: ## Deploy RustFS S3 workloads
 	$(RUNNER) ansible-playbook deploy_rustfs.yml
-
-rancher-cert: ## Create/renew the Rancher Let's Encrypt certificate (pimaster)
-	$(RUNNER) ansible-playbook rancher_certificate.yml
-
-rancher-up: ## Start or restart Rancher on pimaster (Docker)
-	docker compose -f rancher/docker-compose.yaml up -d --force-recreate
 
 load-external-services-keys: ## Load external services keys into the cluster
 	$(RUNNER) ansible-playbook load_external_services_keys.yml

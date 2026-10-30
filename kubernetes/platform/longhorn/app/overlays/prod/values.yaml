@@ -1,10 +1,10 @@
 # longhorn helm values (prod overlay)
 # Two storage nodes (node_storage=longhorn): node5 (worker) and node3 (control
-# plane, SSD boot). One replica of each volume on each
+# plane, SSD boot). One replica per volume: no redundancy, Velero backups only
 persistence:
-  defaultClassReplicaCount: 2
+  defaultClassReplicaCount: 1
 defaultSettings:
-  defaultReplicaCount: 2
+  defaultReplicaCount: 1
   # Instance managers, engine images and the CSI plugin on storage nodes only
   systemManagedComponentsNodeSelector: "node_storage:longhorn"
 
