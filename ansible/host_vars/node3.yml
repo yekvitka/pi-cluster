@@ -1,6 +1,7 @@
 ---
 # node3 node variables
 
-# Control plane node that also runs light, stateless workloads (no Longhorn
-# components or data: Longhorn runs on node_type=worker nodes only)
+# Control plane node that also runs light, stateless workloads. Boots from SSD:
+# Longhorn storage node (node_storage=longhorn), second replica of each volume
 k3s_control_plane_taint: false
+k3s_longhorn_storage: true
