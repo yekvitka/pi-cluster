@@ -1,27 +1,27 @@
 # longhorn helm values (prod overlay)
-# Control plane nodes are tainted: node5 is the only storage node, so keep
-# one replica per volume (more replicas cannot be scheduled: volumes degraded)
+# Two storage nodes (node_storage=longhorn): node5 (worker) and node3 (control
+# plane, SSD boot). One replica of each volume on each
 persistence:
-  defaultClassReplicaCount: 1
+  defaultClassReplicaCount: 2
 defaultSettings:
-  defaultReplicaCount: 1
-  # Instance managers, engine images and the CSI plugin on workers only
-  systemManagedComponentsNodeSelector: "node_type:worker"
+  defaultReplicaCount: 2
+  # Instance managers, engine images and the CSI plugin on storage nodes only
+  systemManagedComponentsNodeSelector: "node_storage:longhorn"
 
-# Longhorn only on workers (node_type=worker, k3s agent config): no Longhorn
-# components or data on the control plane nodes (etcd on SD cards). Pods with
-# Longhorn volumes must run on workers too
+# Longhorn only on storage nodes (node_storage=longhorn, k3s config): no
+# Longhorn components or data on the SD card nodes. Pods with Longhorn volumes
+# must run on storage nodes too
 longhornManager:
   nodeSelector:
-    node_type: worker
+    node_storage: longhorn
 longhornDriver:
   nodeSelector:
-    node_type: worker
+    node_storage: longhorn
 longhornUI:
   replicas: 1
   nodeSelector:
-    node_type: worker
-# Single worker: one replica of each CSI sidecar
+    node_storage: longhorn
+# One replica of each CSI sidecar
 csi:
   attacherReplicaCount: 1
   provisionerReplicaCount: 1
