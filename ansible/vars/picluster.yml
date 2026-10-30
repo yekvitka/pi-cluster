@@ -213,13 +213,6 @@ vault_hostname: "vault.{{ dns_domain }}"
 vault_version: 2.1.1
 
 vault_dns: "{{ vault_hostname }}"
-
-#########################
-# Rancher configuration #
-#########################
-
-# Rancher server on pimaster (rancher/docker-compose.yaml)
-rancher_hostname: "rancher.{{ dns_domain }}"
 # Vault data on node1 SSD1 (/storage), not on the SD card
 vault_data_path: /storage/vault
 vault_enable_tls: true
