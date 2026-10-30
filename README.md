@@ -45,7 +45,7 @@ The centralized iSCSI SAN (node1 serving one LUN per k3s node) is disabled (`cen
 
 ## pimaster (control host)
 
-Ubuntu 24.04 VM (6 GB memory, 6 CPUs: Rancher needs about 2–3 GB), not managed by Ansible. The cluster LAN and the home network share one switch, so pimaster has an address on both and reaches the nodes directly, without the gateway route. Netplan replaces the installer config (cloud-init network config is disabled in `/etc/cloud/cloud.cfg.d/99-disable-network-config.cfg`):
+Ubuntu 24.04 VM (6 GB memory, 6 CPUs: Rancher has a 4 GB memory limit), not managed by Ansible. The cluster LAN and the home network share one switch, so pimaster has an address on both and reaches the nodes directly, without the gateway route. Netplan replaces the installer config (cloud-init network config is disabled in `/etc/cloud/cloud.cfg.d/99-disable-network-config.cfg`):
 
 ```yaml
 # /etc/netplan/50-cloud-init.yaml
@@ -118,7 +118,7 @@ sudo lvextend -r -l +100%FREE /dev/ubuntu-vg/ubuntu-lv
 
 ## Rancher
 
-Rancher 2.15 runs on pimaster in Docker (`rancher/docker-compose.yaml`, 3 GB memory limit), at https://rancher.homelab.yekvitka.net. The Pis only run its agents: the cluster is imported.
+Rancher 2.15 runs on pimaster in Docker (`rancher/docker-compose.yaml`, 4 GB memory limit), at https://rancher.homelab.yekvitka.net. The Pis only run its agents: the cluster is imported.
 
 - Certificate: Let's Encrypt via certbot DNS-01 in the runner (`make rancher-cert`, `ansible/rancher_certificate.yml`), mounted into the container. Rerun `make rancher-cert` to renew, then `make rancher-up`.
 - DNS: `rancher` A record to 10.0.0.16, a `DNSEndpoint` published by external-dns (`kubernetes/platform/external-dns/config`).
