@@ -11,11 +11,9 @@ prometheus:
     retention: 6h
     retentionSize: 1GB
 
+# No receivers configured (only "null"): Alertmanager disabled to save memory
 alertmanager:
-  alertmanagerSpec:
-    # Longhorn volume: Longhorn runs on workers only
-    nodeSelector:
-      node_type: worker
+  enabled: false
 
 # k3s serves API server, etcd, scheduler and controller metrics on the kubelet
 # /metrics endpoint: their histograms were ~70% of all series. This list
