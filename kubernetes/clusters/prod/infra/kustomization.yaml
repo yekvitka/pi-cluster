@@ -1,7 +1,9 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-# Disabled to fit 4 GB Raspberry Pis with a single worker (node5):
-# fluent-app, loki-app, otel-collector-app, tempo-app
+# Not enabled yet (docs/plans/cluster-2.0.md):
+# loki-app, fluent-app: Cluster 2.0 phase 7 (Loki P1, Fluent Bit straight to Loki)
+# rancher-app: Cluster 2.0 phase 8, only with the 8 GB control-plane nodes
+# Disabled to fit the cluster: otel-collector-app, tempo-app, descheduler-app
 resources:
   - cert-manager-app.yaml
   - cilium-app.yaml

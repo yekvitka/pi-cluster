@@ -4,17 +4,23 @@ loki:
   commonConfig:
     replication_factor: 1
 
+# Loki P1 (docs/plans/cluster-2.0.md): Simple Scalable, one pod per component.
+# write and backend have Longhorn volumes: only storage nodes run the Longhorn CSI
+# plugin, so they are pinned there; read, gateway and caches go anywhere
 write:
   replicas: 1
+  nodeSelector:
+    node_storage: longhorn
   persistence:
     size: 1Gi
   resources:
     requests:
       cpu: 25m
-      memory: 64Mi
+      memory: 128Mi
     limits:
       cpu: 200m
-      memory: 256Mi
+      # Ingesters go past 256Mi under load
+      memory: 512Mi
 
 # Reduce memcached cache sizes from massive defaults (8GB/1GB) to homelab-appropriate values
 # Defaults: chunksCache.allocatedMemory=8192, resultsCache.allocatedMemory=1024
@@ -30,6 +36,8 @@ resultsCache:
 # Actual usage: backend 166-257Mi, read 131-167Mi, write 97-114Mi
 backend:
   replicas: 1
+  nodeSelector:
+    node_storage: longhorn
   resources:
     requests:
       cpu: 50m

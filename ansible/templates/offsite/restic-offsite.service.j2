@@ -12,5 +12,5 @@ IOSchedulingClass=idle
 # Vault Raft snapshot first. "-": a failed snapshot must not stop the RustFS copy
 # (the previous snapshot file is copied again)
 ExecStartPre=-/usr/local/sbin/vault-raft-snapshot.sh
-ExecStart=/usr/local/bin/restic backup --tag rustfs {{ offsite_backup_sources | join(' ') }}
+ExecStart=/usr/local/bin/restic backup --tag rustfs{% for e in offsite_backup_excludes | default([]) %} --exclude {{ e }}{% endfor %} {{ offsite_backup_sources | join(' ') }}
 ExecStartPost=/usr/local/bin/restic forget --tag rustfs --prune {{ offsite_restic_retention }}
