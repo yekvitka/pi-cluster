@@ -95,6 +95,16 @@ monitoring_rule mon_k3s 10.0.0.10 tcp 6443          # k3s API (kube-vip)
 monitoring_rule mon_vault 10.0.0.11 tcp 8200        # Vault
 monitoring_rule mon_rustfs 10.0.0.11 tcp 9091       # RustFS S3
 
+# LuCI on the gateway itself (certificate expiry check): input rule, no dest
+uci -q delete firewall.mon_luci || true
+uci set firewall.mon_luci=rule
+uci set firewall.mon_luci.name='Allow-OCI-Monitoring-mon_luci'
+uci set firewall.mon_luci.src='oci'
+uci set firewall.mon_luci.src_ip="$OCI_WG_IP"
+uci set firewall.mon_luci.proto='tcp'
+uci set firewall.mon_luci.dest_port='443'
+uci set firewall.mon_luci.target='ACCEPT'
+
 uci commit network
 uci commit firewall
 ifup wg_oci
