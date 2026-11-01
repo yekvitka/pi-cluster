@@ -11,11 +11,15 @@ Fork of [ricsanfre/pi-cluster](https://github.com/ricsanfre/pi-cluster). Archite
 | Host | IP | Role |
 |---|---|---|
 | gateway | 10.0.0.1 / 192.168.50.200 | OpenWrt router: firewall/NAT, DHCP, DNS forwarder, NTP ([metal/openwrt](metal/openwrt/README.md)) |
-| pimaster | 192.168.50.100 / 10.0.0.16 | Ansible control node (VM on the shared home/cluster segment, see [pimaster](#pimaster-control-host)) |
+| pimaster | 192.168.50.100 / 10.0.0.20 | Ansible control node (VM on the shared home/cluster segment, see [pimaster](#pimaster-control-host)) |
 | node1 | 10.0.0.11 | External services: bind9 (authoritative DNS), Vault, RustFS (S3) |
 | node2–node4 | 10.0.0.12–14 | K3s control plane (embedded etcd). k3s API virtual IP 10.0.0.10 (kube-vip). node3 boots from a USB SSD and is a Longhorn storage node |
 | node5 | 10.0.0.15 | K3s worker, boots from a USB SSD, Longhorn storage node |
 | offsite | 10.99.0.2 (WireGuard) | Oracle Cloud VM (Always Free, Frankfurt): offsite backup copy, outside monitoring. See [Oracle Cloud](#oracle-cloud-offsite) |
+
+IP plan (10.0.0.0/24): .1 gateway, .10 k3s API (kube-vip), .11-.19 nodes, .20 pimaster, .64/26 Cilium LoadBalancer pool (.68 Envoy gateway), .150-.249 DHCP.
+
+Next: [Cluster 2.0](docs/plans/cluster-2.0.md), a highly available control plane on two Pi 4 8 GB nodes (node6, node7), every node on an SSD, Loki and Rancher.
 
 DNS domain: `homelab.yekvitka.net` (Let's Encrypt certificates via IONOS DNS-01).
 
@@ -72,7 +76,7 @@ network:
       dhcp4: false
       addresses:
       - 192.168.50.100/24
-      - 10.0.0.16/24
+      - 10.0.0.20/24
       nameservers:
         addresses:
         - 10.0.0.1
