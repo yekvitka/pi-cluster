@@ -1,0 +1,10 @@
+# Copy to terraform.tfvars (gitignored). Values from the OCI console:
+# Profile > My profile > API keys > Configuration file preview
+tenancy_ocid          = "ocid1.tenancy.oc1..<id>"
+user_ocid             = "ocid1.user.oc1..<id>"
+fingerprint           = "<aa:bb:...>"
+private_key_path      = "/home/runner/.secrets/oci/oci_api_key.pem" # path inside the ansible runner
+region                = "<home region, e.g. eu-frankfurt-1>"
+ssh_public_key_path   = "/home/runner/.ssh/id_rsa.pub"
+wg_private_key_path   = "/home/runner/.secrets/wireguard/oci-vm.key"
+gateway_wg_public_key = "<printed by metal/openwrt/script/wireguard-oci.sh>"
