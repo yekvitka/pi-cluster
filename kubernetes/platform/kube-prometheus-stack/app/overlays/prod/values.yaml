@@ -6,11 +6,21 @@ prometheus:
     nodeSelector:
       node_type: worker
       node_storage: longhorn
-    # Fewer samples and a smaller TSDB keep memory use under the limit
+    # Fewer samples and a smaller TSDB keep memory use under the limit.
+    # node-exporter and the kubelet (cAdvisor) are scraped every 30s (below):
+    # Lens computes rates over 1m windows, empty with one sample per minute
     scrapeInterval: 60s
     evaluationInterval: 60s
     retention: 6h
     retentionSize: 1GB
+    # Was 700Mi (base) at ~673Mi used; the 30s node and container metrics add
+    # samples. node5 has ~1.2 GB free
+    resources:
+      requests:
+        cpu: 100m
+        memory: 640Mi
+      limits:
+        memory: 900Mi
 
 alertmanager:
   alertmanagerSpec:
@@ -24,6 +34,8 @@ alertmanager:
 # replaces the chart default, so the first rule repeats it
 kubelet:
   serviceMonitor:
+    # Container CPU/memory for Lens (rate over 1m needs two samples per minute)
+    interval: 30s
     metricRelabelings:
       # Chart default
       - action: drop
@@ -46,3 +58,10 @@ kubelet:
       - action: drop
         sourceLabels: [__name__]
         regex: kubernetes_feature_enabled|apiextensions_openapi_v[23]_regeneration_count
+
+# Node CPU, memory, network and disk for Lens: rate over 1m needs two samples
+# per minute (the global scrape interval is 60s). ~4900 series
+prometheus-node-exporter:
+  prometheus:
+    monitor:
+      interval: 30s
