@@ -1,0 +1,7 @@
+# fluent-bit helm values (loki component): logs straight to Loki, no Fluentd
+# aggregator and no Elasticsearch. Simple Scalable Loki: push through the gateway
+env:
+  - name: FLUENT_LOKI_HOST
+    value: "loki-gateway.loki"
+  - name: FLUENT_LOKI_PORT
+    value: "80"
