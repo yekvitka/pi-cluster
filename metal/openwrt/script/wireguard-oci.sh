@@ -21,6 +21,8 @@ MTU=1380
 HOME_NET=192.168.50.0/24
 
 command -v wg >/dev/null || { apk update && apk add wireguard-tools kmod-wireguard luci-proto-wireguard; }
+# netifd loads protocol handlers when it starts: restart it once after the install
+ubus call network get_proto_handlers | grep -q '"wireguard"' || /etc/init.d/network restart
 
 KEY=$(uci -q get network.wg_oci.private_key || true)
 [ -n "$KEY" ] || KEY=$(wg genkey)
