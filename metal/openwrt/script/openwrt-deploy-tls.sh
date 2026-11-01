@@ -6,7 +6,8 @@ set -euo pipefail
 
 CERT_PATH="$HOME/.certbot/config/live/gateway.homelab.yekvitka.net/fullchain.pem"
 KEY_PATH="$HOME/.certbot/config/live/gateway.homelab.yekvitka.net/privkey.pem"
-REMOTE_HOST="gateway"
+# Gateway LAN address, root login with the pimaster key
+REMOTE_HOST="${REMOTE_HOST:-root@10.0.0.1}"
 REMOTE_CERT="/etc/uhttpd.crt"
 REMOTE_KEY="/etc/uhttpd.key"
 REMOTE_SERVICE="/etc/init.d/uhttpd"
