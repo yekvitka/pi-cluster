@@ -45,6 +45,19 @@ The centralized iSCSI SAN (node1 serving one LUN per k3s node) is disabled (`cen
 - Rancher does not fit. In the cluster its controllers exhaust the control plane nodes. Running Rancher on pimaster and importing the cluster failed too: the cattle-cluster-agent (500–700Mi) watches every resource type, which grew k3s-server by about 700Mi on each master and made node3 thrash. Removed (in-cluster app, Docker install on pimaster, import).
 - Prometheus has a 700Mi memory limit (512Mi request), below node5's free memory: it is OOM-killed and restarted instead of hanging the node. In prod it keeps memory under the limit with a 60s scrape interval, 6h / 1GB retention and trimmed kubelet histograms (`app/overlays/prod/values.yaml`).
 
+## Certificates
+
+All Let's Encrypt certificates renew on their own (IONOS DNS-01, no open port):
+
+| Certificate | Used by | Renewed by |
+|---|---|---|
+| `*.homelab.yekvitka.net` (`pi-cluster-tls`) | Grafana, Longhorn, Prometheus, Alertmanager (Envoy gateway) | cert-manager in the cluster |
+| `vault.homelab.yekvitka.net` | Vault (node1) | certbot on node1, `systemctl reload vault` |
+| `object-store.homelab.yekvitka.net` | RustFS S3 and console (node1) | certbot on node1, RustFS restart |
+| `gateway.homelab.yekvitka.net` | OpenWrt LuCI | certbot on node1, pushed to the gateway |
+
+`make configure-cert-renewal` (`ansible/cert_renewal.yml`) installs certbot (pinned, venv `/opt/certbot`) on node1 with the IONOS credentials, a daily `certbot-renew.timer` at 14:30 (outside the backup windows: a RustFS restart must not break a backup) and the deploy hook `/etc/letsencrypt/renewal-hooks/deploy/homelab-certs.sh`. certbot renews 30 days before expiry; the hook only reloads or restarts when the files changed. The LuCI certificate goes to the gateway with a node1 SSH key that dropbear restricts to `/etc/luci-cert/install.sh` (forced command, `metal/openwrt/script/luci-cert-receiver.sh`), so the IONOS key is not on the gateway. Gatus checks every certificate from outside and fails below 7 days left. The certbot steps of `deploy_vault.yml`, `deploy_rustfs.yml` and `make openwrt-certbot-tls` (certificates on the control host) are only needed for a first install.
+
 ## pimaster (control host)
 
 Ubuntu 24.04 VM (6 GB memory, 6 CPUs), not managed by Ansible. The cluster LAN and the home network share one switch, so pimaster has an address on both and reaches the nodes directly, without the gateway route. Netplan replaces the installer config (cloud-init network config is disabled in `/etc/cloud/cloud.cfg.d/99-disable-network-config.cfg`):
@@ -143,7 +156,7 @@ An Oracle Cloud Always Free VM (`terraform/oci`, region eu-frankfurt-1) keeps an
 - Gateway side: `metal/openwrt/script/wireguard-oci.sh`, firewall zone `oci` (nothing from the VM into home networks).
 - Secrets on the control host, not in Git: `~/.secrets/oci/` (API key and config), `~/.secrets/wireguard/oci-vm.key`. OCIDs and keys paths in `terraform/oci/terraform.tfvars` (gitignored, see `terraform.tfvars.example`).
 - Offsite backup (`make configure-offsite-backup`, `ansible/offsite_backup.yml`): every night at 05:00 node1 copies `/storage/rustfs` (all RustFS buckets: Longhorn, Velero, etcd snapshots, node restic) and a Vault Raft snapshot (`/var/backups/vault/vault.snap`) to the VM with restic over SFTP (`restic-offsite.timer`). Encrypted on node1, the VM never gets the password. Retention 7 daily, 4 weekly, 6 monthly (grouped by host and tag). On the VM the `restic` user is SFTP-only, chrooted to `/backup`. The repository password is `~/.secrets/restic-offsite.password` on the control host: keep a copy in a password manager, the offsite copy cannot be read without it. Vault is copied as a Raft snapshot, never as files (`/storage/vault` is live Raft storage): `vault-raft-snapshot.sh` runs before restic with a periodic orphan token that only has the `raft-snapshot` policy (`terraform/vault`), stored in `/etc/restic/vault-snapshot.token` and renewed by every snapshot. A failed snapshot does not stop the RustFS copy. Restore check: `vault operator raft snapshot inspect <file>`.
-- Outside monitoring (`make configure-offsite-monitoring`, `ansible/offsite_monitoring.yml`): Gatus on the VM checks Grafana, the k3s API, Vault, RustFS and bind9 through the tunnel, plus certificate expiry (alert below 7 days). UI on http://10.99.0.2:8080 (tunnel only: from pimaster, or from the home network with the route through the gateway). The gateway allows only these targets from the VM. No notifications yet.
+- Outside monitoring (`make configure-offsite-monitoring`, `ansible/offsite_monitoring.yml`): Gatus on the VM checks Grafana, the k3s API, Vault, RustFS, LuCI and bind9 through the tunnel, plus certificate expiry (alert below 7 days). UI on http://10.99.0.2:8080 (tunnel only: from pimaster, or from the home network with the route through the gateway). The gateway allows only these targets from the VM. No notifications yet.
 - The first-boot config (`cloud-init.yaml.tftpl`) runs once: Terraform ignores later changes to it and to the image, configure the running VM over SSH.
 
 ```shell

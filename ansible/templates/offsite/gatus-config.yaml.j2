@@ -57,6 +57,16 @@ endpoints:
       - "[STATUS] == 200"
       - "[CERTIFICATE_EXPIRATION] > 168h"
 
+  # Certificate renewed on node1 and pushed to the gateway (cert_renewal.yml)
+  - name: OpenWrt LuCI
+    group: external services
+    url: "https://{{ gateway_hostname }}/"
+    interval: 5m
+    client: *homelab-client
+    conditions:
+      - "[STATUS] == 200"
+      - "[CERTIFICATE_EXPIRATION] > 168h"
+
   - name: DNS (bind9)
     group: external services
     url: "{{ hostvars['node1'].ansible_host }}"
