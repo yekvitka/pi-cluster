@@ -65,7 +65,7 @@ Default zones are kept: `lan → wan` accepted and masqueraded, `wan → lan` re
 
 ## pimaster and home network access
 
-pimaster sits on the shared segment with a cluster LAN address (10.0.0.20) and uses the gateway (10.0.0.1) as DNS server: see [pimaster](../../README.md#pimaster-control-host).
+pimaster sits on the shared segment with a cluster LAN address (10.0.0.20) and uses the gateway (10.0.0.1) as DNS server: see [pimaster](../../docs/control-host.md).
 
 Other home devices reach the cluster through the gateway. Traffic from the home network is routed, not NATed, so they need a route to the cluster LAN. Add it on the home router (all home devices), or per device:
 
@@ -95,4 +95,4 @@ Firewall zone `oci`: input and forward rejected, `lan` → `oci` allowed, SSH an
 
 ## LuCI TLS certificate
 
-`make openwrt-certbot-tls` (repo root, as `pimaster`) requests a Let's Encrypt certificate for `gateway.homelab.yekvitka.net` (IONOS DNS-01) and deploys it with `script/openwrt-deploy-tls.sh` to `root@10.0.0.1` (`REMOTE_HOST` overrides it). Renewal is automatic since `make configure-cert-renewal`: certbot on node1 renews it and pushes it to the gateway (`script/luci-cert-receiver.sh`, see the README Certificates section); this target is only needed for a first install.
+`make openwrt-certbot-tls` (repo root, as `pimaster`) requests a Let's Encrypt certificate for `gateway.homelab.yekvitka.net` (IONOS DNS-01) and deploys it with `script/openwrt-deploy-tls.sh` to `root@10.0.0.1` (`REMOTE_HOST` overrides it). Renewal is automatic since `make configure-cert-renewal`: certbot on node1 renews it and pushes it to the gateway (`script/luci-cert-receiver.sh`, see [docs/certificates.md](../../docs/certificates.md)); this target is only needed for a first install.

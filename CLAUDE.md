@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Pi Kubernetes Cluster — a homelab monorepo for a Raspberry Pi K3s cluster (fork of github.com/ricsanfre/pi-cluster), automated with Ansible and FluxCD. Contains bare-metal provisioning (`metal/`), host configuration, external services (Vault/RustFS/DNS), Terraform/OpenTofu configuration, and Kubernetes platform apps.
 
+Documentation: `README.md` is the overview (architecture diagram, numbers, design decisions) and stays short; details go in `docs/` (hardware-and-network, platform, backup-and-recovery, certificates, offsite, build, control-host, `runbooks/`, `plans/`). App status catalog: `kubernetes/platform/README.md`; Terraform modules: `terraform/README.md`. Keep them in sync when enabling or disabling an app.
+
 ## Tool versions (managed via mise, see `.mise.toml`)
 
 ```
@@ -143,7 +145,7 @@ kubernetes/
 
 **Flux reconciliation flow**: Flux watches the Git repo → `<service>-app` Kustomization creates namespace + HelmRelease → `<service>-config` depends on `<service>-app` and applies config resources.
 
-**Enabled in prod** (`clusters/prod/infra/kustomization.yaml`): cert-manager, cilium, coredns, csi-external-snapshotter, envoy-gateway, external-dns, external-secrets, flux, grafana, kube-prometheus-stack, longhorn, metrics-server, system-upgrade, vault, velero, kube-vip. Disabled to fit 4 GB Pis: descheduler, tofu-controller, Hubble relay/UI, fluent, loki, otel-collector, tempo. Rancher is removed: its cluster agent overloaded the 4 GB control plane (see README). Other services in `platform/` (istio, kiali, kafka, keycloak, elastic-stack, eck-operator, databases, …) have no prod Kustomization.
+**Enabled in prod** (`clusters/prod/infra/kustomization.yaml`): cert-manager, cilium, coredns, csi-external-snapshotter, envoy-gateway, external-dns, external-secrets, flux, grafana, kube-prometheus-stack, longhorn, metrics-server, system-upgrade, vault, velero, kube-vip. Disabled to fit 4 GB Pis: descheduler, tofu-controller, Hubble relay/UI, fluent, loki, otel-collector, tempo. Rancher waits for the 8 GB control plane of Cluster 2.0 (its agent overloaded the 4 GB one, see docs/platform.md). Status of every app: `kubernetes/platform/README.md`. Other services in `platform/` (istio, kiali, kafka, keycloak, elastic-stack, eck-operator, databases, …) have no prod Kustomization.
 
 **Key FluxCD patterns**:
 - Environment-specific values go in `overlays/{dev,prod}/values.yaml`, never duplicate base manifests.
@@ -161,7 +163,7 @@ Five independent modules (OpenTofu), each with its own local state:
 | `vault/` | Vault secrets, policies, K8s auth roles | Vault + Kubernetes |
 | `elastic/` | Elasticsearch roles, users, ILM, templates, data views | Elasticsearch |
 | `keycloak/` | Keycloak realm, groups, clients, users, scopes | Keycloak |
-| `oci/` | Oracle Cloud offsite VM (Always Free), reached through a WireGuard tunnel from the OpenWrt gateway (see README) | OCI |
+| `oci/` | Oracle Cloud offsite VM (Always Free), reached through a WireGuard tunnel from the OpenWrt gateway (see docs/offsite.md) | OCI |
 
 All modules follow a data-driven pattern: resource definitions are loaded from `resources/` files (JSON/YAML) and fed into Terraform via `locals` + `for_each`, keeping `.tf` files thin. DNS is not managed by Terraform (Bind9 via Ansible, external-dns in-cluster).
 
