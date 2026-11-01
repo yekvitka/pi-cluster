@@ -1,0 +1,10 @@
+# Managed by ansible/cert_renewal.yml
+[Unit]
+Description=Renew Let's Encrypt certificates (Vault, RustFS, LuCI)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+# Renews only certificates with less than 30 days left, then runs the deploy hooks
+ExecStart=/opt/certbot/bin/certbot renew --non-interactive

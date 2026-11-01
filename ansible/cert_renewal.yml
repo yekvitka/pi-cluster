@@ -1,0 +1,125 @@
+---
+# Automatic renewal of the Let's Encrypt certificates outside the cluster:
+# Vault, RustFS (node1) and LuCI (OpenWrt gateway). Inside the cluster
+# cert-manager renews the wildcard certificate on its own.
+#
+# node1 is always on: certbot (IONOS DNS-01) runs there daily and a deploy hook
+# installs a renewed certificate where its service reads it (Vault reload,
+# RustFS restart) and pushes the LuCI one to the gateway with an SSH key the
+# gateway restricts to installing it (metal/openwrt/script/luci-cert-receiver.sh).
+#
+# Usage: make configure-cert-renewal (also sets up the gateway receiver)
+
+- name: Certbot with automatic renewal on node1
+  hosts: s3
+  gather_facts: false
+  vars_files:
+    - vars/picluster.yml
+  vars:
+    certbot_venv: /opt/certbot
+    certbot_domains:
+      - "{{ vault_hostname }}"
+      - "{{ rustfs_hostname }}"
+      - "{{ gateway_hostname }}"
+    ionos_credentials_file: "{{ lookup('ansible.builtin.env', 'HOME') }}/.secrets/ionos-credentials.ini"
+  tasks:
+    - name: Python venv support
+      ansible.builtin.apt:
+        name: python3-venv
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Certbot with the IONOS DNS plugin
+      ansible.builtin.pip:
+        name:
+          - "certbot=={{ certbot_version }}"
+          - "certbot-dns-ionos=={{ certbot_dns_ionos_version }}"
+        virtualenv: "{{ certbot_venv }}"
+        virtualenv_command: python3 -m venv
+
+    - name: Certbot directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0700"
+      loop:
+        - /etc/letsencrypt
+        - /etc/letsencrypt/renewal-hooks
+        - /etc/letsencrypt/renewal-hooks/deploy
+
+    - name: IONOS API credentials
+      ansible.builtin.copy:
+        src: "{{ ionos_credentials_file }}"
+        dest: /etc/letsencrypt/ionos-credentials.ini
+        mode: "0600"
+
+    - name: SSH key to push the LuCI certificate
+      community.crypto.openssh_keypair:
+        path: /root/.ssh/luci_cert_ed25519
+        type: ed25519
+        comment: luci-cert@node1
+
+    - name: Read the gateway host key
+      ansible.builtin.command: ssh-keyscan -t ed25519 10.0.0.1
+      register: gateway_host_key
+      changed_when: false
+
+    - name: Trust the gateway host key
+      ansible.builtin.known_hosts:
+        path: /root/.ssh/known_hosts
+        name: 10.0.0.1
+        key: "{{ gateway_host_key.stdout_lines | select('match', '^10\\.0\\.0\\.1 ssh-ed25519 ') | first }}"
+
+    - name: Deploy hook
+      ansible.builtin.template:
+        src: templates/certbot/homelab-certs.sh.j2
+        dest: /etc/letsencrypt/renewal-hooks/deploy/homelab-certs.sh
+        mode: "0700"
+
+    # DNS-01 through IONOS: no port open, works for internal names
+    - name: Certificates
+      ansible.builtin.command:
+        cmd: >-
+          {{ certbot_venv }}/bin/certbot certonly
+          --non-interactive --agree-tos -m {{ acme_issuer_email }}
+          --authenticator dns-ionos
+          --dns-ionos-credentials /etc/letsencrypt/ionos-credentials.ini
+          --dns-ionos-propagation-seconds 300
+          -d {{ item }}
+        creates: "/etc/letsencrypt/live/{{ item }}/fullchain.pem"
+      loop: "{{ certbot_domains }}"
+
+    # The gateway certificate is pushed after the receiver is set up (make target)
+    - name: Install the Vault and RustFS certificates
+      ansible.builtin.command: /etc/letsencrypt/renewal-hooks/deploy/homelab-certs.sh
+      environment:
+        RENEWED_LINEAGE: "/etc/letsencrypt/live/{{ item }}"
+      loop:
+        - "{{ vault_hostname }}"
+        - "{{ rustfs_hostname }}"
+      register: cert_install
+      changed_when: cert_install.stdout is search('installed')
+
+    - name: Renewal service and timer
+      ansible.builtin.template:
+        src: "templates/certbot/{{ item }}.j2"
+        dest: "/etc/systemd/system/{{ item }}"
+        mode: "0644"
+      loop:
+        - certbot-renew.service
+        - certbot-renew.timer
+      notify: Reload systemd
+
+    - name: Flush handlers
+      ansible.builtin.meta: flush_handlers
+
+    - name: Enable the renewal timer
+      ansible.builtin.systemd:
+        name: certbot-renew.timer
+        enabled: true
+        state: started
+
+  handlers:
+    - name: Reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: true
