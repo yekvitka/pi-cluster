@@ -65,7 +65,7 @@ Default zones are kept: `lan → wan` accepted and masqueraded, `wan → lan` re
 
 ## pimaster and home network access
 
-pimaster sits on the shared segment with a cluster LAN address (10.0.0.16) and uses the gateway (10.0.0.1) as DNS server: see [pimaster](../../README.md#pimaster-control-host).
+pimaster sits on the shared segment with a cluster LAN address (10.0.0.20) and uses the gateway (10.0.0.1) as DNS server: see [pimaster](../../README.md#pimaster-control-host).
 
 Other home devices reach the cluster through the gateway. Traffic from the home network is routed, not NATed, so they need a route to the cluster LAN. Add it on the home router (all home devices), or per device:
 

@@ -285,6 +285,9 @@ offsite_backup_path: /backup
 offsite_backup_sources:
   - /storage/rustfs
   - /var/backups/vault
+# Not worth an offsite copy: Loki logs, 7-day retention
+offsite_backup_excludes:
+  - /storage/rustfs/k3s-loki
 offsite_vault_addr: "https://{{ vault_hostname }}:8200"
 offsite_vault_snapshot_dir: /var/backups/vault
 offsite_vault_secret_file: "{{ lookup('ansible.builtin.env', 'HOME') }}/.secrets/vault.env"
