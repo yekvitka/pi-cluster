@@ -15,6 +15,7 @@ Fork of [ricsanfre/pi-cluster](https://github.com/ricsanfre/pi-cluster). Archite
 | node1 | 10.0.0.11 | External services: bind9 (authoritative DNS), Vault, RustFS (S3) |
 | node2–node4 | 10.0.0.12–14 | K3s control plane (embedded etcd). k3s API virtual IP 10.0.0.10 (kube-vip). node3 boots from a USB SSD and is a Longhorn storage node |
 | node5 | 10.0.0.15 | K3s worker, boots from a USB SSD, Longhorn storage node |
+| offsite | 10.99.0.2 (WireGuard) | Oracle Cloud VM (Always Free, Frankfurt): offsite backup copy, outside monitoring. See [Oracle Cloud](#oracle-cloud-offsite) |
 
 DNS domain: `homelab.yekvitka.net` (Let's Encrypt certificates via IONOS DNS-01).
 
@@ -70,6 +71,8 @@ network:
       - to: 0.0.0.0/0
         via: 10.0.0.1
         metric: 200
+      - to: 10.99.0.0/24
+        via: 10.0.0.1   # WireGuard tunnel to the Oracle VM
 ```
 
 DNS comes only from the gateway, as on the nodes. The home router hands out its own IPv6 DNS servers, so a networkd drop-in ignores them:
@@ -130,6 +133,22 @@ pimaster is a VM without USB, so the SSD is flashed from the node itself while i
 Rollback before step 3: wipe the SSD. After step 3: unplug the SSD, insert the SD card (SD boots first), delete `/var/lib/rancher/k3s/server/db` on the node and rerun `k3s_install.yml --limit <node>`.
 
 Changing `systemManagedComponentsNodeSelector` (Longhorn) is applied only with all Longhorn volumes detached: scale down Prometheus, Alertmanager and Grafana (suspend their Flux Kustomizations and HelmReleases first), let Flux upgrade Longhorn, then scale back up. Existing volumes keep their replica count: set `numberOfReplicas` on each `volumes.longhorn.io`.
+
+## Oracle Cloud (offsite)
+
+An Oracle Cloud Always Free VM (`terraform/oci`, region eu-frankfurt-1) keeps an offsite copy of the backups and will monitor the cluster from outside. Ampere A1 (arm64): 1 OCPU, 6 GB, Ubuntu 24.04, 50 GB boot + 150 GB backup volume (`/dev/sdb`, not formatted yet). Free tier, not pay-as-you-go: Oracle may reclaim an idle VM.
+
+- Access: the home public IP is dynamic (Play), so the VM opens no SSH to the internet. A WireGuard tunnel runs from the OpenWrt gateway (10.99.0.1) to the VM (10.99.0.2): the gateway connects out and keeps it up, no port forwarding at home. Oracle security list: UDP 51820 and ICMP 3/4 only (the VCN default list is emptied). On the VM, iptables allows SSH on `wg0` only.
+- Gateway side: `metal/openwrt/script/wireguard-oci.sh`, firewall zone `oci` (nothing from the VM into home networks).
+- Secrets on the control host, not in Git: `~/.secrets/oci/` (API key and config), `~/.secrets/wireguard/oci-vm.key`. OCIDs and keys paths in `terraform/oci/terraform.tfvars` (gitignored, see `terraform.tfvars.example`).
+- The first-boot config (`cloud-init.yaml.tftpl`) runs once: Terraform ignores later changes to it and to the image, configure the running VM over SSH.
+
+```shell
+./ansible-runner/ansible-runner.sh bash -lc 'cd /terraform/oci && tofu plan'
+ssh ubuntu@10.99.0.2      # from pimaster or the home network (route 10.99.0.0/24 via the gateway)
+```
+
+From a home network machine (192.168.50.x), add the route through the gateway first, e.g. on macOS: `sudo route -n add -net 10.99.0.0/24 192.168.50.200`.
 
 ## License
 

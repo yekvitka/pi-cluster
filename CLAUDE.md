@@ -153,7 +153,7 @@ kubernetes/
 
 ### Terraform layer (`terraform/`)
 
-Four independent modules (OpenTofu), each with its own local state:
+Five independent modules (OpenTofu), each with its own local state:
 
 | Module | Purpose | Provider |
 |--------|---------|----------|
@@ -161,6 +161,7 @@ Four independent modules (OpenTofu), each with its own local state:
 | `vault/` | Vault secrets, policies, K8s auth roles | Vault + Kubernetes |
 | `elastic/` | Elasticsearch roles, users, ILM, templates, data views | Elasticsearch |
 | `keycloak/` | Keycloak realm, groups, clients, users, scopes | Keycloak |
+| `oci/` | Oracle Cloud offsite VM (Always Free), reached through a WireGuard tunnel from the OpenWrt gateway (see README) | OCI |
 
 All modules follow a data-driven pattern: resource definitions are loaded from `resources/` files (JSON/YAML) and fed into Terraform via `locals` + `for_each`, keeping `.tf` files thin. DNS is not managed by Terraform (Bind9 via Ansible, external-dns in-cluster).
 
