@@ -1,0 +1,5 @@
+---
+# Oracle Cloud VM: Ubuntu cloud image, the ubuntu user has the pimaster key
+# (terraform/oci). Not a Raspberry Pi: none of the Pi roles apply
+ansible_user: ubuntu
+ansible_become: true

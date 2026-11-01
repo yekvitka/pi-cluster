@@ -45,6 +45,8 @@ ANSIBLE_LOCAL_COLLECTIONS_DIR := $(HOME)/.ansible/collections
 	deploy-vault \
 	deploy-minio \
 	deploy-rustfs \
+	configure-offsite-backup \
+	configure-offsite-monitoring \
 	configure-minio \
 	configure-vault \
 	load-external-services-keys \
@@ -162,6 +164,12 @@ deploy-minio: ## Deploy MinIO workloads (legacy, use deploy-rustfs)
 
 deploy-rustfs: ## Deploy RustFS S3 workloads
 	$(RUNNER) ansible-playbook deploy_rustfs.yml
+
+configure-offsite-backup: ## Nightly restic copy of the RustFS backups to the Oracle Cloud VM
+	$(RUNNER) ansible-playbook offsite_backup.yml
+
+configure-offsite-monitoring: ## Gatus on the Oracle Cloud VM: checks the cluster from outside
+	$(RUNNER) ansible-playbook offsite_monitoring.yml
 
 load-external-services-keys: ## Load external services keys into the cluster
 	$(RUNNER) ansible-playbook load_external_services_keys.yml
