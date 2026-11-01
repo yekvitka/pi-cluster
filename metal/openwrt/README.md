@@ -82,6 +82,17 @@ To resolve cluster names, use the gateway (192.168.50.200) as DNS server for `ho
 
 Nodes configure their static IPs in cloud-init (`metal/rpi/cloud-init/nodes/network-config`). The DHCP static leases bound to the MAC addresses in `ansible/inventory.yml` keep those addresses reserved. When a node or MAC changes, update both the inventory and `gateway-setup.sh`, then re-run the script.
 
+## WireGuard tunnel to the Oracle Cloud VM
+
+`script/wireguard-oci.sh` connects the gateway (10.99.0.1) to the offsite VM in Oracle Cloud (10.99.0.2, `terraform/oci`). The gateway initiates the tunnel and keeps it up (keepalive 25s), so the dynamic home IP needs no port forwarding. MTU 1380 (home uplink path MTU 1460). The gateway private key stays on the gateway (`/etc/config/network`).
+
+```shell
+ssh root@10.0.0.1 'sh -s' < metal/openwrt/script/wireguard-oci.sh    # 1. install, print the gateway public key
+ssh root@10.0.0.1 "OCI_ENDPOINT=<offsite_public_ip> OCI_PUBKEY=<VM public key> sh -s" < metal/openwrt/script/wireguard-oci.sh   # 2. add the VM peer
+```
+
+Firewall zone `oci`: input and forward rejected (nothing from the VM into home networks), `lan` → `oci` allowed, SSH from the home network (192.168.50.0/24) to the VM allowed. The first install restarts netifd once (it loads protocol handlers at start), a few seconds without uplink.
+
 ## LuCI TLS certificate
 
 `make openwrt-certbot-tls` (repo root) requests a Let's Encrypt certificate for `gateway.homelab.yekvitka.net` and deploys it with `script/openwrt-deploy-tls.sh`.
