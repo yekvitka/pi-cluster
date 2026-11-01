@@ -62,16 +62,18 @@ uci set firewall.lan_oci=forwarding
 uci set firewall.lan_oci.src='lan'
 uci set firewall.lan_oci.dest='oci'
 
+# Home network to the VM: SSH and the Gatus UI (ansible/offsite_monitoring.yml)
 uci -q delete firewall.home_ssh_oci || true
-uci set firewall.home_ssh_oci=rule
-uci set firewall.home_ssh_oci.name='Allow-Home-SSH-OCI'
-uci set firewall.home_ssh_oci.src='wan'
-uci set firewall.home_ssh_oci.src_ip="$HOME_NET"
-uci set firewall.home_ssh_oci.dest='oci'
-uci set firewall.home_ssh_oci.dest_ip="$OCI_WG_IP"
-uci set firewall.home_ssh_oci.proto='tcp'
-uci set firewall.home_ssh_oci.dest_port='22'
-uci set firewall.home_ssh_oci.target='ACCEPT'
+uci -q delete firewall.home_oci || true
+uci set firewall.home_oci=rule
+uci set firewall.home_oci.name='Allow-Home-OCI'
+uci set firewall.home_oci.src='wan'
+uci set firewall.home_oci.src_ip="$HOME_NET"
+uci set firewall.home_oci.dest='oci'
+uci set firewall.home_oci.dest_ip="$OCI_WG_IP"
+uci set firewall.home_oci.proto='tcp'
+uci set firewall.home_oci.dest_port='22 8080'
+uci set firewall.home_oci.target='ACCEPT'
 
 # Outside monitoring (Gatus on the VM, ansible/offsite_monitoring.yml): only
 # these targets, only from the VM. Arguments: name, destination, protocol, port
