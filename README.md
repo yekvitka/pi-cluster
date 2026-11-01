@@ -47,7 +47,7 @@ The centralized iSCSI SAN (node1 serving one LUN per k3s node) is disabled (`cen
 ### Known limits (4 GB Raspberry Pis)
 
 - Rancher does not fit. In the cluster its controllers exhaust the control plane nodes. Running Rancher on pimaster and importing the cluster failed too: the cattle-cluster-agent (500–700Mi) watches every resource type, which grew k3s-server by about 700Mi on each master and made node3 thrash. Removed (in-cluster app, Docker install on pimaster, import).
-- Prometheus has a 900Mi memory limit (640Mi request), below node5's free memory: it is OOM-killed and restarted instead of hanging the node. In prod it keeps memory under the limit with a 60s scrape interval (30s for node-exporter and the kubelet/cAdvisor: Lens computes rates over 1m windows), 6h / 1GB retention and trimmed kubelet histograms (`app/overlays/prod/values.yaml`). Lens: Settings → Metrics → Prometheus Operator, `kube-prom-stack/kube-prometheus-stack-prometheus:9090`.
+- Prometheus has a 900Mi memory limit (640Mi request), below node5's free memory: it is OOM-killed and restarted instead of hanging the node. In prod it keeps memory under the limit with a 60s scrape interval (30s for node-exporter and the kubelet/cAdvisor: Lens computes rates over 1m windows), 6h / 1GB retention and trimmed kubelet histograms (`app/overlays/prod/values.yaml`). Lens: Settings → Metrics → Prometheus "Auto detect" (it finds the `prometheus-operated` service); the manual Prometheus Operator setting showed no metrics.
 
 ## Certificates
 
