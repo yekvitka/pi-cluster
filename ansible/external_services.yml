@@ -46,7 +46,7 @@
 #   # Stage-to-playbook mapping
 #   # stage1 -> deploy_vault.yml
 #   # stage2 -> configure_vault.yml
-#   # stage3 -> deploy_minio.yml
+#   # stage3 -> deploy_rustfs.yml
 #   # stage4 -> configure_minio.yml
 #   # stage5 -> load_external_services_keys.yml
 
