@@ -43,7 +43,6 @@ ANSIBLE_LOCAL_COLLECTIONS_DIR := $(HOME)/.ansible/collections
 	shutdown-k3s-master \
 	shutdown-picluster \
 	deploy-vault \
-	deploy-minio \
 	deploy-rustfs \
 	configure-offsite-backup \
 	configure-webui-auth \
@@ -160,9 +159,6 @@ shutdown-picluster: ## Shutdown all cluster nodes in 1 minute
 
 deploy-vault: ## Deploy Vault workloads
 	$(RUNNER) ansible-playbook deploy_vault.yml
-
-deploy-minio: ## Deploy MinIO workloads (legacy, use deploy-rustfs)
-	$(RUNNER) ansible-playbook deploy_minio.yml
 
 deploy-rustfs: ## Deploy RustFS S3 workloads
 	$(RUNNER) ansible-playbook deploy_rustfs.yml

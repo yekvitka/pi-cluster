@@ -142,7 +142,7 @@ enable_letsencrypt: true
 
 # IONOS API credentials
 # NOTE: Credentials are loaded from environment variables (IONOS_PUBLIC_PREFIX, IONOS_SECRET)
-# in deploy_vault.yml and deploy_minio.yml, not from these variables
+# in deploy_vault.yml and deploy_rustfs.yml, not from these variables
 # ionos_public_prefix: "{{ vault.certmanager.ionos.public_prefix }}"
 # ionos_secret: "{{ vault.certmanager.ionos.secret }}"
 ionos_api_endpoint: https://api.hosting.ionos.com
