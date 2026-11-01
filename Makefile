@@ -46,6 +46,7 @@ ANSIBLE_LOCAL_COLLECTIONS_DIR := $(HOME)/.ansible/collections
 	deploy-minio \
 	deploy-rustfs \
 	configure-offsite-backup \
+	configure-webui-auth \
 	configure-offsite-monitoring \
 	configure-minio \
 	configure-vault \
@@ -164,6 +165,9 @@ deploy-minio: ## Deploy MinIO workloads (legacy, use deploy-rustfs)
 
 deploy-rustfs: ## Deploy RustFS S3 workloads
 	$(RUNNER) ansible-playbook deploy_rustfs.yml
+
+configure-webui-auth: ## Basic auth credentials (Vault) for Longhorn, Prometheus and Alertmanager UIs
+	$(RUNNER) ansible-playbook configure_webui_auth.yml
 
 configure-offsite-backup: ## Nightly restic copy of the RustFS backups to the Oracle Cloud VM
 	$(RUNNER) ansible-playbook offsite_backup.yml
