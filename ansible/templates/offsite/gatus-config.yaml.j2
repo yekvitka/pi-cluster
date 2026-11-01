@@ -1,0 +1,68 @@
+# Managed by ansible/offsite_monitoring.yml
+# Checks run from the Oracle Cloud VM through the WireGuard tunnel. Each target
+# needs an oci -> lan rule on the gateway (metal/openwrt/script/wireguard-oci.sh).
+# Names resolve with bind9 on node1, so certificates are checked against them
+storage:
+  type: sqlite
+  path: /data/data.db
+
+web:
+  port: 8080
+
+ui:
+  title: pi-cluster from outside
+  header: pi-cluster (checked from Oracle Cloud)
+
+endpoints:
+  - name: Grafana
+    group: cluster
+    url: "https://grafana.{{ dns_domain }}/api/health"
+    interval: 2m
+    # Shared by the checks below (YAML anchor)
+    client: &homelab-client
+      dns-resolver: "udp://{{ hostvars['node1'].ansible_host }}:53"
+      timeout: 10s
+    conditions:
+      - "[STATUS] == 200"
+      - "[CERTIFICATE_EXPIRATION] > 168h"
+
+  # k3s answers 401 to anonymous requests: any answer below 500 means the API is
+  # up. [STATUS] is 0 when the connection fails, so check the connection too
+  - name: k3s API
+    group: cluster
+    url: "https://{{ k3s_api_vip }}:6443/readyz"
+    interval: 2m
+    client:
+      insecure: true
+      timeout: 10s
+    conditions:
+      - "[CONNECTED] == true"
+      - "[STATUS] < 500"
+
+  - name: Vault
+    group: external services
+    url: "https://vault.{{ dns_domain }}:8200/v1/sys/health"
+    interval: 2m
+    client: *homelab-client
+    conditions:
+      - "[STATUS] == 200"
+      - "[CERTIFICATE_EXPIRATION] > 168h"
+
+  - name: RustFS (S3)
+    group: external services
+    url: "https://object-store.{{ dns_domain }}:9091/health"
+    interval: 2m
+    client: *homelab-client
+    conditions:
+      - "[STATUS] == 200"
+      - "[CERTIFICATE_EXPIRATION] > 168h"
+
+  - name: DNS (bind9)
+    group: external services
+    url: "{{ hostvars['node1'].ansible_host }}"
+    interval: 5m
+    dns:
+      query-name: "grafana.{{ dns_domain }}"
+      query-type: A
+    conditions:
+      - "[DNS_RCODE] == NOERROR"
