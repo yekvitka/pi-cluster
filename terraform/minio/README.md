@@ -429,4 +429,4 @@ stringData:
 - [aminueza/terraform-provider-minio Documentation](https://registry.terraform.io/providers/aminueza/minio/latest/docs)
 - [Minio Client Documentation](https://docs.min.io/minio/baremetal/)
 - [AWS IAM Policy Format](https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html)
-- [Pi Cluster Minio Documentation](../../docs/_docs/minio.md)
+- [Pi Cluster Minio Documentation](https://picluster.ricsanfre.com/docs/minio/)
