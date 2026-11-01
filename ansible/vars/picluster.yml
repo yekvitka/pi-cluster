@@ -20,6 +20,12 @@ k3s_api_vip: 10.0.0.10
 k3s_config_directory: /etc/rancher/k3s
 
 # kubelet configuration
+# The server that starts a new cluster (cluster-init). Every other server joins it.
+# Explicit, not "first host of k3s_master": a new control-plane node listed first
+# must join the existing cluster, never create a second one. Point it to a running
+# server; for a rebuild from scratch, to the first server installed
+k3s_cluster_init_node: node2
+
 k3s_kubelet_config: |
   apiVersion: kubelet.config.k8s.io/v1beta1
   kind: KubeletConfiguration
@@ -29,7 +35,7 @@ k3s_kubelet_config: |
   # agent + containerd on workers) and the OS. The scheduler does not hand it
   # out and the kubepods cgroup limit keeps pods out of it
   kubeReserved:
-    memory: {{ '1700Mi' if 'k3s_master' in group_names else '600Mi' }}
+    memory: {{ k3s_kube_reserved_memory | default('1700Mi' if 'k3s_master' in group_names else '600Mi') }}
   systemReserved:
     memory: 300Mi
   # Evict pods while the node still responds (4 GB Pis without swap).
@@ -86,6 +92,12 @@ k3s_server_config:
   # Longhorn storage node (SSD boot, /storage on the SSD) if k3s_longhorn_storage
   # is true (host_vars). Applied when the node registers
   node-label: "{{ ['node_storage=longhorn'] if k3s_longhorn_storage | default(false) | bool else [] }}"
+  # etcd-only server (k3s_etcd_only: true in host_vars): etcd member without API
+  # server, controller manager and scheduler, ~0.45 GB instead of 1.3-1.9 GB.
+  # Third etcd member next to the two 8 GB control-plane nodes (docs/plans/cluster-2.0.md)
+  disable-apiserver: "{{ k3s_etcd_only | default(false) | bool }}"
+  disable-controller-manager: "{{ k3s_etcd_only | default(false) | bool }}"
+  disable-scheduler: "{{ k3s_etcd_only | default(false) | bool }}"
   etcd-expose-metrics: true
   # etcd snapshots (every 12h, last 5) also uploaded to RustFS bucket k3s-etcd.
   # S3 endpoint and credentials: kube-system secret managed by External Secrets
@@ -108,9 +120,9 @@ k3s_server_config:
 #  --kubelet-arg 'config=/etc/rancher/k3s/kubelet.config'
 #  --kube-proxy-arg 'metrics-bind-address=0.0.0.0'
 k3s_agent_config:
-  node-label:
-    - 'node_type=worker'
-    - 'node_storage=longhorn'
+  # Longhorn storage node only with k3s_longhorn_storage: true (host_vars): a worker
+  # without SSD must not get Longhorn components or data
+  node-label: "{{ ['node_type=worker'] + (['node_storage=longhorn'] if k3s_longhorn_storage | default(false) | bool else []) }}"
   kubelet-arg:
     - 'config=/etc/rancher/k3s/kubelet.config'
 #  kube-proxy-arg:
