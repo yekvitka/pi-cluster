@@ -1,0 +1,107 @@
+---
+# Outside monitoring: Gatus on the Oracle Cloud VM checks the cluster and the
+# external services through the WireGuard tunnel. Checks are in
+# templates/offsite/gatus-config.yaml.j2. UI on http://10.99.0.2:8080 (tunnel only)
+#
+# Usage: make configure-offsite-monitoring
+# The gateway must allow the checks: metal/openwrt/script/wireguard-oci.sh
+
+- name: Gatus on the offsite VM
+  hosts: oci
+  gather_facts: false
+  vars_files:
+    - vars/picluster.yml
+  tasks:
+    # Host networking only: Docker must not add its own iptables rules
+    # (they would end up in the saved rules.v4). Set before the first start
+    - name: Docker configuration directory
+      ansible.builtin.file:
+        path: /etc/docker
+        state: directory
+        mode: "0755"
+
+    - name: Docker daemon without iptables management
+      ansible.builtin.copy:
+        dest: /etc/docker/daemon.json
+        mode: "0644"
+        content: |
+          {
+            "iptables": false,
+            "ip6tables": false
+          }
+      notify: Restart docker
+
+    - name: Docker
+      ansible.builtin.apt:
+        name:
+          - docker.io
+          - docker-compose-v2
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Gatus directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - /opt/gatus
+        - /opt/gatus/config
+        - /opt/gatus/data
+
+    - name: Gatus configuration
+      ansible.builtin.template:
+        src: templates/offsite/gatus-config.yaml.j2
+        dest: /opt/gatus/config/config.yaml
+        mode: "0644"
+
+    - name: Gatus compose file
+      ansible.builtin.copy:
+        dest: /opt/gatus/docker-compose.yaml
+        mode: "0644"
+        content: |
+          # Managed by ansible/offsite_monitoring.yml
+          services:
+            gatus:
+              image: twinproduction/gatus:{{ gatus_version }}
+              container_name: gatus
+              restart: unless-stopped
+              network_mode: host
+              environment:
+                GATUS_CONFIG_PATH: /config/config.yaml
+              volumes:
+                - ./config:/config:ro
+                - ./data:/data
+
+    - name: Flush handlers
+      ansible.builtin.meta: flush_handlers
+
+    - name: Start Gatus
+      ansible.builtin.command: docker compose -f /opt/gatus/docker-compose.yaml up -d
+      register: gatus_up
+      changed_when: gatus_up.stderr is search('Started|Recreated|Created')
+
+    # Gatus listens on all addresses: only the tunnel may reach it (the Oracle
+    # security list also blocks 8080)
+    - name: Allow the Gatus UI on the tunnel
+      ansible.builtin.iptables:
+        chain: INPUT
+        in_interface: wg0
+        protocol: tcp
+        destination_port: "8080"
+        jump: ACCEPT
+        action: insert
+        rule_num: "1"
+        comment: Gatus UI (tunnel only)
+      notify: Save iptables rules
+
+  handlers:
+    - name: Save iptables rules
+      ansible.builtin.command: netfilter-persistent save
+      changed_when: true
+
+    - name: Restart docker
+      ansible.builtin.systemd:
+        name: docker
+        state: restarted
+      failed_when: false

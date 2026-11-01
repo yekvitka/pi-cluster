@@ -73,6 +73,26 @@ uci set firewall.home_ssh_oci.proto='tcp'
 uci set firewall.home_ssh_oci.dest_port='22'
 uci set firewall.home_ssh_oci.target='ACCEPT'
 
+# Outside monitoring (Gatus on the VM, ansible/offsite_monitoring.yml): only
+# these targets, only from the VM. Arguments: name, destination, protocol, port
+monitoring_rule() {
+  uci -q delete "firewall.$1" || true
+  uci set "firewall.$1=rule"
+  uci set "firewall.$1.name=Allow-OCI-Monitoring-$1"
+  uci set "firewall.$1.src=oci"
+  uci set "firewall.$1.src_ip=$OCI_WG_IP"
+  uci set "firewall.$1.dest=lan"
+  uci set "firewall.$1.dest_ip=$2"
+  uci set "firewall.$1.proto=$3"
+  uci set "firewall.$1.dest_port=$4"
+  uci set "firewall.$1.target=ACCEPT"
+}
+monitoring_rule mon_dns 10.0.0.11 'tcp udp' 53      # bind9 (names for the checks)
+monitoring_rule mon_grafana 10.0.0.68 tcp 443       # Envoy gateway (Grafana)
+monitoring_rule mon_k3s 10.0.0.10 tcp 6443          # k3s API (kube-vip)
+monitoring_rule mon_vault 10.0.0.11 tcp 8200        # Vault
+monitoring_rule mon_rustfs 10.0.0.11 tcp 9091       # RustFS S3
+
 uci commit network
 uci commit firewall
 ifup wg_oci

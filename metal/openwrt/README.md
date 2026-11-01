@@ -91,7 +91,7 @@ ssh root@10.0.0.1 'sh -s' < metal/openwrt/script/wireguard-oci.sh    # 1. instal
 ssh root@10.0.0.1 "OCI_ENDPOINT=<offsite_public_ip> OCI_PUBKEY=<VM public key> sh -s" < metal/openwrt/script/wireguard-oci.sh   # 2. add the VM peer
 ```
 
-Firewall zone `oci`: input and forward rejected (nothing from the VM into home networks), `lan` → `oci` allowed, SSH from the home network (192.168.50.0/24) to the VM allowed. The first install restarts netifd once (it loads protocol handlers at start), a few seconds without uplink.
+Firewall zone `oci`: input and forward rejected, `lan` → `oci` allowed, SSH from the home network (192.168.50.0/24) to the VM allowed. From the VM into the cluster LAN only the outside monitoring targets (`mon_*` rules): bind9 10.0.0.11:53, Envoy gateway 10.0.0.68:443, k3s API 10.0.0.10:6443, Vault 10.0.0.11:8200, RustFS 10.0.0.11:9091. The first install restarts netifd once (it loads protocol handlers at start), a few seconds without uplink.
 
 ## LuCI TLS certificate
 

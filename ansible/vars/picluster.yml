@@ -256,3 +256,20 @@ helm_version: v4.3.0
 #######################
 
 gateway_hostname: "gateway.{{ dns_domain }}"
+
+###################################
+# Offsite backup (Oracle Cloud VM) #
+###################################
+
+offsite_restic_password_file: "{{ lookup('ansible.builtin.env', 'HOME') }}/.secrets/restic-offsite.password"
+offsite_ssh_alias: offsite-backup
+offsite_restic_user: restic
+offsite_backup_device: /dev/sdb
+offsite_backup_label: offsite-backups
+offsite_backup_path: /backup
+offsite_backup_sources:
+  - /storage/rustfs
+offsite_backup_schedule: "*-*-* 05:00:00"
+offsite_restic_retention: "--keep-daily 7 --keep-weekly 4 --keep-monthly 6"
+# renovate: datasource=docker depName=twinproduction/gatus
+gatus_version: v5.38.0

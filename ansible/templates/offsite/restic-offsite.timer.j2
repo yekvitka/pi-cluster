@@ -1,0 +1,12 @@
+# Managed by ansible/offsite_backup.yml
+[Unit]
+Description=Nightly offsite restic copy
+
+[Timer]
+# After Velero (04:00) and the node restic backups (03:00)
+OnCalendar={{ offsite_backup_schedule }}
+RandomizedDelaySec=10m
+Persistent=true
+
+[Install]
+WantedBy=timers.target
