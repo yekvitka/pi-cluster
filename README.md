@@ -1,8 +1,6 @@
-# pi-cluster
+<img src="docs/images/pi-cluster-banner.png" alt="pi-cluster: a Raspberry Pi Kubernetes cluster in a rack, built with Raspberry Pi, Linux and Kubernetes" width="100%">
 
 **A production-grade Kubernetes platform on Raspberry Pis.** GitOps from end to end, TLS everywhere, secrets in Vault, encrypted offsite backups, monitored from outside. Every component is declared in this repository and the whole platform can be rebuilt from it.
-
-<img src="docs/images/pi-cluster.jpg" alt="The Raspberry Pi cluster: Pis in a rack, wired to a Netgear ProSAFE switch" width="480">
 
 ## First principles
 
