@@ -213,6 +213,9 @@ vault_hostname: "vault.{{ dns_domain }}"
 vault_version: 2.1.1
 
 vault_dns: "{{ vault_hostname }}"
+# Vault Kubernetes auth (External Secrets, Prometheus): enabled in the live Vault.
+# configure_vault.yml defaults to false, which plans to destroy the backend and its roles
+enable_kubernetes_auth: true
 # Vault data on node1 SSD1 (/storage), not on the SD card
 vault_data_path: /storage/vault
 vault_enable_tls: true
@@ -269,6 +272,10 @@ offsite_backup_label: offsite-backups
 offsite_backup_path: /backup
 offsite_backup_sources:
   - /storage/rustfs
+  - /var/backups/vault
+offsite_vault_addr: "https://{{ vault_hostname }}:8200"
+offsite_vault_snapshot_dir: /var/backups/vault
+offsite_vault_secret_file: "{{ lookup('ansible.builtin.env', 'HOME') }}/.secrets/vault.env"
 offsite_backup_schedule: "*-*-* 05:00:00"
 offsite_restic_retention: "--keep-daily 7 --keep-weekly 4 --keep-monthly 6"
 # renovate: datasource=docker depName=twinproduction/gatus

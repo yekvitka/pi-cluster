@@ -9,5 +9,8 @@ Type=oneshot
 EnvironmentFile=/etc/restic/offsite.env
 Nice=19
 IOSchedulingClass=idle
+# Vault Raft snapshot first. "-": a failed snapshot must not stop the RustFS copy
+# (the previous snapshot file is copied again)
+ExecStartPre=-/usr/local/sbin/vault-raft-snapshot.sh
 ExecStart=/usr/local/bin/restic backup --tag rustfs {{ offsite_backup_sources | join(' ') }}
 ExecStartPost=/usr/local/bin/restic forget --tag rustfs --prune {{ offsite_restic_retention }}

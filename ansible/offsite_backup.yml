@@ -3,6 +3,8 @@
 # Longhorn, Velero, etcd snapshots, node restic) to the Oracle Cloud VM every
 # night with restic over SFTP, through the WireGuard tunnel. Encrypted on node1:
 # the VM never gets the repository password.
+# Vault (Raft storage) is copied as a Raft snapshot, taken just before, with a
+# periodic token that only has the raft-snapshot policy (terraform/vault).
 #
 # Usage: make configure-offsite-backup
 # Prerequisites: VM from terraform/oci, ~/.secrets/restic-offsite.password on the
@@ -186,6 +188,58 @@
           RESTIC_REPOSITORY=sftp:{{ offsite_ssh_alias }}:/restic
           RESTIC_PASSWORD_FILE=/etc/restic/offsite.password
           RESTIC_CACHE_DIR=/var/cache/restic-offsite
+
+    # Vault Raft snapshot token: created from the controller with the Vault token in
+    # ~/.secrets/vault.env, renewed by every snapshot, replaced when invalid
+    - name: Check the Vault snapshot token
+      ansible.builtin.shell: >-
+        set -o pipefail;
+        VAULT_ADDR={{ offsite_vault_addr }}
+        VAULT_TOKEN=$(cat /etc/restic/vault-snapshot.token)
+        /usr/local/bin/vault token lookup -format=json | grep -q '"raft-snapshot"'
+      args:
+        executable: /bin/bash
+      register: offsite_vault_token_check
+      changed_when: false
+      failed_when: false
+      no_log: true
+
+    - name: Create the Vault snapshot token
+      when: offsite_vault_token_check.rc != 0
+      no_log: true
+      block:
+        - name: Request a periodic raft-snapshot token
+          ansible.builtin.uri:
+            url: "{{ lookup('ansible.builtin.ini', 'VAULT_ADDR type=properties file=' ~ offsite_vault_secret_file) }}/v1/auth/token/create-orphan"
+            method: POST
+            headers:
+              X-Vault-Token: "{{ lookup('ansible.builtin.ini', 'VAULT_TOKEN type=properties file=' ~ offsite_vault_secret_file) }}"
+            body_format: json
+            body:
+              display_name: offsite-raft-snapshot
+              policies: [raft-snapshot]
+              period: 768h
+              renewable: true
+          register: offsite_vault_token
+          delegate_to: localhost
+
+        - name: Store the Vault snapshot token
+          ansible.builtin.copy:
+            content: "{{ offsite_vault_token.json.auth.client_token }}"
+            dest: /etc/restic/vault-snapshot.token
+            mode: "0600"
+
+    - name: Vault snapshot directory
+      ansible.builtin.file:
+        path: "{{ offsite_vault_snapshot_dir }}"
+        state: directory
+        mode: "0700"
+
+    - name: Vault snapshot script
+      ansible.builtin.template:
+        src: templates/offsite/vault-raft-snapshot.sh.j2
+        dest: /usr/local/sbin/vault-raft-snapshot.sh
+        mode: "0700"
 
     - name: Check whether the repository exists
       ansible.builtin.shell: "set -a; . /etc/restic/offsite.env; restic cat config >/dev/null"
