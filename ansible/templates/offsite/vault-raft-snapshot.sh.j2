@@ -1,0 +1,12 @@
+#!/bin/sh
+# Managed by ansible/offsite_backup.yml
+# Vault Raft snapshot for the offsite copy (restic-offsite.service). The token has
+# only the raft-snapshot policy and is periodic: renewing it here keeps it valid
+set -eu
+export VAULT_ADDR={{ offsite_vault_addr }}
+VAULT_TOKEN=$(cat /etc/restic/vault-snapshot.token)
+export VAULT_TOKEN
+/usr/local/bin/vault token renew >/dev/null
+umask 077
+/usr/local/bin/vault operator raft snapshot save {{ offsite_vault_snapshot_dir }}/vault.snap.tmp
+mv {{ offsite_vault_snapshot_dir }}/vault.snap.tmp {{ offsite_vault_snapshot_dir }}/vault.snap
