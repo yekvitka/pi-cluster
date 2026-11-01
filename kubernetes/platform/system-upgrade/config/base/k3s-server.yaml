@@ -8,7 +8,9 @@ metadata:
 spec:
   nodeSelector:
     matchExpressions:
-      - key: node-role.kubernetes.io/control-plane
+      # Every k3s server has the etcd role, also etcd-only servers (no
+      # control-plane label). Agents have neither
+      - key: node-role.kubernetes.io/etcd
         operator: Exists
   # Enable plan deployment on master node (noSchedulable by installation)
   tolerations:

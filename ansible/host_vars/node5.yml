@@ -5,3 +5,6 @@
 # (uas_eh_abort_handler) and fail with I/O errors. Use usb-storage instead
 rpi_usb_storage_quirks:
   - "0bda:9201:u"
+
+# Worker with SSD: Longhorn storage node (node_storage=longhorn)
+k3s_longhorn_storage: true

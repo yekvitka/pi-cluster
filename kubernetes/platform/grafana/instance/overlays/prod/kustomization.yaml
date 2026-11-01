@@ -12,7 +12,8 @@ components:
   - ../../components/route
 
 patches:
-  # Longhorn volume (grafana-pvc): Longhorn runs on workers only
+  # Longhorn volume (grafana-pvc): a worker that is a Longhorn storage node
+  # (a worker without SSD has no Longhorn CSI plugin to attach the volume)
   - target:
       kind: Grafana
       name: grafana
@@ -21,3 +22,4 @@ patches:
         path: /spec/deployment/spec/template/spec/nodeSelector
         value:
           node_type: worker
+          node_storage: longhorn

@@ -1,12 +1,12 @@
 # velero helm values (prod overlay)
 
-# Stateless: keep it off node5 (Longhorn, monitoring), little memory left there
+# Stateless: prefer nodes without Longhorn (storage nodes carry Longhorn and the
+# monitoring stack). Preferred, not required: it still runs if every node has Longhorn
 affinity:
   nodeAffinity:
-    requiredDuringSchedulingIgnoredDuringExecution:
-      nodeSelectorTerms:
-        - matchExpressions:
-            - key: node_type
-              operator: NotIn
-              values:
-                - worker
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        preference:
+          matchExpressions:
+            - key: node_storage
+              operator: DoesNotExist

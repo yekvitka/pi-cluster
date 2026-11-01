@@ -1,6 +1,7 @@
 IMG=ubuntu-24.04.5-preinstalled-server-arm64+raspi.img.xz
 URL_IMG=https://cdimage.ubuntu.com/releases/24.04/release/${IMG}
-# REPLACE WITH YOUR BOOT DISK (`lsblk`). OS boots from SD card, node3 and node5 from a USB SSD
+# REPLACE WITH YOUR BOOT DISK (`lsblk`). Every node boots from a USB SSD (Cluster 2.0);
+# node1, node2 and node4 still boot from SD cards until their SSDs are in
 USB=/dev/sda
 SYSTEM_BOOT_MOUNT=/tmp/pi-disk
 # node1: SD card OS, SSD1 formatted and mounted at /storage (RustFS, Vault)
@@ -89,4 +90,20 @@ prepare-node5: check-key check-wifi
 	sudo mount ${USB}1 ${SYSTEM_BOOT_MOUNT}
 	sed -e 's/nodeX/node5/g' -e "s|SSH_PUB_KEY|$$(cat ${PUB_KEY_FILE})|g" cloud-init/nodes/${USER_DATA_NODES} | sudo tee ${SYSTEM_BOOT_MOUNT}/user-data
 	$(call network_config,15,205)
+	sudo umount ${SYSTEM_BOOT_MOUNT}
+
+# Cluster 2.0: Pi 4 8 GB control-plane node (docs/plans/cluster-2.0.md)
+.PHONY: prepare-node6
+prepare-node6: check-key check-wifi
+	sudo mount ${USB}1 ${SYSTEM_BOOT_MOUNT}
+	sed -e 's/nodeX/node6/g' -e "s|SSH_PUB_KEY|$$(cat ${PUB_KEY_FILE})|g" cloud-init/nodes/${USER_DATA_NODES} | sudo tee ${SYSTEM_BOOT_MOUNT}/user-data
+	$(call network_config,16,206)
+	sudo umount ${SYSTEM_BOOT_MOUNT}
+
+# Cluster 2.0: Pi 4 8 GB control-plane node (docs/plans/cluster-2.0.md)
+.PHONY: prepare-node7
+prepare-node7: check-key check-wifi
+	sudo mount ${USB}1 ${SYSTEM_BOOT_MOUNT}
+	sed -e 's/nodeX/node7/g' -e "s|SSH_PUB_KEY|$$(cat ${PUB_KEY_FILE})|g" cloud-init/nodes/${USER_DATA_NODES} | sudo tee ${SYSTEM_BOOT_MOUNT}/user-data
+	$(call network_config,17,207)
 	sudo umount ${SYSTEM_BOOT_MOUNT}
