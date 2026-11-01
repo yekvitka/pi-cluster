@@ -1,0 +1,223 @@
+---
+# Offsite copy of the backups: node1 pushes /storage/rustfs (RustFS buckets:
+# Longhorn, Velero, etcd snapshots, node restic) to the Oracle Cloud VM every
+# night with restic over SFTP, through the WireGuard tunnel. Encrypted on node1:
+# the VM never gets the repository password.
+#
+# Usage: make configure-offsite-backup
+# Prerequisites: VM from terraform/oci, ~/.secrets/restic-offsite.password on the
+# controller (keep a copy in a password manager: without it the copy is lost)
+
+- name: Check the repository password on the controller
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - vars/picluster.yml
+  tasks:
+    - name: Check restic offsite password file
+      ansible.builtin.stat:
+        path: "{{ offsite_restic_password_file }}"
+      register: offsite_password_stat
+    - name: Validate restic offsite password file
+      ansible.builtin.assert:
+        that: offsite_password_stat.stat.exists
+        fail_msg: "Create {{ offsite_restic_password_file }} first: openssl rand -base64 33 > {{ offsite_restic_password_file }}"
+
+- name: Offsite backup client key on node1
+  hosts: s3
+  gather_facts: false
+  vars_files:
+    - vars/picluster.yml
+  tasks:
+    - name: SSH key for the offsite repository
+      community.crypto.openssh_keypair:
+        path: /root/.ssh/offsite_ed25519
+        type: ed25519
+        comment: "restic-offsite@{{ inventory_hostname }}"
+      register: offsite_client_key
+
+    - name: SSH alias for the offsite repository
+      ansible.builtin.blockinfile:
+        path: /root/.ssh/config
+        create: true
+        mode: "0600"
+        marker: "# {mark} offsite backup (ansible)"
+        block: |
+          Host {{ offsite_ssh_alias }}
+            HostName {{ hostvars['offsite'].ansible_host }}
+            User {{ offsite_restic_user }}
+            IdentityFile /root/.ssh/offsite_ed25519
+            IdentitiesOnly yes
+            ServerAliveInterval 60
+
+    - name: Read the VM host key through the tunnel
+      ansible.builtin.command: "ssh-keyscan -t ed25519 {{ hostvars['offsite'].ansible_host }}"
+      register: offsite_host_key
+      changed_when: false
+
+    - name: Trust the VM host key
+      ansible.builtin.known_hosts:
+        path: /root/.ssh/known_hosts
+        name: "{{ hostvars['offsite'].ansible_host }}"
+        key: "{{ offsite_host_key.stdout_lines | select('match', '^[0-9.]+ ssh-ed25519 ') | first }}"
+
+- name: Backup volume and SFTP-only repository user on the VM
+  hosts: oci
+  gather_facts: false
+  vars_files:
+    - vars/picluster.yml
+  tasks:
+    - name: Check the backup volume
+      ansible.builtin.command: "lsblk -bdno SIZE {{ offsite_backup_device }}"
+      register: offsite_device_size
+      changed_when: false
+
+    - name: Validate the backup volume size (150 GB from terraform/oci)
+      ansible.builtin.assert:
+        that: (offsite_device_size.stdout | int) == 150 * 1024 * 1024 * 1024
+        fail_msg: "{{ offsite_backup_device }} is not the 150 GB backup volume, not formatting it"
+
+    # No force: an existing filesystem is never reformatted
+    - name: Filesystem on the backup volume
+      community.general.filesystem:
+        dev: "{{ offsite_backup_device }}"
+        fstype: ext4
+        opts: "-L {{ offsite_backup_label }}"
+
+    - name: Mount the backup volume
+      ansible.posix.mount:
+        path: "{{ offsite_backup_path }}"
+        src: "LABEL={{ offsite_backup_label }}"
+        fstype: ext4
+        opts: defaults,nofail
+        state: mounted
+
+    # sshd chroot: the chroot directory must be owned by root and not writable by others
+    - name: Backup root owned by root
+      ansible.builtin.file:
+        path: "{{ offsite_backup_path }}"
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Repository user
+      ansible.builtin.user:
+        name: "{{ offsite_restic_user }}"
+        system: true
+        shell: /usr/sbin/nologin
+        home: "/home/{{ offsite_restic_user }}"
+        create_home: true
+        password: "!"
+
+    - name: Repository directory
+      ansible.builtin.file:
+        path: "{{ offsite_backup_path }}/restic"
+        owner: "{{ offsite_restic_user }}"
+        group: "{{ offsite_restic_user }}"
+        mode: "0700"
+        state: directory
+
+    - name: Authorize node1 for the repository user only
+      ansible.posix.authorized_key:
+        user: "{{ offsite_restic_user }}"
+        key: "{{ hostvars[groups['s3'][0]].offsite_client_key.public_key }}"
+        exclusive: true
+
+    # A broken sshd config would lock out SSH at the next reload: test the
+    # full config and remove the drop-in again if the test fails
+    - name: Repository user restricted to SFTP in the backup volume
+      block:
+        - name: SFTP-only sshd drop-in
+          ansible.builtin.copy:
+            dest: /etc/ssh/sshd_config.d/50-restic-sftp.conf
+            mode: "0644"
+            content: |
+              # Managed by ansible/offsite_backup.yml
+              Match User {{ offsite_restic_user }}
+                ChrootDirectory {{ offsite_backup_path }}
+                ForceCommand internal-sftp
+                AllowTcpForwarding no
+                X11Forwarding no
+                PermitTTY no
+          notify: Reload ssh
+
+        - name: Test the sshd configuration
+          ansible.builtin.command: /usr/sbin/sshd -t
+          changed_when: false
+      rescue:
+        - name: Remove the drop-in that failed the sshd test
+          ansible.builtin.file:
+            path: /etc/ssh/sshd_config.d/50-restic-sftp.conf
+            state: absent
+
+        - name: Stop on the invalid sshd configuration
+          ansible.builtin.fail:
+            msg: "sshd -t failed with the SFTP drop-in, removed it (ssh not reloaded)"
+
+  handlers:
+    - name: Reload ssh
+      ansible.builtin.systemd:
+        name: ssh
+        state: reloaded
+
+- name: Nightly restic copy from node1
+  hosts: s3
+  gather_facts: false
+  vars_files:
+    - vars/picluster.yml
+  tasks:
+    - name: Restic configuration directory
+      ansible.builtin.file:
+        path: /etc/restic
+        state: directory
+        mode: "0700"
+
+    - name: Repository password
+      ansible.builtin.copy:
+        src: "{{ offsite_restic_password_file }}"
+        dest: /etc/restic/offsite.password
+        mode: "0600"
+
+    - name: Repository environment
+      ansible.builtin.copy:
+        dest: /etc/restic/offsite.env
+        mode: "0600"
+        content: |
+          RESTIC_REPOSITORY=sftp:{{ offsite_ssh_alias }}:/restic
+          RESTIC_PASSWORD_FILE=/etc/restic/offsite.password
+          RESTIC_CACHE_DIR=/var/cache/restic-offsite
+
+    - name: Check whether the repository exists
+      ansible.builtin.shell: "set -a; . /etc/restic/offsite.env; restic cat config >/dev/null"
+      register: offsite_repo_check
+      changed_when: false
+      failed_when: false
+
+    - name: Initialize the repository
+      ansible.builtin.shell: "set -a; . /etc/restic/offsite.env; restic init"
+      when: offsite_repo_check.rc != 0
+      changed_when: true
+
+    - name: Backup service and timer
+      ansible.builtin.template:
+        src: "templates/offsite/{{ item }}.j2"
+        dest: "/etc/systemd/system/{{ item }}"
+        mode: "0644"
+      loop:
+        - restic-offsite.service
+        - restic-offsite.timer
+      notify: Reload systemd
+
+    - name: Flush handlers
+      ansible.builtin.meta: flush_handlers
+
+    - name: Enable the nightly timer
+      ansible.builtin.systemd:
+        name: restic-offsite.timer
+        enabled: true
+        state: started
+
+  handlers:
+    - name: Reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: true
