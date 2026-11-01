@@ -2,9 +2,10 @@
 
 prometheus:
   prometheusSpec:
-    # Longhorn volume: Longhorn runs on workers only
+    # Longhorn volume: a worker that is a Longhorn storage node
     nodeSelector:
       node_type: worker
+      node_storage: longhorn
     # Fewer samples and a smaller TSDB keep memory use under the limit
     scrapeInterval: 60s
     evaluationInterval: 60s
@@ -13,9 +14,10 @@ prometheus:
 
 alertmanager:
   alertmanagerSpec:
-    # Longhorn volume: pinned to the worker (node5), like Prometheus and Grafana
+    # Longhorn volume: a worker that is a Longhorn storage node, like Prometheus and Grafana
     nodeSelector:
       node_type: worker
+      node_storage: longhorn
 
 # k3s serves API server, etcd, scheduler and controller metrics on the kubelet
 # /metrics endpoint: their histograms were ~70% of all series. This list
