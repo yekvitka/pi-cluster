@@ -1,0 +1,63 @@
+---
+# Basic auth credentials for the web UIs without their own login (Longhorn,
+# Prometheus, Alertmanager), enforced by Envoy Gateway SecurityPolicies.
+# Envoy only accepts SHA htpasswd entries, which neither Terraform nor External
+# Secrets templates can compute, so this playbook generates the password once
+# and stores username, password and htpasswd in Vault (secret/webui/basic-auth).
+# External Secrets copies the htpasswd entry into the cluster.
+#
+# Usage: make configure-webui-auth
+# Read the password: vault kv get -field=password secret/webui/basic-auth
+# Rotate: delete secret/webui/basic-auth in Vault and run again
+
+- name: Web UI basic auth credentials in Vault
+  hosts: localhost
+  gather_facts: false
+  vars:
+    vault_secret_file: "{{ lookup('ansible.builtin.env', 'HOME') }}/.secrets/vault.env"
+    vault_addr: "{{ lookup('ansible.builtin.ini', 'VAULT_ADDR type=properties file=' ~ vault_secret_file) }}"
+    vault_token: "{{ lookup('ansible.builtin.ini', 'VAULT_TOKEN type=properties file=' ~ vault_secret_file) }}"
+    webui_user: admin
+    webui_secret_url: "{{ vault_addr }}/v1/secret/data/webui/basic-auth"
+  tasks:
+    - name: Read the existing credentials
+      ansible.builtin.uri:
+        url: "{{ webui_secret_url }}"
+        headers:
+          X-Vault-Token: "{{ vault_token }}"
+        status_code: [200, 404]
+      register: webui_secret
+      no_log: true
+
+    - name: Create the credentials
+      when: webui_secret.status == 404
+      no_log: true
+      block:
+        - name: Generate the password
+          ansible.builtin.set_fact:
+            webui_password: "{{ lookup('ansible.builtin.password', '/dev/null', length=32, chars=['ascii_letters', 'digits']) }}"
+
+        # htpasswd -s format: {SHA} + base64 of the raw SHA-1 digest
+        - name: Compute the SHA htpasswd entry
+          ansible.builtin.command:
+            cmd: python3 -c "import base64,hashlib,sys; print(base64.b64encode(hashlib.sha1(sys.stdin.read().encode()).digest()).decode())"
+            stdin: "{{ webui_password }}"
+            stdin_add_newline: false
+          register: webui_sha
+          changed_when: false
+
+        - name: Store the credentials in Vault
+          ansible.builtin.uri:
+            url: "{{ webui_secret_url }}"
+            method: POST
+            headers:
+              X-Vault-Token: "{{ vault_token }}"
+            body_format: json
+            body:
+              data:
+                username: "{{ webui_user }}"
+                password: "{{ webui_password }}"
+                htpasswd: "{{ webui_user }}:{SHA}{{ webui_sha.stdout }}"
+                service: webui
+                purpose: gateway_basic_auth
+          changed_when: true
