@@ -1,0 +1,25 @@
+# kube-prometheus-stack helm values (routes with basic auth)
+alertmanager:
+  route:
+    main:
+      enabled: true
+      hostnames:
+        - alertmanager.${CLUSTER_DOMAIN}
+      parentRefs:
+        - name: public-gateway
+          namespace: envoy-gateway-system
+  alertmanagerSpec:
+    # Links in alerts and the UI point to the route
+    externalUrl: https://alertmanager.${CLUSTER_DOMAIN}
+
+prometheus:
+  route:
+    main:
+      enabled: true
+      hostnames:
+        - prometheus.${CLUSTER_DOMAIN}
+      parentRefs:
+        - name: public-gateway
+          namespace: envoy-gateway-system
+  prometheusSpec:
+    externalUrl: https://prometheus.${CLUSTER_DOMAIN}

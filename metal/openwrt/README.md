@@ -95,4 +95,4 @@ Firewall zone `oci`: input and forward rejected, `lan` → `oci` allowed, SSH an
 
 ## LuCI TLS certificate
 
-`make openwrt-certbot-tls` (repo root) requests a Let's Encrypt certificate for `gateway.homelab.yekvitka.net` and deploys it with `script/openwrt-deploy-tls.sh`.
+`make openwrt-certbot-tls` (repo root, as `pimaster`) requests a Let's Encrypt certificate for `gateway.homelab.yekvitka.net` (IONOS DNS-01) and deploys it with `script/openwrt-deploy-tls.sh` to `root@10.0.0.1` (`REMOTE_HOST` overrides it). Not renewed automatically: re-run before it expires (90 days).

@@ -1,0 +1,22 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+# Longhorn UI on https://longhorn.${CLUSTER_DOMAIN} (public-gateway, wildcard
+# certificate) behind basic auth. The upstream route component uses OIDC
+# (Keycloak), which is not deployed. Credentials: make configure-webui-auth
+resources:
+  - webui-basic-auth-externalsecret.yaml
+  - security-policy.yaml
+
+configMapGenerator:
+  - name: longhorn-helm-values
+    behavior: merge
+    files:
+      - route-values.yaml=values.yaml
+
+patches:
+- target:
+    group: helm.toolkit.fluxcd.io
+    kind: HelmRelease
+    name: longhorn
+  path: helm-patch.yaml
