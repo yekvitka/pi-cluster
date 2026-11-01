@@ -1,0 +1,32 @@
+#cloud-config
+hostname: offsite
+
+package_update: true
+packages:
+  - wireguard-tools
+  - iptables-persistent
+
+write_files:
+  - path: /etc/wireguard/wg0.conf
+    permissions: "0600"
+    content: |
+      [Interface]
+      Address = 10.99.0.2/24
+      ListenPort = ${wg_listen_port}
+      PrivateKey = ${wg_private_key}
+      MTU = ${wg_mtu}
+
+      # Home OpenWrt gateway: dynamic IP, it connects and keeps the tunnel up.
+      # Routes: tunnel, cluster LAN, home network
+      [Peer]
+      PublicKey = ${gateway_wg_public_key}
+      AllowedIPs = 10.99.0.1/32, 10.0.0.0/24, 192.168.50.0/24
+
+runcmd:
+  # Oracle Ubuntu images allow only SSH in iptables: allow WireGuard,
+  # move SSH to the tunnel
+  - iptables -I INPUT 1 -p udp --dport ${wg_listen_port} -j ACCEPT
+  - iptables -I INPUT 2 -i wg0 -p tcp --dport 22 -j ACCEPT
+  - iptables -D INPUT -p tcp -m state --state NEW -m tcp --dport 22 -j ACCEPT || true
+  - netfilter-persistent save
+  - systemctl enable --now wg-quick@wg0
