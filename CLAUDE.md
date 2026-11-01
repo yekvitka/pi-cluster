@@ -68,7 +68,7 @@ make shutdown-k3s-master
 make shutdown-picluster
 ```
 
-MinIO targets (`deploy-minio`, `configure-minio`) are legacy; use `deploy-rustfs`. `configure-minio` still configures RustFS through the MinIO-compatible Terraform module.
+RustFS (S3) is deployed with `deploy-rustfs`; `configure-minio` configures it through the MinIO-compatible Terraform module (`terraform/minio`).
 
 ### Terraform validation (safe, no-apply)
 
