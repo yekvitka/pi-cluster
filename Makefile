@@ -47,6 +47,7 @@ ANSIBLE_LOCAL_COLLECTIONS_DIR := $(HOME)/.ansible/collections
 	deploy-rustfs \
 	configure-offsite-backup \
 	configure-webui-auth \
+	configure-cert-renewal \
 	configure-offsite-monitoring \
 	configure-minio \
 	configure-vault \
@@ -165,6 +166,11 @@ deploy-minio: ## Deploy MinIO workloads (legacy, use deploy-rustfs)
 
 deploy-rustfs: ## Deploy RustFS S3 workloads
 	$(RUNNER) ansible-playbook deploy_rustfs.yml
+
+configure-cert-renewal: ## Automatic Let's Encrypt renewal on node1 for Vault, RustFS and LuCI
+	$(RUNNER) ansible-playbook cert_renewal.yml
+	ssh root@10.0.0.1 "LUCI_CERT_PUBKEY='$$(ssh root@10.0.0.11 cat /root/.ssh/luci_cert_ed25519.pub)' sh -s" < metal/openwrt/script/luci-cert-receiver.sh
+	ssh root@10.0.0.11 RENEWED_LINEAGE=/etc/letsencrypt/live/gateway.homelab.yekvitka.net /etc/letsencrypt/renewal-hooks/deploy/homelab-certs.sh
 
 configure-webui-auth: ## Basic auth credentials (Vault) for Longhorn, Prometheus and Alertmanager UIs
 	$(RUNNER) ansible-playbook configure_webui_auth.yml

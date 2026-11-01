@@ -95,4 +95,4 @@ Firewall zone `oci`: input and forward rejected, `lan` → `oci` allowed, SSH an
 
 ## LuCI TLS certificate
 
-`make openwrt-certbot-tls` (repo root, as `pimaster`) requests a Let's Encrypt certificate for `gateway.homelab.yekvitka.net` (IONOS DNS-01) and deploys it with `script/openwrt-deploy-tls.sh` to `root@10.0.0.1` (`REMOTE_HOST` overrides it). Not renewed automatically: re-run before it expires (90 days).
+`make openwrt-certbot-tls` (repo root, as `pimaster`) requests a Let's Encrypt certificate for `gateway.homelab.yekvitka.net` (IONOS DNS-01) and deploys it with `script/openwrt-deploy-tls.sh` to `root@10.0.0.1` (`REMOTE_HOST` overrides it). Renewal is automatic since `make configure-cert-renewal`: certbot on node1 renews it and pushes it to the gateway (`script/luci-cert-receiver.sh`, see the README Certificates section); this target is only needed for a first install.

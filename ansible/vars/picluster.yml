@@ -280,3 +280,13 @@ offsite_backup_schedule: "*-*-* 05:00:00"
 offsite_restic_retention: "--group-by host,tags --keep-daily 7 --keep-weekly 4 --keep-monthly 6"
 # renovate: datasource=docker depName=twinproduction/gatus
 gatus_version: v5.38.0
+
+##########################
+# Certificate renewal    #
+##########################
+
+# certbot on node1 (cert_renewal.yml), same versions as pyproject.toml
+# renovate: datasource=pypi depName=certbot
+certbot_version: 5.8.0
+# renovate: datasource=pypi depName=certbot-dns-ionos
+certbot_dns_ionos_version: 2024.11.9

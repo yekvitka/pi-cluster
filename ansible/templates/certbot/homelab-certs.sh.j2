@@ -1,0 +1,41 @@
+#!/bin/sh
+# Managed by ansible/cert_renewal.yml
+# certbot deploy hook: installs a renewed certificate where its service reads it.
+# Does nothing when the installed files are already identical.
+set -eu
+name=$(basename "$RENEWED_LINEAGE")
+cert="$RENEWED_LINEAGE/fullchain.pem"
+key="$RENEWED_LINEAGE/privkey.pem"
+
+same() { [ -f "$2" ] && cmp -s "$1" "$2"; }
+
+case "$name" in
+  {{ vault_hostname }})
+    if same "$cert" /etc/vault/tls/vault.crt && same "$key" /etc/vault/tls/vault.key; then
+      echo "$name: unchanged"; exit 0
+    fi
+    install -o vault -g vault -m 0644 "$cert" /etc/vault/tls/vault.crt
+    install -o vault -g vault -m 0600 "$key" /etc/vault/tls/vault.key
+    # Vault reloads its TLS certificate on SIGHUP, no restart (it would seal)
+    systemctl reload vault
+    echo "$name: installed, vault reloaded"
+    ;;
+  {{ rustfs_hostname }})
+    if same "$cert" /etc/rustfs/ssl/rustfs_cert.pem && same "$key" /etc/rustfs/ssl/rustfs_key.pem; then
+      echo "$name: unchanged"; exit 0
+    fi
+    install -o rustfs -g rustfs -m 0640 "$cert" /etc/rustfs/ssl/rustfs_cert.pem
+    install -o rustfs -g rustfs -m 0600 "$key" /etc/rustfs/ssl/rustfs_key.pem
+    # No reload in RustFS: short restart (the timer runs outside the backup windows)
+    systemctl restart rustfs
+    echo "$name: installed, rustfs restarted"
+    ;;
+  {{ gateway_hostname }})
+    # The gateway key only runs the certificate receiver (forced command)
+    tar -czhf - -C "$RENEWED_LINEAGE" fullchain.pem privkey.pem |
+      ssh -i /root/.ssh/luci_cert_ed25519 -o BatchMode=yes root@10.0.0.1
+    ;;
+  *)
+    echo "$name: no deploy target"
+    ;;
+esac
