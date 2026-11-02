@@ -1,8 +1,9 @@
 ---
 # node7 node variables (Cluster 2.0, docs/plans/cluster-2.0.md)
-# Pi 4 8 GB, boots from a USB SSD. Control-plane node with node6: API server,
-# scheduler, controllers and an etcd member. Tainted: only system pods and Rancher
-# (it tolerates the taint) run here
+# Not planned: kept for a possible second 8 GB node, which would join as a second
+# API server next to node6. Pi 4 8 GB, boots from a USB SSD: API server, scheduler,
+# controllers and an etcd member. Tainted: only system pods and Rancher (it
+# tolerates the taint) run here
 
 # k3s server with Rancher's load measured at 1.8-1.9 GB on 4 GB masters (2026-10-30),
 # plus headroom: the scheduler does not hand this memory to pods

@@ -1,6 +1,6 @@
 # rancher helm values (prod overlay)
-# Cluster 2.0 (docs/plans/cluster-2.0.md): Rancher runs on the 8 GB control-plane
-# nodes (node6/node7), which reserve memory for the k3s server under Rancher's load.
+# Cluster 2.0 (docs/plans/cluster-2.0.md): Rancher runs on node6 (8 GB), the only
+# API server, which reserves memory for the k3s server under Rancher's load.
 # Do not enable on the 4 GB control plane: Rancher grew k3s by ~700 MB on every
 # master and node3 started thrashing (2026-10-30).
 # The chart adds these to its own node affinity and tolerations

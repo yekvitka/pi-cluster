@@ -23,7 +23,7 @@ What runs in the cluster, how it is sized and where it differs from [upstream](h
 
 ## Known limits
 
-- Rancher does not fit the 4 GB control plane. In the cluster its controllers exhaust the control plane nodes. Running Rancher on pimaster and importing the cluster failed too: the cattle-cluster-agent (500–700Mi) watches every resource type, which grew k3s-server by about 700Mi on each master and made node3 thrash. It returns on the 8 GB control plane of Cluster 2.0.
+- Rancher does not fit the 4 GB control plane. In the cluster its controllers exhaust the control plane nodes. Running Rancher on pimaster and importing the cluster failed too: the cattle-cluster-agent (500–700Mi) watches every resource type, which grew k3s-server by about 700Mi on each master and made node3 thrash. It returns in Cluster 2.0, with node6 (8 GB) as the only API server.
 - Prometheus has a 900Mi memory limit (640Mi request), below node5's free memory: it is OOM-killed and restarted instead of hanging the node. It keeps memory under the limit with a 60s scrape interval (30s for node-exporter and the kubelet/cAdvisor: Lens computes rates over 1m windows), 6h / 1GB retention and trimmed kubelet histograms (`app/overlays/prod/values.yaml`).
 
 ## Web UIs

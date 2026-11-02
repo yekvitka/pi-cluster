@@ -108,11 +108,11 @@ flowchart LR
 | No inbound ports at home | Dynamic IP and fewer attack surfaces: DNS-01 certificates, outbound WireGuard |
 | Encrypt before it leaves the house | The offsite provider holds only ciphertext |
 | One pod per service | 4 GB per node: resilience comes from fast rebuilds and backups, not replicas |
-| Measure, then decide | Rancher was measured at +700 MB per API server, so it waits for the 8 GB control plane instead of sinking the 4 GB one |
+| Measure, then decide | Rancher was measured at +700 MB per API server, so it waits for a single API server on the 8 GB node instead of sinking the 4 GB ones |
 
 ## Next: Cluster 2.0
 
-Two Raspberry Pi 4 8 GB nodes as a highly available control plane, etcd on SSDs, every node off SD cards, then Loki for logs and Rancher. The repo is prepared; the plan, phases and rollbacks are in [docs/plans/cluster-2.0.md](docs/plans/cluster-2.0.md).
+No new spending beyond one Raspberry Pi 4 8 GB and SSDs: the 8 GB node becomes the only API server, two 4 GB nodes become etcd-only members, every node boots from an SSD. That frees the memory for Rancher, Loki, Tempo, Istio and Kafka. The repo is prepared; the plan, memory budget, phases and rollbacks are in [docs/plans/cluster-2.0.md](docs/plans/cluster-2.0.md).
 
 ## Repository
 

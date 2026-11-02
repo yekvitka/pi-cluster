@@ -94,7 +94,7 @@ k3s_server_config:
   node-label: "{{ ['node_storage=longhorn'] if k3s_longhorn_storage | default(false) | bool else [] }}"
   # etcd-only server (k3s_etcd_only: true in host_vars): etcd member without API
   # server, controller manager and scheduler, ~0.45 GB instead of 1.3-1.9 GB.
-  # Third etcd member next to the two 8 GB control-plane nodes (docs/plans/cluster-2.0.md)
+  # etcd members next to node6, the only API server (docs/plans/cluster-2.0.md)
   disable-apiserver: "{{ k3s_etcd_only | default(false) | bool }}"
   disable-controller-manager: "{{ k3s_etcd_only | default(false) | bool }}"
   disable-scheduler: "{{ k3s_etcd_only | default(false) | bool }}"

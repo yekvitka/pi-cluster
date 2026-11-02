@@ -1,12 +1,13 @@
 ---
 # node6 node variables (Cluster 2.0, docs/plans/cluster-2.0.md)
-# Pi 4 8 GB, boots from a USB SSD. Control-plane node with node7: API server,
-# scheduler, controllers and an etcd member. Tainted: only system pods and Rancher
-# (it tolerates the taint) run here
+# Pi 4 8 GB, boots from a USB SSD. The only API server: API server, scheduler,
+# controllers and an etcd member. Tainted: only system pods and Rancher (it
+# tolerates the taint) run here
 
-# k3s server with Rancher's load measured at 1.8-1.9 GB on 4 GB masters (2026-10-30),
-# plus headroom: the scheduler does not hand this memory to pods
-k3s_kube_reserved_memory: 2560Mi
+# k3s server with Rancher's load measured at 1.8-1.9 GB on 4 GB masters (2026-10-30);
+# as the only API server it serves every client, so more headroom: the scheduler
+# does not hand this memory to pods. Re-measured in phase 6
+k3s_kube_reserved_memory: 3072Mi
 
 # Control-plane only, no Longhorn data (it can be enabled later: true)
 k3s_longhorn_storage: false

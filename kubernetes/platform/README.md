@@ -23,17 +23,17 @@ Every app in `kubernetes/platform/`. **prod** apps are listed in `kubernetes/clu
 | velero | prod | Daily backups to RustFS |
 | loki | planned ([Cluster 2.0](../../docs/plans/cluster-2.0.md)) | Logs, Simple Scalable, S3 on RustFS |
 | fluent | planned | Fluent Bit straight to Loki (`components/loki`); Fluentd is kept, not used |
-| rancher | planned | Rancher on the 8 GB control plane |
-| descheduler | disabled | It packed evicted pods onto the emptiest node, which then ran out of memory |
+| rancher | planned | Rancher on node6, the only API server |
+| tempo | planned | Tracing |
+| opentelemetry-collector | planned | Telemetry pipeline |
+| istio | planned | Service mesh, ambient mode (with the Cilium `istio-config` component) |
+| kiali | planned | Istio console |
+| kafka | planned | Strimzi Kafka, one broker; Kafdrop and Schema Registry when used |
+| descheduler | planned, needs a safer policy | It packed evicted pods onto the emptiest node, which then ran out of memory |
 | databases | upstream, not deployed | CloudNativePG, MongoDB and Valkey operators |
-| eck-operator | upstream, not deployed | Elastic operator |
-| elastic-stack | upstream, not deployed | Elasticsearch, Kibana, exporter |
-| istio | upstream, not deployed | Service mesh |
-| kafka | upstream, not deployed | Strimzi Kafka, Kafdrop, Schema Registry |
-| keycloak | upstream, not deployed | Identity provider (the upstream route components use it for OIDC) |
-| kiali | upstream, not deployed | Istio console |
-| opentelemetry-collector | upstream, not deployed | Telemetry pipeline |
-| tempo | upstream, not deployed | Tracing |
+| eck-operator | dropped (does not fit) | Elastic operator |
+| elastic-stack | dropped (does not fit; Loki covers logs) | Elasticsearch, Kibana, exporter |
+| keycloak | dropped (operator fails on arm64) | Identity provider (the upstream route components use it for OIDC) |
 
 ## Layout
 
