@@ -31,9 +31,8 @@ Every app in `kubernetes/platform/`. **prod** apps are listed in `kubernetes/clu
 | kafka | planned | Strimzi Kafka, one broker; Kafdrop and Schema Registry when used |
 | descheduler | planned, needs a safer policy | It packed evicted pods onto the emptiest node, which then ran out of memory |
 | databases | upstream, not deployed | CloudNativePG, MongoDB and Valkey operators |
-| eck-operator | dropped (does not fit) | Elastic operator |
-| elastic-stack | dropped (does not fit; Loki covers logs) | Elasticsearch, Kibana, exporter |
-| keycloak | dropped (operator fails on arm64) | Identity provider (the upstream route components use it for OIDC) |
+
+The Elastic stack (ECK, Elasticsearch, Kibana) and Keycloak were removed from the repo (2026-11-02): Elastic does not fit the Pis and Loki covers logs; the Keycloak operator fails on arm64. Web UIs use basic auth at the gateway, Kiali its token login.
 
 ## Layout
 

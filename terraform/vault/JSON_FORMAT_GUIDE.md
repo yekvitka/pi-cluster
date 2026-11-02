@@ -755,13 +755,13 @@ Good practice: Name files after their primary content
 
 1. Create JSON file in `kv-secrets-engine/secrets/`:
    ```bash
-   cat > terraform/vault/kv-secrets-engine/secrets/elasticsearch.json <<EOF
+   cat > terraform/vault/kv-secrets-engine/secrets/myapp.json <<EOF
    {
-     "elasticsearch-admin": {
+     "myapp-admin": {
        "secret_name": "password",
        "content": {
-         "username": "elastic",
-         "host": "elasticsearch.default.svc.cluster.local"
+         "username": "admin",
+         "host": "myapp.default.svc.cluster.local"
        }
      }
    }
@@ -779,11 +779,11 @@ Good practice: Name files after their primary content
 
 1. Create JSON file in `policies-config/policies/`:
    ```bash
-   cat > terraform/vault/policies-config/policies/elastic.json <<EOF
+   cat > terraform/vault/policies-config/policies/myapp.json <<EOF
    {
-     "elasticsearch-read": {
-       "description": "Elasticsearch read access",
-       "policy": "path \"PLACEHOLDER/data/elasticsearch/*\" {\n  capabilities = [\"read\", \"list\"]\n}\n"
+     "myapp-read": {
+       "description": "myapp read access",
+       "policy": "path \"PLACEHOLDER/data/myapp/*\" {\n  capabilities = [\"read\", \"list\"]\n}\n"
      }
    }
    EOF
@@ -798,12 +798,12 @@ Good practice: Name files after their primary content
 
 1. Create JSON file in `kubernetes-auth/roles/`:
    ```bash
-   cat > terraform/vault/kubernetes-auth/roles/elasticsearch.json <<EOF
+   cat > terraform/vault/kubernetes-auth/roles/myapp.json <<EOF
    {
-     "elasticsearch": {
-       "service_account_names": ["elasticsearch"],
+     "myapp": {
+       "service_account_names": ["myapp"],
        "service_account_namespaces": ["observability"],
-       "policies": ["elasticsearch-read"],
+       "policies": ["myapp-read"],
        "token_ttl": 3600,
        "token_max_ttl": 86400
      }

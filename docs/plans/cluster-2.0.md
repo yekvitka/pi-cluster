@@ -52,11 +52,11 @@ Measure after each phase and stop adding services when a 4 GB node has less than
 | Rancher 2.15, route `rancher.homelab.yekvitka.net` | ~2.2 GB with the API server load | prepared, `rancher-app` not enabled | node6, limit 1536Mi |
 | Loki P1: Simple Scalable, one pod per component, S3 on RustFS (`k3s-loki`), chunks and results caches, 7 days retention; Fluent Bit straight to Loki (no Fluentd) | ~1.1 GB | prepared, `loki-app` and `fluent-app` not enabled | write and backend on node3, the rest on node2 |
 | Tempo + OpenTelemetry collector | ~1.0 GB | prod overlays; `tempo-app` prepared, collector Kustomization to add | Tempo on node3 (volume); single binary if memory is tight |
-| Istio ambient (istiod, ztunnel, CNI) + Kiali | ~0.8 GB | prod overlays; Kustomizations to add, Cilium `istio-config` component (`cni.exclusive: false`) | changes pod networking next to Cilium: dev cluster first |
-| Kafka: Strimzi operator, one KRaft broker | ~1.8 GB | prod overlays (operator, cluster, Kafdrop, Schema Registry); Kustomizations to add | broker on node4 (volume); Kafdrop and Schema Registry only when used |
+| Istio ambient (istiod, ztunnel, CNI) + Kiali | ~0.8 GB | prod overlays; Kustomizations to add, Cilium `istio-config` component (`cni.exclusive: false`) | changes pod networking next to Cilium: dev cluster first; Kiali logs in with a service account token |
+| Kafka: Strimzi operator, one KRaft broker | ~1.8 GB | prod overlays (operator, cluster, Kafdrop, Schema Registry); Kustomizations to add | broker on node4 (volume); Kafdrop and Schema Registry only when used, Kafdrop through port-forward until it gets a basic-auth route |
 | descheduler, Hubble relay/UI, tofu-controller | ~0.4 GB | disabled (commit 01f0c657) | descheduler needs a policy that does not pack evicted pods onto the emptiest node (why it was removed); tofu-controller only once Terraform runs in Flux (today it runs from the runner) |
-| Elasticsearch, Kibana, ECK, Fluentd | ~2.5 GB | dropped | does not fit; Loki covers logs |
-| Keycloak (+ CloudNativePG) | ~1.8 GB | dropped | the Keycloak operator fails on arm64 (the repo pins it to amd64 nodes); would need a chart without the operator |
+
+Removed from the repo (2026-11-02): the Elastic stack (~2.5 GB, does not fit; Loki covers logs) and Keycloak (its operator fails on arm64), with their Terraform modules, Vault secrets and the OIDC route settings. Web UIs use basic auth at the gateway.
 
 ## Phase 0: repo preparation (done)
 

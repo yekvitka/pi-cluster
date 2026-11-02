@@ -1,7 +1,0 @@
-{
-  "vault_secret_key" : "elastic/otel",
-  "roles" : [ "otel_role" ],
-  "metadata" : {
-    "version" : 1
-  }
-}

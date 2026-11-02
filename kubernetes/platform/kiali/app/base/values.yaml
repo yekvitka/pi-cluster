@@ -11,12 +11,8 @@ cr:
       web_schema: "https"
       web_root: "/"
     auth:
-      # strategy: "anonymous"
-      strategy: openid
-      openid:
-        client_id: "kiali"
-        disable_rbac: true
-        issuer_uri: "https://iam.${CLUSTER_DOMAIN}/realms/picluster"
+      # Log in with a Kubernetes service account token (no identity provider)
+      strategy: token
     external_services:
       prometheus:
         # Prometheus service (no routePrefix configured in kube-prometheus-stack)
@@ -28,9 +24,9 @@ cr:
         # Public facing URL of Grafana
         external_url: 'https://grafana.${CLUSTER_DOMAIN}'
         auth:
-          # Use same OAuth2.0 token used for accesing Kiali
-          type: bearer
-          use_kiali_token: true
+          # Kiali's service account token login is not valid for Grafana: no
+          # Grafana API access, check the dashboard links when Kiali is enabled
+          type: none
       tracing:
         # Enabled by default. Kiali will anyway fallback to disabled if
         # Tempo is unreachable.

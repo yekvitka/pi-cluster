@@ -3,8 +3,7 @@ kind: Component
 
 # Prometheus and Alertmanager on https://prometheus.${CLUSTER_DOMAIN} and
 # https://alertmanager.${CLUSTER_DOMAIN} (public-gateway, wildcard certificate)
-# behind basic auth. The upstream route component uses OIDC (Keycloak), which is
-# not deployed. Credentials: make configure-webui-auth
+# behind basic auth. Credentials: make configure-webui-auth
 resources:
   - webui-basic-auth-externalsecret.yaml
   - security-policy.yaml

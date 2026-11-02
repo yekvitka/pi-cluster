@@ -121,7 +121,7 @@ data:
                 </labels>
             </metric>
         </filter>
-        # Send log stream to Loki (Elasticsearch output removed: Elastic stack not deployed)
+        # Send log stream to Loki
         <match **>
             @type relabel
             @label @OUTPUT_LOKI

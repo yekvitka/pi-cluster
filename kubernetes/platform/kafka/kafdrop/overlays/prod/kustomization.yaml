@@ -5,7 +5,8 @@ namespace: kafka
 resources:
   - ../../base
 
+# No route: the upstream one used OIDC (Keycloak, removed). Reach Kafdrop with
+# kubectl port-forward until it gets a basic-auth route (docs/plans/cluster-2.0.md)
 components:
-  - ../../components/route
   - ../../components/schema-registry-secure
   - ../../components/kafka-security
