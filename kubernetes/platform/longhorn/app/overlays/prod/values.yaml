@@ -7,6 +7,9 @@ defaultSettings:
   defaultReplicaCount: 1
   # Instance managers, engine images and the CSI plugin on storage nodes only
   systemManagedComponentsNodeSelector: "node_storage:longhorn"
+  # Delete stale replica data and processes (orphans) after the 5-minute grace
+  # period: with one replica, a copy left behind is never used again
+  orphanResourceAutoDeletion: "replica-data;instance"
 
 # Longhorn only on storage nodes (node_storage=longhorn, k3s config): no
 # Longhorn components or data on the SD card nodes. Pods with Longhorn volumes
