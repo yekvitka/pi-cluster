@@ -4,6 +4,7 @@ kind: Component
 
 resources:
   - grafana-dashboard.yaml
+  - prometheus-networkpolicy.yaml
 
 configMapGenerator:
   - name: longhorn-helm-values

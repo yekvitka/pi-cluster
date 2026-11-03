@@ -2,7 +2,7 @@
 
 The chain: cloud-init (OS) → Ansible (hosts, external services, k3s) → Flux (everything in the cluster).
 
-1. Gateway: [metal/openwrt/README.md](../metal/openwrt/README.md).
+1. Gateway: [metal/openwrt/README.md](../metal/openwrt/README.md), including its node exporter.
 2. Boot disks (USB SSDs; SD cards for nodes without one yet): put the pimaster user's public key (`/home/pimaster/.ssh/id_rsa.pub`, the key the Ansible runner uses) in `metal/rpi/cloud-init/root.pub`, then from `metal/rpi`:
 
    ```shell
@@ -19,7 +19,7 @@ The chain: cloud-init (OS) → Ansible (hosts, external services, k3s) → Flux 
 
    ```shell
    make prepare-ansible   # ansible runner + secret files (IONOS API key)
-   make init              # os-upgrade, node setup, DNS, Vault/RustFS, k3s, Flux bootstrap
+   make init              # os-upgrade, node setup, DNS, Vault/RustFS, node1 exporters, k3s, Flux bootstrap
    ```
 
 4. After `make init`:
