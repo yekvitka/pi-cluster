@@ -1,0 +1,17 @@
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: longhorn
+spec:
+  allowCrossNamespaceImport: true
+  folder: Storage
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+  grafanaCom:
+    id: 16888
+    revision: 14
+  datasources:
+    - datasourceName: prometheus
+      inputName: DS_PROMETHEUS

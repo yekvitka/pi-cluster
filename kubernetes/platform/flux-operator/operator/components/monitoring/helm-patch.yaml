@@ -1,0 +1,7 @@
+---
+- op: add
+  path: /spec/valuesFrom/-
+  value:
+    kind: ConfigMap
+    name: flux-operator-helm-values
+    valuesKey: componentX-values.yaml

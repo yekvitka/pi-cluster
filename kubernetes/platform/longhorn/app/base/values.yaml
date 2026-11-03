@@ -1,0 +1,6 @@
+---
+# longhorn helm values (base)
+
+# Storage path
+defaultSettings:
+  defaultDataPath: "/storage"

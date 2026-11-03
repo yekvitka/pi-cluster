@@ -1,0 +1,4 @@
+---
+# flux-operator helm values (monitoring)
+serviceMonitor:
+  create: true

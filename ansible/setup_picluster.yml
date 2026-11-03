@@ -1,0 +1,50 @@
+---
+# Gateway runs OpenWrt and is not managed by Ansible. See metal/openwrt/README.md
+
+- name: Configure External Node
+  hosts: node1
+  gather_facts: true
+  tags: [external]
+  become: true
+  roles:
+    # OS basic setup tasks
+    - role: basic_setup
+      tags: [os]
+
+    # Security Hardening
+    - role: ricsanfre.security
+      tags: [security]
+
+    # NTP Client configuration
+    - role: ricsanfre.ntp
+      tags: [ntp]
+
+- name: Configure Pi Cluster Nodes
+  hosts: k3s_cluster
+  gather_facts: true
+  tags: [node]
+  become: true
+  roles:
+    # OS basic setup tasks
+    - role: basic_setup
+      tags: [os]
+
+    # Security Hardening
+    - role: ricsanfre.security
+      tags: [security]
+
+    # NTP Client configuration
+    - role: ricsanfre.ntp
+      tags: [ntp]
+
+  tasks:
+    - name: Storage prerequisites
+      tags: [storage]
+      block:
+        # Longhorn attaches volumes over iSCSI
+        - name: Configure iSCSI Initiator
+          ansible.builtin.include_role:
+            name: ricsanfre.iscsi_initiator
+          vars:
+            open_iscsi_initiator_name: "iqn.2026-10.com.yekvitka.homelab:{{ ansible_facts['nodename'] }}"
+            open_iscsi_automatic_startup: true

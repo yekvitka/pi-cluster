@@ -1,0 +1,20 @@
+services:
+  ansible-runner:
+    image: ansible-runner
+    build:
+      context: ..
+      dockerfile: ansible-runner/Dockerfile
+    command: tail -f /dev/null
+    container_name: ansible-runner
+    restart: unless-stopped
+    volumes:
+      - ./../ansible:/ansible
+      - ./../kubernetes:/kubernetes
+      - ./../terraform:/terraform
+      - ${HOME}/.secrets:/home/runner/.secrets
+      - ${HOME}/.ssh/id_rsa:/home/runner/.ssh/id_rsa:ro
+      - ${HOME}/.ssh/id_rsa.pub:/home/runner/.ssh/id_rsa.pub:ro
+      - ${HOME}/.kube:/home/runner/.kube
+      - ${HOME}/.certbot/log:/home/runner/.certbot/log
+      - ${HOME}/.certbot/config:/home/runner/.certbot/config
+      - ${HOME}/.certbot/work:/home/runner/.certbot/work

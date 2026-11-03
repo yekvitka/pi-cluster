@@ -1,0 +1,8 @@
+---
+- name: Check that the control plane is available to accept connections
+  ansible.builtin.wait_for:
+    port: '6443'
+    host: "{{ k3s_registration_ip }}"
+    delay: 5
+    sleep: 5
+    timeout: 300

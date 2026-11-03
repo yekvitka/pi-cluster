@@ -1,0 +1,12 @@
+---
+- name: Reboot
+  ansible.builtin.reboot:
+
+- name: Restart multipath
+  ansible.builtin.service:
+    name: multipathd
+    state: restarted
+
+- name: Reexec systemd
+  ansible.builtin.systemd_service:
+    daemon_reexec: true

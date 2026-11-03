@@ -1,0 +1,9 @@
+---
+- name: Configure DNS authoritative
+  hosts: dns
+  gather_facts: true
+  tags: [dns]
+  become: true
+  roles:
+    # DNS configuration
+    - role: ricsanfre.bind9

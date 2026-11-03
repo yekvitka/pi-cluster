@@ -1,0 +1,10 @@
+---
+profile: production
+exclude_paths:
+  - .ansible/
+  - .venv/
+skip_list:
+  # Role variables keep their established names: host_vars and group_vars set them
+  - var-naming[no-role-prefix]
+  # k3s/prereq, k3s/master and k3s/worker are grouped under one roles/k3s directory
+  - role-name[path]

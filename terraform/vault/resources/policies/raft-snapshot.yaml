@@ -1,0 +1,6 @@
+raft-snapshot:
+  description: "Raft snapshots for the offsite backup (node1, ansible/offsite_backup.yml)"
+  policy: |
+    path "sys/storage/raft/snapshot" {
+      capabilities = ["read"]
+    }

@@ -1,0 +1,9 @@
+---
+# longhorn helm values (route with basic auth)
+httproute:
+  enabled: true
+  hostnames:
+    - longhorn.${CLUSTER_DOMAIN}
+  parentRefs:
+    - name: public-gateway
+      namespace: envoy-gateway-system

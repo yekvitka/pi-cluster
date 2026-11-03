@@ -1,0 +1,25 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# Not enabled yet (docs/plans/cluster-2.0.md):
+# loki-app, fluent-app: Cluster 2.0 phase 7 (Loki P1, Fluent Bit straight to Loki)
+# rancher-app: Cluster 2.0 phase 8, once node6 is the only API server
+# tempo-app, otel-collector-app: phase 9; descheduler-app: phase 12
+resources:
+  - cert-manager-app.yaml
+  - cilium-app.yaml
+  - coredns-app.yaml
+  - csi-external-snapshotter-app.yaml
+  - envoy-gateway-app.yaml
+  - external-dns-app.yaml
+  - external-secrets-app.yaml
+  - flux-app.yaml
+  - grafana-app.yaml
+  - k3s-etcd-backup-app.yaml
+  - kube-prometheus-stack-app.yaml
+  - longhorn-app.yaml
+  - metrics-server-app.yaml
+  - system-upgrade-app.yaml
+  - vault-app.yaml
+  - velero-app.yaml
+  - kube-vip-app.yaml

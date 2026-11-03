@@ -1,0 +1,13 @@
+# Managed by ansible/cert_renewal.yml
+[Unit]
+Description=Daily Let's Encrypt renewal check
+
+[Timer]
+# Outside the backup windows (00:00/12:00 etcd, 03:00-05:30 restic and Velero):
+# a RustFS restart must not break a backup
+OnCalendar=*-*-* 14:30:00
+RandomizedDelaySec=30m
+Persistent=true
+
+[Install]
+WantedBy=timers.target

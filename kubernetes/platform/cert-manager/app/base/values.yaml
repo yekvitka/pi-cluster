@@ -1,0 +1,4 @@
+---
+# cert-manager helm values (base)
+crds:
+  enabled: true

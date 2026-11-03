@@ -1,0 +1,28 @@
+---
+# rancher helm values (prod overlay)
+# Cluster 2.0 (docs/plans/cluster-2.0.md): Rancher runs on node6 (8 GB), the only
+# API server, which reserves memory for the k3s server under Rancher's load.
+# Never with 4 GB API servers: Rancher adds ~700 MB to every API server.
+# The chart adds these to its own node affinity and tolerations
+extraNodeSelectorTerms:
+  - key: node-role.kubernetes.io/control-plane
+    operator: Exists
+extraTolerations:
+  - key: node-role.kubernetes.io/control-plane
+    operator: Exists
+    effect: NoSchedule
+resources:
+  requests:
+    cpu: 250m
+    memory: 1Gi
+  limits:
+    # In the cluster Rancher also manages its local cluster (no separate agent)
+    memory: 1536Mi
+# Use the chart catalogs packaged in the image: no git clone / fetch of the
+# rancher, partner and rke2 chart repos on every start (heavy SD card writes)
+useBundledSystemChart: true
+# First start on a Raspberry Pi takes more than the default 2 minutes
+startupProbe:
+  timeoutSeconds: 5
+  periodSeconds: 10
+  failureThreshold: 60

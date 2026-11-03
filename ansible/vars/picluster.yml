@@ -1,0 +1,284 @@
+---
+# Pi Cluster variables
+
+#######
+# K3S #
+#######
+
+# k3s version
+# renovate: datasource=github-releases depName=k3s-io/k3s
+k3s_version: v1.36.5+k3s1
+
+# k3s master node VIP (loadbalancer)
+k3s_api_vip: 10.0.0.10
+
+# k3s shared token: read from Vault (cluster/k3s) in k3s_install.yml
+
+# k3s config directory
+k3s_config_directory: /etc/rancher/k3s
+
+# kubelet configuration
+# The server that starts a new cluster (cluster-init). Every other server joins it.
+# Explicit, not "first host of k3s_master": a new control-plane node listed first
+# must join the existing cluster, never create a second one. Point it to a running
+# server; for a rebuild from scratch, to the first server installed
+k3s_cluster_init_node: node2
+
+k3s_kubelet_config: |
+  apiVersion: kubelet.config.k8s.io/v1beta1
+  kind: KubeletConfiguration
+  shutdownGracePeriod: 30s
+  shutdownGracePeriodCriticalPods: 10s
+  # Memory for k3s itself (server: API server + etcd + controllers, ~1.5 GB;
+  # agent + containerd on workers) and the OS. The scheduler does not hand it
+  # out and the kubepods cgroup limit keeps pods out of it
+  kubeReserved:
+    memory: {{ k3s_kube_reserved_memory | default('1700Mi' if 'k3s_master' in group_names else '600Mi') }}
+  systemReserved:
+    memory: 300Mi
+  # Evict pods while the node still responds (4 GB Pis without swap).
+  # Setting evictionHard replaces all kubelet defaults: keep the disk ones
+  evictionHard:
+    memory.available: 300Mi
+    nodefs.available: 10%
+    imagefs.available: 15%
+    nodefs.inodesFree: 5%
+
+# k3s server-config
+# Equivalent to start master installer with the following options
+# --write-kubeconfig-mode '0644'
+# --flannel-backend=none
+# --disable-kube-proxy
+# --disable-network-policy
+# --disable-helm-controller
+# --disable 'servicelb'
+# --disable 'traefik'
+# --disable 'local-storage'
+# --disable 'coredns'
+# --node-taint 'node-role.kubernetes.io/control-plane:NoSchedule'
+# --kube-controller-manager-arg 'bind-address=0.0.0.0'
+# --kube-proxy-arg 'metrics-bind-address=0.0.0.0'
+# --kube-scheduler-arg 'bind-address=0.0.0.0'
+# --kubelet-arg 'config=/etc/rancher/k3s/kubelet.config'
+# --kube-controller-manager-arg 'terminated-pod-gc-threshold=10'
+
+k3s_server_config:
+  # Disable Flannel CNI
+  flannel-backend: none
+  disable-network-policy: true
+  # Disable Helm Controller
+  disable-helm-controller: true
+  # Disable kube-proxy (using cilium kube-proxy replacement)
+  disable-kube-proxy: true
+  # Enabling Embedded Registry Mirror (Spegel)
+  embedded-registry: true
+  # TLS config
+  tls-san:
+    - "{{ k3s_api_vip }}"  # IP to HAProxy
+  # Disable K3s addons: coredns, local path, servicelb, traefik and metric-server
+  disable:
+    - coredns
+    - local-storage
+    - servicelb
+    - traefik
+    - metrics-server
+  write-kubeconfig-mode: 644
+  # Control plane nodes only run system pods, unless k3s_control_plane_taint is
+  # false (host_vars). Applied when the node registers
+  node-taint: "{{ ['node-role.kubernetes.io/control-plane:NoSchedule'] if k3s_control_plane_taint | default(true) | bool else [] }}"
+  # Longhorn storage node (SSD boot, /storage on the SSD) if k3s_longhorn_storage
+  # is true (host_vars). Applied when the node registers
+  node-label: "{{ ['node_storage=longhorn'] if k3s_longhorn_storage | default(false) | bool else [] }}"
+  # etcd-only server (k3s_etcd_only: true in host_vars): etcd member without API
+  # server, controller manager and scheduler, ~0.45 GB instead of 1.3-1.9 GB.
+  # etcd members next to node6, the only API server (docs/plans/cluster-2.0.md)
+  disable-apiserver: "{{ k3s_etcd_only | default(false) | bool }}"
+  disable-controller-manager: "{{ k3s_etcd_only | default(false) | bool }}"
+  disable-scheduler: "{{ k3s_etcd_only | default(false) | bool }}"
+  etcd-expose-metrics: true
+  # etcd snapshots (every 12h, last 5) also uploaded to RustFS bucket k3s-etcd.
+  # S3 endpoint and credentials: kube-system secret managed by External Secrets
+  # (kubernetes/platform/k3s-etcd-backup)
+  etcd-s3: true
+  etcd-s3-config-secret: k3s-etcd-snapshot-s3-config
+  kubelet-arg:
+    - 'config=/etc/rancher/k3s/kubelet.config'
+  kube-controller-manager-arg:
+    - 'bind-address=0.0.0.0'
+    - 'terminated-pod-gc-threshold=10'
+  kube-scheduler-arg:
+    - 'bind-address=0.0.0.0'
+
+# k3s agent-config
+# Equivalent to start agent installer with the following options
+#  --node-label 'node_type=worker'
+#  --kubelet-arg 'config=/etc/rancher/k3s/kubelet.config'
+k3s_agent_config:
+  # Longhorn storage node only with k3s_longhorn_storage: true (host_vars): a worker
+  # without SSD must not get Longhorn components or data
+  node-label: "{{ ['node_type=worker'] + (['node_storage=longhorn'] if k3s_longhorn_storage | default(false) | bool else []) }}"
+  kubelet-arg:
+    - 'config=/etc/rancher/k3s/kubelet.config'
+
+k3s_registries:
+  mirrors:
+    "*":
+
+#################################
+# TLS Certificates: LetsEncrypt #
+#################################
+
+# Enable letsencrypt certificates
+enable_letsencrypt: true
+
+# IONOS API: the credentials come from the IONOS_PUBLIC_PREFIX and IONOS_SECRET
+# environment variables (deploy_vault.yml, deploy_rustfs.yml)
+ionos_api_endpoint: https://api.hosting.ionos.com
+
+# issuer email
+acme_issuer_email: admin@yekvitka.net
+
+###########################
+# RustFS S3 configuration #
+###########################
+
+# RustFS S3 Server (replaces MinIO)
+rustfs_hostname: "object-store.homelab.yekvitka.net"
+rustfs_server_port: "9091"
+rustfs_console_port: "9092"
+rustfs_endpoint: "{{ rustfs_hostname }}:9091"
+rustfs_url: "https://{{ rustfs_hostname }}:9091"
+
+# renovate: datasource=github-releases depName=rustfs/rustfs
+rustfs_server_version: 1.0.0
+# renovate: datasource=github-releases depName=rustfs/cli
+rustfs_cli_version: v0.1.36
+
+# RustFS data dirs
+rustfs_server_datadirs:
+  - /storage/rustfs
+
+# RustFS admin credentials: read from Vault (s3/rustfsadmin) in deploy_rustfs.yml
+
+# RustFS site region configuration
+rustfs_site_region: "eu-west-1"
+
+# Enabling TLS
+rustfs_enable_tls: true
+rustfs_validate_certificate: false
+
+# Enable console
+rustfs_console_enable: true
+
+# Use musl builds for ARM compatibility
+rustfs_use_musl: true
+
+# Backward-compatible aliases for existing playbooks
+minio_hostname: "{{ rustfs_hostname }}"
+minio_endpoint: "{{ rustfs_endpoint }}"
+minio_url: "{{ rustfs_url }}"
+minio_site_region: "{{ rustfs_site_region }}"
+minio_enable_tls: "{{ rustfs_enable_tls }}"
+minio_validate_certificate: "{{ rustfs_validate_certificate }}"
+
+########################
+# Restic configuration #
+########################
+
+# renovate: datasource=github-releases depName=restic/restic
+restic_version: 0.19.1
+
+# Restic S3 repository configuration
+restic_repository: "s3:{{ rustfs_url }}/restic"
+restic_use_ca_cert: true
+# Restic S3 credentials: created by terraform/minio, read from Vault (s3/restic)
+# in backup_configuration.yml
+
+#######################
+# Vault configuration #
+#######################
+
+vault_hostname: "vault.{{ dns_domain }}"
+# renovate: datasource=github-releases depName=hashicorp/vault
+vault_version: 2.1.1
+
+vault_dns: "{{ vault_hostname }}"
+# Vault Kubernetes auth (External Secrets, Prometheus): enabled in the live Vault.
+# configure_vault.yml defaults to false, which plans to destroy the backend and its roles
+enable_kubernetes_auth: true
+# Vault data on node1 SSD1 (/storage), not on the SD card
+vault_data_path: /storage/vault
+vault_enable_tls: true
+custom_ca: false
+vault_init: true
+vault_unseal: true
+vault_unseal_service: true
+tls_skip_verify: "{{ not enable_letsencrypt }}"
+
+# Enable Prometheus integration
+vault_custom_configuration: |
+  ui = true
+
+  telemetry {
+    disable_hostname = true
+    prometheus_retention_time = "12h"
+  }
+
+#########################
+# Utils/CLI versions    #
+#########################
+
+# renovate: datasource=github-releases depName=fluxcd/flux2
+fluxcd_version: v2.9.5
+
+# renovate: datasource=github-releases depName=vmware-tanzu/velero
+velero_version: v1.18.2
+
+# renovate: datasource=github-releases depName=longhorn/longhorn
+longhorn_version: v1.12.1
+
+# renovate: datasource=github-releases depName=istio/istio
+istio_version: 1.31.0
+
+# renovate: datasource=github-releases depName=helm/helm
+helm_version: v4.3.0
+
+#######################
+# Gateway configuration
+#######################
+
+gateway_hostname: "gateway.{{ dns_domain }}"
+
+###################################
+# Offsite backup (Oracle Cloud VM) #
+###################################
+
+offsite_restic_password_file: "{{ lookup('ansible.builtin.env', 'HOME') }}/.secrets/restic-offsite.password"
+offsite_ssh_alias: offsite-backup
+offsite_restic_user: restic
+offsite_backup_device: /dev/sdb
+offsite_backup_label: offsite-backups
+offsite_backup_path: /backup
+offsite_backup_sources:
+  - /storage/rustfs
+  - /var/backups/vault
+# Not worth an offsite copy: Loki logs, 7-day retention
+offsite_backup_excludes:
+  - /storage/rustfs/k3s-loki
+offsite_vault_addr: "https://{{ vault_hostname }}:8200"
+offsite_vault_snapshot_dir: /var/backups/vault
+offsite_vault_secret_file: "{{ lookup('ansible.builtin.env', 'HOME') }}/.secrets/vault.env"
+offsite_backup_schedule: "*-*-* 05:00:00"
+offsite_restic_retention: "--group-by host,tags --keep-daily 7 --keep-weekly 4 --keep-monthly 6"
+# renovate: datasource=docker depName=twinproduction/gatus
+gatus_version: v5.38.0
+
+##########################
+# Certificate renewal    #
+##########################
+
+# certbot on node1 (cert_renewal.yml), same versions as pyproject.toml
+# renovate: datasource=pypi depName=certbot
+certbot_version: 5.8.0
+# renovate: datasource=pypi depName=certbot-dns-ionos
+certbot_dns_ionos_version: 2024.11.9

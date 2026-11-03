@@ -1,0 +1,17 @@
+---
+# yamllint rules for the manifests (CI and make lint)
+extends: default
+
+rules:
+  line-length: disable
+  truthy:
+    allowed-values: ['true', 'false']
+    check-keys: false
+  comments:
+    min-spaces-from-content: 1
+  comments-indentation: disable
+  document-start:
+    present: true
+  indentation:
+    spaces: 2
+    indent-sequences: consistent

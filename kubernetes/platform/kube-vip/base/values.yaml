@@ -1,0 +1,2 @@
+---
+# kube-vip helm values (base): the overlays set the virtual IP

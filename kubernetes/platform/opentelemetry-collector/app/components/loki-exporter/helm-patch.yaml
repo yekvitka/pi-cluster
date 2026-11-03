@@ -1,0 +1,7 @@
+---
+- op: add
+  path: /spec/valuesFrom/-
+  value:
+    kind: ConfigMap
+    name: opentelemetry-collector-helm-values
+    valuesKey: loki-exporter-values.yaml

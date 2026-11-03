@@ -1,0 +1,28 @@
+# Ansible: Galaxy roles and collections, generated certificates, local venv
+/.ansible
+/ansible/.ansible/
+/ansible/ansible_collections
+/ansible/roles/ricsanfre.*
+/ansible/certificates
+/ansible/.venv
+/ansible/.uv-cache
+.venv
+/certs
+
+# Terraform: providers, local state, plans and variable files stay on the control host
+/terraform/*/.terraform
+/terraform/*/.terraform.lock.hcl
+/terraform/*/terraform.tfstate
+/terraform/*/terraform.tfstate.backup
+/terraform/*/terraform.tfvars
+/terraform/*/tfplan
+
+# Metal: downloaded images, gateway config, per-machine SSH key for cloud-init
+/metal/openwrt/config
+/metal/openwrt/img
+/metal/rpi/cloud-init/root.pub
+
+# Editors and local assistant instructions
+.vscode/
+.idea/
+CLAUDE.md

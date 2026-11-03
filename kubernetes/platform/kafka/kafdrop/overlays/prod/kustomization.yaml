@@ -1,0 +1,13 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: kafka
+
+resources:
+  - ../../base
+
+# No route yet: reach Kafdrop with kubectl port-forward until it gets a
+# basic-auth route (docs/plans/cluster-2.0.md)
+components:
+  - ../../components/schema-registry-secure
+  - ../../components/kafka-security

@@ -1,0 +1,45 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "customDatasources": {
+    "grafana-dashboards": {
+      "defaultRegistryUrlTemplate": "https://grafana.com/api/dashboards/{{packageName}}",
+      "format": "json",
+      "transformTemplates": ["{\"releases\":[{\"version\": $string(revision)}]}"]
+    }
+  },
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": ["Process legacy Grafana Helm dashboards"],
+      "fileMatch": ["(^|/)kubernetes/.+\\.ya?ml(?:\\.j2)?$"],
+      "matchStrings": ["depName=\"(?<depName>.*)\"\\n(?<indentation>\\s+)gnetId: (?<packageName>\\d+)\\n.+revision: (?<currentValue>\\d+)"],
+      "autoReplaceStringTemplate": "depName=\"{{{depName}}}\"\n{{{indentation}}}gnetId: {{{packageName}}}\n{{{indentation}}}revision: {{{newValue}}}",
+      "datasourceTemplate": "custom.grafana-dashboards",
+      "versioningTemplate": "regex:^(?<major>\\d+)$"
+    },
+    {
+      "customType": "regex",
+      "description": ["Process Grafana Operator dashboards from Grafana.com"],
+      "fileMatch": ["(^|/)kubernetes/.+\\.ya?ml(?:\\.j2)?$"],
+      "matchStrings": [
+        "grafanaCom:\\n(?<indentation>\\s+)id:\\s+(?<packageName>\\d+)\\n\\s+revision:\\s+(?<currentValue>\\d+)"
+      ],
+      // Use Grafana dashboard ID for unique branch names and to avoid collisions
+      "depNameTemplate": "grafana-dashboard-{{{packageName}}}",
+      "autoReplaceStringTemplate": "grafanaCom:\n{{{indentation}}}id: {{{packageName}}}\n{{{indentation}}}revision: {{{newValue}}}",
+      "datasourceTemplate": "custom.grafana-dashboards",
+      "versioningTemplate": "regex:^(?<major>\\d+)$"
+    }
+  ],
+  "packageRules": [
+    {
+      "addLabels": ["renovate/grafana-dashboard"],
+      "matchDatasources": ["custom.grafana-dashboards"],
+      "matchUpdateTypes": ["major"],
+      "semanticCommitType": "chore",
+      "semanticCommitScope": "grafana-dashboards",
+      "commitMessageTopic": "dashboard {{depName}}",
+      "commitMessageExtra": "( {{currentVersion}} → {{newVersion}} )"
+    }
+  ]
+}

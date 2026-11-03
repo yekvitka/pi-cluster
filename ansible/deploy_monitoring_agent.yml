@@ -1,0 +1,24 @@
+---
+# Prometheus exporters on node1, which runs outside the cluster: node metrics and
+# bind9 metrics, scraped by kube-prometheus-stack (externalnodes-monitoring)
+- name: Deploy node exporter on external nodes (node1)
+  hosts: node1
+  gather_facts: true
+  become: true
+  pre_tasks:
+    - name: Include picluster variables
+      ansible.builtin.include_vars: "vars/picluster.yml"
+      tags: ["always"]
+  roles:
+    - role: prometheus.prometheus.node_exporter
+
+- name: Deploy bind exporter on the DNS server (node1)
+  hosts: dns
+  gather_facts: true
+  become: true
+  pre_tasks:
+    - name: Include picluster variables
+      ansible.builtin.include_vars: "vars/picluster.yml"
+      tags: ["always"]
+  roles:
+    - role: prometheus.prometheus.bind_exporter

@@ -1,0 +1,16 @@
+---
+# external-secrets helm values (base)
+installCRDs: true
+
+# Enabling Prometheus Operator integration
+webhook:
+  serviceMonitor:
+    enabled: true
+    interval: 1m
+certController:
+  serviceMonitor:
+    enabled: true
+    interval: 1m
+serviceMonitor:
+  enabled: true
+  interval: 1m

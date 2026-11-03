@@ -1,0 +1,16 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+patches:
+  # Single worker: one snapshot controller replica
+  - target:
+      kind: Deployment
+      name: snapshot-controller
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1

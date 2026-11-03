@@ -1,0 +1,33 @@
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: {{ .app_name }}-app
+  namespace: flux-system
+spec:
+  interval: 30m
+  targetNamespace: {{ .app_namespace }}
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  path: ./kubernetes/platform/{{ .app_name }}/app/overlays/prod
+  prune: true
+  wait: true
+
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: {{ .app_name }}-config
+  namespace: flux-system
+spec:
+  interval: 30m
+  targetNamespace: {{ .app_namespace }}
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  dependsOn:
+    - name: {{ .app_name }}-app
+  path: ./kubernetes/platform/{{ .app_name }}/config/overlays/prod
+  prune: true
+  wait: true

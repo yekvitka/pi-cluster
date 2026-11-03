@@ -1,0 +1,46 @@
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: fluent-common-app
+  namespace: flux-system
+spec:
+  interval: 30m
+  targetNamespace: fluent
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  path: ./kubernetes/platform/fluent/common/overlays/prod
+  prune: true
+  dependsOn:
+    - name: cert-manager-config
+    - name: external-secrets-config
+    - name: loki-app
+  postBuild:
+    substituteFrom:
+      - kind: ConfigMap
+        name: cluster-settings
+
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: fluent-bit-app
+  namespace: flux-system
+spec:
+  interval: 30m
+  targetNamespace: fluent
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  path: ./kubernetes/platform/fluent/fluent-bit/overlays/prod
+  prune: true
+  # Logs straight to Loki (components/loki)
+  dependsOn:
+    - name: fluent-common-app
+    - name: loki-app
+  wait: true
+  postBuild:
+    substituteFrom:
+      - kind: ConfigMap
+        name: cluster-settings

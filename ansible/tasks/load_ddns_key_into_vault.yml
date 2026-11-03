@@ -1,0 +1,29 @@
+---
+# DDNS key was created and stored in filesystem
+- name: Load ddns key from file in DNS node
+  ansible.builtin.shell: |
+    set -o pipefail
+    cat /etc/bind/keys/ddnskey.key | awk '/secret/ {print $2}' | sed 's/[";]//g'
+  args:
+    executable: /bin/bash
+  register: ddns_key
+  become: true
+  changed_when: false
+  when: bind9_ddns_key is not defined
+  delegate_to: node1
+
+- name: Get DDNS key
+  ansible.builtin.set_fact:
+    bind9_ddns_key: "{{ ddns_key.stdout }}"
+
+- name: Create/update bind9/ddns credentials in Vault
+  community.hashi_vault.vault_write:
+    url: "{{ vault_addr }}"
+    token: "{{ vault_token }}"
+    validate_certs: "{{ not (enable_letsencrypt | default(false)) }}"
+    ca_cert: "{{ vault_cacert | default(omit) }}"
+    path: "secret/data/bind9/ddns"
+    data:
+      data:
+        ddns-key: "{{ bind9_ddns_key }}"
+  no_log: true

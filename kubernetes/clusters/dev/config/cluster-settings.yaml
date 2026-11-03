@@ -1,0 +1,9 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cluster-settings
+  namespace: flux-system
+data:
+  CLUSTER_DOMAIN: dev.homelab.yekvitka.net
+  HTTP_GATEWAY_LOAD_BALANCER_IP: 172.30.200.1

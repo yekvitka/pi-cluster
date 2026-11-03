@@ -1,0 +1,29 @@
+---
+apiVersion: upgrade.cattle.io/v1
+kind: Plan
+metadata:
+  name: k3s-server
+  namespace: system-upgrade
+  labels:
+    k3s-upgrade: server
+spec:
+  nodeSelector:
+    matchExpressions:
+      # Every k3s server has the etcd role, also etcd-only servers (no
+      # control-plane label). Agents have neither
+      - key: node-role.kubernetes.io/etcd
+        operator: Exists
+  # Enable plan deployment on master node (noSchedulable by installation)
+  tolerations:
+    - key: node-role.kubernetes.io/control-plane
+      operator: Exists
+      effect: NoSchedule
+  serviceAccountName: system-upgrade
+  concurrency: 1
+  jobActiveDeadlineSecs: 1800
+  # Cordon node before upgrade it
+  cordon: true
+  upgrade:
+    image: rancher/k3s-upgrade
+  # renovate: datasource=github-releases depName=k3s-io/k3s
+  version: v1.36.5+k3s1

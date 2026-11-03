@@ -1,0 +1,37 @@
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: bind-exporter
+spec:
+  allowCrossNamespaceImport: true
+  folder: DNS
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+  grafanaCom:
+    id: 12309
+    revision: 5
+  datasources:
+    - inputName: DS_PROMETHEUS
+      datasourceName: Prometheus
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: openwrt
+spec:
+  allowCrossNamespaceImport: true
+  folder: Router
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+  grafanaCom:
+    id: 18153
+    revision: 4
+  datasources:
+    - inputName: DS_PROMETHEUS
+      datasourceName: Prometheus
+# MinIO Grafana dashboards removed (RustFS uses OTLP/OpenTelemetry push, not direct Prometheus scrape).
+# To monitor RustFS, configure RUSTFS_OBS_ENDPOINT to push to an OpenTelemetry Collector,
+# then scrape the collector's Prometheus exporter.

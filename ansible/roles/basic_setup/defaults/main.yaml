@@ -1,0 +1,20 @@
+---
+common_packages:
+  - curl
+  - bridge-utils
+  # Longhorn requirements
+  - open-iscsi
+  - nfs-common
+  - cryptsetup
+  - dmsetup
+
+rpi_packages:
+  - libraspberrypi-bin
+  - fake-hwclock
+  - bridge-utils
+
+# usb-storage quirks for the kernel command line (VID:PID:flags). Empty: unchanged
+rpi_usb_storage_quirks: []
+
+# Hardware watchdog timeout in seconds (BCM2835 maximum ~15)
+rpi_watchdog_sec: 14

@@ -1,0 +1,4 @@
+---
+# coredns helm values (prod overlay)
+# One replica: no HA on the 4 GB Pis
+replicaCount: 1

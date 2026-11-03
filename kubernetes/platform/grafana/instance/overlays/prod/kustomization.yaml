@@ -1,0 +1,26 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: grafana
+
+resources:
+  - ../../base
+
+components:
+  - ../../components/prometheus
+  - ../../components/monitoring
+  - ../../components/persistence
+  - ../../components/route
+
+patches:
+  # Longhorn volume (grafana-pvc): a worker that is a Longhorn storage node
+  # (a worker without SSD has no Longhorn CSI plugin to attach the volume)
+  - target:
+      kind: Grafana
+      name: grafana
+    patch: |-
+      - op: add
+        path: /spec/deployment/spec/template/spec/nodeSelector
+        value:
+          node_type: worker
+          node_storage: longhorn
