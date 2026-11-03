@@ -23,7 +23,7 @@ ssh ubuntu@10.99.0.2      # from pimaster or the home network (route 10.99.0.0/2
 - Retention 7 daily, 4 weekly, 6 monthly (grouped by host and tag).
 - The repository password is `~/.secrets/restic-offsite.password` on the control host: keep a copy in a password manager, the offsite copy cannot be read without it.
 - Vault is copied as a Raft snapshot, never as files (`/storage/vault` is live Raft storage): `vault-raft-snapshot.sh` runs before restic with a periodic orphan token that only has the `raft-snapshot` policy (`terraform/vault`), stored in `/etc/restic/vault-snapshot.token` and renewed by every snapshot. A failed snapshot does not stop the RustFS copy.
-- `terraform/vault` must be planned with `TF_VAR_enable_kubernetes_auth=true` (`enable_kubernetes_auth: true` in `vars/picluster.yml`): with false it plans to destroy the Kubernetes auth backend External Secrets depends on.
+- `terraform/vault` must be planned with `TF_VAR_enable_kubernetes_auth=true` (the default of `configure_vault.yml`): with false it plans to destroy the Kubernetes auth backend External Secrets depends on.
 
 ## Outside monitoring
 

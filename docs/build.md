@@ -19,14 +19,13 @@ The chain: cloud-init (OS) → Ansible (hosts, external services, k3s) → Flux 
 
    ```shell
    make prepare-ansible   # ansible runner + secret files (IONOS API key)
-   make init              # os-upgrade, node setup, DNS, Vault/RustFS, node1 exporters, k3s, Flux bootstrap
+   make init              # os-upgrade, node setup, DNS, Vault/RustFS, web UI credentials, node1 exporters, k3s, Flux bootstrap
    ```
 
 4. After `make init`:
 
    ```shell
    make configure-cert-renewal        # automatic certificate renewal on node1
-   make configure-webui-auth          # basic auth credentials for the web UIs
    make configure-offsite-backup      # needs the Oracle VM (terraform/oci, docs/offsite.md)
    make configure-offsite-monitoring
    ```
