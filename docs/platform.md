@@ -38,6 +38,6 @@ All on the Envoy gateway (10.0.0.68, wildcard Let's Encrypt certificate) unless 
 | OpenWrt LuCI | https://gateway.homelab.yekvitka.net | `root` |
 | Gatus | http://10.99.0.2:8080 (offsite VM, tunnel only) | none |
 
-- Basic auth: `SecurityPolicy` in the `route-basic-auth` components. Credentials in Vault `secret/webui/basic-auth` (user `admin`), created by `make configure-webui-auth`: Envoy only accepts SHA htpasswd entries, so the playbook stores the password and the entry, and External Secrets copies the entry into the cluster. Read the password with `vault kv get -field=password secret/webui/basic-auth`.
+- Basic auth: `SecurityPolicy` in the `route-basic-auth` components. Credentials in Vault `secret/webui/basic-auth` (user `admin`), created by `make configure-webui-auth`: Envoy only accepts SHA htpasswd entries, so the playbook stores the password and the entry, and External Secrets copies the entry into the cluster. Read the password: [reading a secret](quick-start.md#reading-a-secret).
 - From the home network (192.168.50.x), add routes for 10.0.0.0/24 and 10.99.0.0/24 through the gateway (192.168.50.200) and use it as DNS server for `homelab.yekvitka.net`, e.g. on macOS: `sudo networksetup -setadditionalroutes "Wi-Fi" 10.0.0.0 255.255.255.0 192.168.50.200 10.99.0.0 255.255.255.0 192.168.50.200`.
 - Lens: kubeconfig from pimaster (`~/.kube/config`, API at 10.0.0.10). Settings → Metrics → Prometheus "Auto detect", which finds the `prometheus-operated` service.

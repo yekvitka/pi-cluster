@@ -7,7 +7,7 @@
 # External Secrets copies the htpasswd entry into the cluster.
 #
 # Usage: make configure-webui-auth
-# Read the password: vault kv get -field=password secret/webui/basic-auth
+# Read the password: docs/quick-start.md, "Reading a secret"
 # Rotate: delete secret/webui/basic-auth in Vault and run again
 
 - name: Web UI basic auth credentials in Vault

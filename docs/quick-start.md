@@ -4,7 +4,7 @@ Build your own cluster from this repository. You need:
 
 - the hardware in [hardware and network](hardware-and-network.md): Raspberry Pi 4 boards for the gateway, node1 (with an SSD) and the k3s nodes, USB SSDs for the storage nodes, one switch;
 - a domain with its DNS at IONOS: certificates use Let's Encrypt with the IONOS DNS-01 challenge, so no port opens at home;
-- a Linux control host with Docker (this cluster's own: [control host](control-host.md)).
+- a Linux control host with Docker, curl and jq (this cluster's own: [control host](control-host.md)).
 
 The chain: cloud-init installs the OS, Ansible configures the hosts, the external services and k3s, Flux deploys everything in the cluster from your fork.
 
@@ -100,4 +100,19 @@ kubectl get nodes
 flux get kustomizations
 ```
 
-Every node `Ready`, every Kustomization `True`. Grafana answers on `https://grafana.<dns_domain>`; the basic auth password of the other web UIs: `vault kv get -field=password secret/webui/basic-auth`.
+Every node `Ready`, every Kustomization `True`. Grafana answers on `https://grafana.<dns_domain>`.
+
+### Reading a secret
+
+Passwords live in Vault. On the control host, with the address and token that `make init` saved:
+
+```shell
+set -a; . ~/.secrets/vault.env; set +a
+v() { curl -s -H "X-Vault-Token: $VAULT_TOKEN" "$VAULT_ADDR/v1/secret/data/$1" | jq -r ".data.data.$2"; }
+
+v grafana/admin password        # Grafana, user admin
+v webui/basic-auth password     # Longhorn, Prometheus, Alertmanager, user admin
+v s3/rustfsadmin key            # RustFS console, user rustfsadmin
+```
+
+`VAULT_TOKEN` is the root token: it stays in that shell. As root on node1 the `vault` CLI works directly.
