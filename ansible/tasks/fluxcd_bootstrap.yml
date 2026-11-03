@@ -71,6 +71,21 @@
   register: cluster_settings
   changed_when: cluster_settings.stdout is search('created|configured')
 
+# The operator registers the FluxInstance API when it starts, after its image
+# is pulled: the instance chart fails until then
+- name: Wait for the FluxInstance API
+  kubernetes.core.k8s_info:
+    api_version: apiextensions.k8s.io/v1
+    kind: CustomResourceDefinition
+    name: fluxinstances.fluxcd.controlplane.io
+  register: fluxinstance_crd
+  until: >-
+    fluxinstance_crd.resources | length > 0 and
+    (fluxinstance_crd.resources[0].status.conditions | default([])
+     | selectattr('type', 'equalto', 'Established') | map(attribute='status') | list) == ['True']
+  retries: 30
+  delay: 10
+
 - name: Bootstrap Flux
   kubernetes.core.helm:
     name: flux-instance
