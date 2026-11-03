@@ -245,6 +245,8 @@
         - regexp: "^export VAULT_TOKEN="
           line: "export VAULT_TOKEN=$(sudo jq -r '.root_token' /etc/vault/unseal.json)"
 
+    # Only self-signed certificates need the CA; with Let's Encrypt a leftover
+    # line points to a missing file and breaks every vault command
     - name: Configure VAULT_CACERT for self-signed certificates
       ansible.builtin.lineinfile:
         path: ~{{ ansible_user }}/.bashrc
@@ -253,8 +255,7 @@
         owner: "{{ ansible_user }}"
         create: true
         mode: "0644"
-        state: present
-      when: not enable_letsencrypt
+        state: "{{ 'absent' if enable_letsencrypt else 'present' }}"
 
     - name: Display Vault initialization information (self-signed certificates)
       ansible.builtin.debug:
