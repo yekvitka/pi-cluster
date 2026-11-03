@@ -33,7 +33,7 @@ case "$name" in
   {{ gateway_hostname }})
     # The gateway key only runs the certificate receiver (forced command)
     tar -czhf - -C "$RENEWED_LINEAGE" fullchain.pem privkey.pem |
-      ssh -i /root/.ssh/luci_cert_ed25519 -o BatchMode=yes root@10.0.0.1
+      ssh -i /root/.ssh/luci_cert_ed25519 -o BatchMode=yes root@{{ default_gateway }}
     ;;
   *)
     echo "$name: no deploy target"

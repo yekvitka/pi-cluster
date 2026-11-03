@@ -29,6 +29,12 @@ default_gateway: 10.0.0.1
 dns_server: 10.0.0.1
 dns_domain: homelab.yekvitka.net
 
+#######################
+# iSCSI initiator
+#######################
+# Name prefix (IQN) of the nodes' iSCSI initiator: Longhorn attaches volumes over iSCSI
+iscsi_initiator_iqn_prefix: iqn.2026-10.com.yekvitka.homelab
+
 ############################
 # restic backup role variables
 ############################

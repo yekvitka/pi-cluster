@@ -143,7 +143,7 @@ acme_issuer_email: admin@yekvitka.net
 ###########################
 
 # RustFS S3 Server (replaces MinIO)
-rustfs_hostname: "object-store.homelab.yekvitka.net"
+rustfs_hostname: "object-store.{{ dns_domain }}"
 rustfs_server_port: "9091"
 rustfs_console_port: "9092"
 rustfs_endpoint: "{{ rustfs_hostname }}:9091"
@@ -203,9 +203,6 @@ vault_hostname: "vault.{{ dns_domain }}"
 vault_version: 2.1.1
 
 vault_dns: "{{ vault_hostname }}"
-# Vault Kubernetes auth (External Secrets, Prometheus): enabled in the live Vault.
-# configure_vault.yml defaults to false, which plans to destroy the backend and its roles
-enable_kubernetes_auth: true
 # Vault data on node1 SSD1 (/storage), not on the SD card
 vault_data_path: /storage/vault
 vault_enable_tls: true

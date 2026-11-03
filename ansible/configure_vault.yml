@@ -8,7 +8,9 @@
     terraform_vault_dir: "../terraform/vault"
     vault_host: "{{ groups['vault'][0] }}"
     vault_secret_file: "{{ lookup('ansible.builtin.env', 'HOME') }}/.secrets/vault.env"
-    vault_enable_kubernetes_auth: "{{ enable_kubernetes_auth | default(false) | bool }}"
+    # Kubernetes auth needs a running cluster: on by default; the first Vault step
+    # of make init (external_services.yml) runs before k3s and passes false
+    vault_enable_kubernetes_auth: "{{ enable_kubernetes_auth | default(true) | bool }}"
 
   pre_tasks:
     - name: Include picluster variables

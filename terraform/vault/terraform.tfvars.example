@@ -8,7 +8,7 @@ vault_skip_tls_verify  = false
 
 ## Kubernetes Configuration
 kubernetes_config_path = "~/.kube/config"
-kubernetes_host        = "https://10.0.0.80:6443"
+kubernetes_host        = "https://10.0.0.10:6443"
 
 ## Directory Configuration (JSON files)
 # All JSON files are loaded from these directories

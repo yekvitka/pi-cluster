@@ -46,5 +46,5 @@
           ansible.builtin.include_role:
             name: ricsanfre.iscsi_initiator
           vars:
-            open_iscsi_initiator_name: "iqn.2026-10.com.yekvitka.homelab:{{ ansible_facts['nodename'] }}"
+            open_iscsi_initiator_name: "{{ iscsi_initiator_iqn_prefix }}:{{ ansible_facts['nodename'] }}"
             open_iscsi_automatic_startup: true
