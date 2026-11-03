@@ -67,6 +67,20 @@
         - name: Stop Kubernetes
           ansible.builtin.import_tasks: tasks/ensure_k3s_stopped.yml
 
+    # Stopping k3s leaves its containers running: kill them before the network
+    # cleanup, or Cilium keeps writing to /etc/cni/net.d while it is deleted
+    - name: Check to see if k3s-killall.sh exits
+      ansible.builtin.stat:
+        path: /usr/local/bin/k3s-killall.sh
+      register: check_k3s_killall_script
+
+    - name: Run k3s-killall.sh
+      when: check_k3s_killall_script.stat.exists
+      ansible.builtin.command:
+        cmd: /usr/local/bin/k3s-killall.sh
+      register: k3s_killall
+      changed_when: k3s_killall.rc == 0
+
     # https://github.com/k3s-io/docs/blob/main/docs/installation/network-options.md
     - name: Networking
       block:
@@ -92,11 +106,6 @@
             state: absent
             force: true # delete even if files exist inside
 
-    - name: Check to see if k3s-killall.sh exits
-      ansible.builtin.stat:
-        path: /usr/local/bin/k3s-killall.sh
-      register: check_k3s_killall_script
-
     - name: Check to see if k3s-uninstall.sh exits
       ansible.builtin.stat:
         path: /usr/local/bin/k3s-uninstall.sh
@@ -106,13 +115,6 @@
       ansible.builtin.stat:
         path: /usr/local/bin/k3s-agent-uninstall.sh
       register: check_k3s_agent_uninstall_script
-
-    - name: Run k3s-killall.sh
-      when: check_k3s_killall_script.stat.exists
-      ansible.builtin.command:
-        cmd: /usr/local/bin/k3s-killall.sh
-      register: k3s_killall
-      changed_when: k3s_killall.rc == 0
 
     - name: Run k3s-uninstall.sh
       when: check_k3s_uninstall_script.stat.exists

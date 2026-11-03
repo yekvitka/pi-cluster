@@ -4,6 +4,11 @@ services:
     build:
       context: ..
       dockerfile: ansible-runner/Dockerfile
+      # Host networking, for the build and the container: on the Docker bridge,
+      # glibc's parallel A/AAAA lookups lose packets to the NAT and name
+      # resolution fails intermittently (github.com: 1 lookup in 8)
+      network: host
+    network_mode: host
     command: tail -f /dev/null
     container_name: ansible-runner
     restart: unless-stopped

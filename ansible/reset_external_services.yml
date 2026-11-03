@@ -17,6 +17,16 @@
     - name: Include picluster variables
       ansible.builtin.include_vars: "vars/picluster.yml"
 
+    # A reset that already ran leaves an empty state: nothing to destroy, and
+    # Vault (needed for the credentials) may be gone
+    - name: Count the resources in the MinIO Terraform state
+      ansible.builtin.set_fact:
+        minio_tf_resources: "{{ ((lookup('ansible.builtin.file', terraform_minio_state_file, errors='ignore') or '{}') | from_json).get('resources', []) | length }}"
+
+    - name: Nothing to destroy in the MinIO Terraform state
+      ansible.builtin.meta: end_play
+      when: minio_tf_resources | int == 0
+
     - name: Check Vault secret file exists
       ansible.builtin.stat:
         path: "{{ vault_secret_file }}"
@@ -140,12 +150,22 @@
       ansible.builtin.debug:
         msg: "===== Stage 2/5: Clean RustFS installation ====="
 
-    - name: Stop and disable RustFS Server
+    - name: Find the RustFS units
+      ansible.builtin.stat:
+        path: "/etc/systemd/system/{{ item }}"
+      loop:
+        - rustfs.service
+      register: rustfs_units
+
+    - name: Stop and disable RustFS
       ansible.builtin.systemd:
-        name: rustfs
+        name: "{{ item.item }}"
         state: stopped
         enabled: false
-      become: true
+      loop: "{{ rustfs_units.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+      when: item.stat.exists
     - name: Delete directories and files
       become: true
       ansible.builtin.file:
@@ -180,6 +200,16 @@
 
     - name: Include picluster variables
       ansible.builtin.include_vars: "vars/picluster.yml"
+
+    # A reset that already ran leaves an empty state: nothing to destroy, and
+    # Vault (needed for the credentials) may be gone
+    - name: Count the resources in the Vault Terraform state
+      ansible.builtin.set_fact:
+        vault_tf_resources: "{{ ((lookup('ansible.builtin.file', terraform_vault_state_file, errors='ignore') or '{}') | from_json).get('resources', []) | length }}"
+
+    - name: Nothing to destroy in the Vault Terraform state
+      ansible.builtin.meta: end_play
+      when: vault_tf_resources | int == 0
 
     - name: Check Vault secret file exists
       ansible.builtin.stat:
@@ -285,15 +315,23 @@
       ansible.builtin.debug:
         msg: "===== Stage 4/5: Clean Vault installation ====="
 
-    - name: Stop and disable Vault Server
+    - name: Find the Vault units
+      ansible.builtin.stat:
+        path: "/etc/systemd/system/{{ item }}"
+      loop:
+        - vault.service
+        - vault-unseal.service
+      register: vault_units
+
+    - name: Stop and disable Vault
       ansible.builtin.systemd:
-        name: "{{ item }}"
+        name: "{{ item.item }}"
         state: stopped
         enabled: false
-      become: true
-      with_items:
-        - vault
-        - vault-unseal
+      loop: "{{ vault_units.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+      when: item.stat.exists
     - name: Delete directories and files
       become: true
       ansible.builtin.file:
@@ -322,24 +360,23 @@
       ansible.builtin.debug:
         msg: "===== Stage 5/5: Clean Restic installation ====="
 
-    - name: Stop and disable restic backup service
-      ansible.builtin.systemd:
-        name: "{{ item }}"
-        state: stopped
-        enabled: false
-      become: true
-      with_items:
+    - name: Find the restic units
+      ansible.builtin.stat:
+        path: "/etc/systemd/system/{{ item }}"
+      loop:
         - restic-backup.timer
+        - restic-clean.timer
+      register: restic_units
 
-    - name: Stop and disable restic clean service
+    - name: Stop and disable restic
       ansible.builtin.systemd:
-        name: "{{ item }}"
+        name: "{{ item.item }}"
         state: stopped
         enabled: false
-      become: true
-      when: restic_clean_service
-      with_items:
-        - restic-clean.timer
+      loop: "{{ restic_units.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+      when: item.stat.exists
 
     - name: Delete directories and files
       become: true
@@ -361,7 +398,6 @@
       with_items:
         - /etc/systemd/system/restic-clean.timer
         - /etc/systemd/system/restic-clean.service
-      when: restic_clean_service
 
     # Offsite copy (optional, make configure-offsite-backup): only where installed
     - name: Find the offsite copy timer
