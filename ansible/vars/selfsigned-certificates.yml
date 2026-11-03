@@ -4,5 +4,5 @@ ssl_key_size: 4096
 ssl_certificate_provider: selfsigned
 key_type: RSA
 country_name: PL
-email_address: admin@yekvitka.net
-organization_name: Yekvitka
+email_address: "{{ acme_issuer_email }}"
+organization_name: "{{ dns_domain }}"

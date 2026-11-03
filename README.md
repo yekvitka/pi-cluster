@@ -114,6 +114,10 @@ flowchart LR
 
 No new spending beyond one Raspberry Pi 4 8 GB and SSDs: the 8 GB node becomes the only API server, two 4 GB nodes become etcd-only members, every node boots from an SSD. That frees the memory for Rancher, Loki, Tempo, Istio and Kafka. The repo is prepared; the plan, memory budget, phases and rollbacks are in [docs/plans/cluster-2.0.md](docs/plans/cluster-2.0.md).
 
+## Use it
+
+Fork the repository, set your domain, email and node MAC addresses in a handful of files, enter one API key, run `make init`: [Quick start](docs/quick-start.md). Secrets are generated on your control host and in Vault, never committed.
+
 ## Repository
 
 ```
@@ -129,7 +133,7 @@ docs/             architecture details, runbooks, plans
 
 ```shell
 make help      # every operation
-make init      # build from scratch: docs/build.md
+make init      # build from scratch: docs/quick-start.md
 ```
 
 ## Docs
@@ -138,8 +142,8 @@ make init      # build from scratch: docs/build.md
 - [Platform](docs/platform.md): sizing, web UIs, known limits
 - [Backup and recovery](docs/backup-and-recovery.md)
 - [Certificates](docs/certificates.md)
-- [Offsite: Oracle Cloud VM](docs/offsite.md)
-- [Build from scratch](docs/build.md)
+- [Offsite: Oracle Cloud VM](docs/offsite.md) (optional)
+- [Quick start: your own cluster](docs/quick-start.md)
 - [Control host](docs/control-host.md)
 - [Runbook: node to SSD boot](docs/runbooks/node-ssd-migration.md)
 - [Cluster 2.0](docs/plans/cluster-2.0.md)

@@ -60,15 +60,15 @@
         comment: luci-cert@node1
 
     - name: Read the gateway host key
-      ansible.builtin.command: ssh-keyscan -t ed25519 10.0.0.1
+      ansible.builtin.command: ssh-keyscan -t ed25519 {{ default_gateway }}
       register: gateway_host_key
       changed_when: false
 
     - name: Trust the gateway host key
       ansible.builtin.known_hosts:
         path: /root/.ssh/known_hosts
-        name: 10.0.0.1
-        key: "{{ gateway_host_key.stdout_lines | select('match', '^10\\.0\\.0\\.1 ssh-ed25519 ') | first }}"
+        name: "{{ default_gateway }}"
+        key: "{{ gateway_host_key.stdout_lines | select('match', '^' ~ (default_gateway | regex_escape) ~ ' ssh-ed25519 ') | first }}"
 
     - name: Deploy hook
       ansible.builtin.template:

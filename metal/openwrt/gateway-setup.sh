@@ -25,7 +25,10 @@ HOME_NET="${HOME_NET:-192.168.50.0/24}"
 HOME_ROUTER="${HOME_ROUTER:-192.168.50.1}"
 WAN_IP="${WAN_IP:-192.168.50.200}"
 LAN_IP="10.0.0.1"
-DOMAIN="homelab.yekvitka.net"
+DOMAIN="${DOMAIN:?set DOMAIN, the homelab DNS domain}"
+ZONENAME="${ZONENAME:-Europe/Warsaw}"
+# POSIX TZ string for ZONENAME
+TIMEZONE="${TIMEZONE:-CET-1CEST,M3.5.0,M10.5.0/3}"
 # node1: bind9 (authoritative DNS), Vault, RustFS (S3)
 NODE1="10.0.0.11"
 # k3s API virtual IP (kube-vip on node2-node4)
@@ -35,8 +38,8 @@ K3S_API_VIP="10.0.0.10"
 # System
 ########################
 uci set system.@system[0].hostname='gateway'
-uci set system.@system[0].zonename='Europe/Warsaw'
-uci set system.@system[0].timezone='CET-1CEST,M3.5.0,M10.5.0/3'
+uci set system.@system[0].zonename="$ZONENAME"
+uci set system.@system[0].timezone="$TIMEZONE"
 
 # NTP server for the cluster LAN only
 uci set system.ntp.enabled='1'

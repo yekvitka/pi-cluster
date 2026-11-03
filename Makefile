@@ -5,6 +5,11 @@ ANSIBLE_DIR := ansible
 ANSIBLE_LOCAL_ROLES_DIR := $(HOME)/.ansible/roles
 ANSIBLE_LOCAL_COLLECTIONS_DIR := $(HOME)/.ansible/collections
 
+# Site values, read from the Ansible configuration
+DNS_DOMAIN := $(shell sed -n 's/^dns_domain: *//p' $(ANSIBLE_DIR)/group_vars/all.yml)
+GATEWAY_IP := $(shell sed -n 's/^default_gateway: *//p' $(ANSIBLE_DIR)/group_vars/all.yml)
+NODE1_IP := $(shell awk '/^ +node1:$$/{f=1} f && /ansible_host:/{print $$2; exit}' $(ANSIBLE_DIR)/inventory.yml)
+
 .DEFAULT_GOAL := help
 
 .PHONY: \
@@ -102,7 +107,7 @@ lint-fix-whitespace: ## Trim trailing spaces and add final newlines in YAML file
 	$(RUNNER) /bin/bash -lc 'cd /runner && find . -type f \( -name "*.yml" -o -name "*.yaml" \) ! -path "./.ansible/*" -print0 | xargs -0 sed -i -E "s/[[:space:]]+$$//"'
 	$(RUNNER) /bin/bash -lc 'cd /runner && python3 -c "from pathlib import Path\nfor p in Path(\".\").rglob(\"*.yml\"):\n    if str(p).startswith(\".ansible/\"):\n        continue\n    b = p.read_bytes()\n    if b and not b.endswith(b\"\\n\"):\n        p.write_bytes(b + b\"\\n\")\nfor p in Path(\".\").rglob(\"*.yaml\"):\n    if str(p).startswith(\".ansible/\"):\n        continue\n    b = p.read_bytes()\n    if b and not b.endswith(b\"\\n\"):\n        p.write_bytes(b + b\"\\n\")"'
 
-# Build from scratch (docs/build.md)
+# Build from scratch (docs/quick-start.md)
 
 init: os-upgrade external-setup nodes-setup dns-setup external-services configure-webui-auth configure-os-backup deploy-monitoring-agent k3s-install k3s-bootstrap ## Build everything from scratch
 
@@ -157,8 +162,8 @@ deploy-monitoring-agent: ## Node and bind exporters on node1
 
 configure-cert-renewal: ## Automatic Let's Encrypt renewal on node1 for Vault, RustFS and LuCI
 	$(RUNNER) ansible-playbook cert_renewal.yml
-	ssh root@10.0.0.1 "LUCI_CERT_PUBKEY='$$(ssh root@10.0.0.11 cat /root/.ssh/luci_cert_ed25519.pub)' sh -s" < metal/openwrt/script/luci-cert-receiver.sh
-	ssh root@10.0.0.11 RENEWED_LINEAGE=/etc/letsencrypt/live/gateway.homelab.yekvitka.net /etc/letsencrypt/renewal-hooks/deploy/homelab-certs.sh
+	ssh root@$(GATEWAY_IP) "LUCI_CERT_PUBKEY='$$(ssh root@$(NODE1_IP) cat /root/.ssh/luci_cert_ed25519.pub)' sh -s" < metal/openwrt/script/luci-cert-receiver.sh
+	ssh root@$(NODE1_IP) RENEWED_LINEAGE=/etc/letsencrypt/live/gateway.$(DNS_DOMAIN) /etc/letsencrypt/renewal-hooks/deploy/homelab-certs.sh
 
 openwrt-certbot-tls: ## Issue the gateway (LuCI) certificate and deploy it
 	$(RUNNER) ansible-playbook generate_gateway_tls_certificate.yml

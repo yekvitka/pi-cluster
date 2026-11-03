@@ -1,9 +1,8 @@
-# Minio Provider Configuration Variables
+# RustFS (MinIO API) connection
 
 variable "minio_endpoint" {
   type        = string
-  description = "Minio server endpoint (hostname:port)"
-  default     = "object-store.homelab.yekvitka.net:9091"
+  description = "RustFS S3 endpoint (hostname:port); make configure-minio passes it"
 }
 
 variable "minio_region" {

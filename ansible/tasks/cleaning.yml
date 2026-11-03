@@ -20,7 +20,7 @@
 - name: Clean longhorn iscsi targets and nodes
   ansible.builtin.shell: |
     set -o pipefail
-    for i in `sudo iscsiadm -m discovery -o show | grep -v 10.0.0.1 | awk '{print $1}'`
+    for i in `sudo iscsiadm -m discovery -o show | awk '{print $1}'`
     do
     echo "Deleting target $i"
     sudo iscsiadm -m discovery -p $i -o delete

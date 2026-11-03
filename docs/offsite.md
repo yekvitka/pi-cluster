@@ -1,6 +1,6 @@
 # Offsite: Oracle Cloud VM
 
-An Oracle Cloud Always Free VM (`terraform/oci`, region eu-frankfurt-1) keeps an offsite copy of the backups and monitors the cluster from outside. Ampere A1 (arm64): 1 OCPU, 6 GB, Ubuntu 24.04, 50 GB boot + 150 GB backup volume (ext4 `offsite-backups`, mounted at `/backup`). Free tier, not pay-as-you-go: Oracle may reclaim an idle VM; `tofu apply` and the gateway script recreate it.
+Optional: the cluster runs without it. An Oracle Cloud Always Free VM (`terraform/oci`, region eu-frankfurt-1) keeps an offsite copy of the backups and monitors the cluster from outside. Ampere A1 (arm64): 1 OCPU, 6 GB, Ubuntu 24.04, 50 GB boot + 150 GB backup volume (ext4 `offsite-backups`, mounted at `/backup`). Free tier, not pay-as-you-go: Oracle may reclaim an idle VM; `tofu apply` and the gateway script recreate it.
 
 ## Access
 
