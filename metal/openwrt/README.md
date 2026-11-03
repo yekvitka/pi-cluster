@@ -13,6 +13,7 @@ Services provided by the gateway:
 - DHCP for 10.0.0.0/24: disabled by default (`LAN_DHCP=0`). The cluster LAN and the home network share one switch, so a second DHCP server would answer home devices; nodes use static IPs. With `LAN_DHCP=1` (dedicated cluster switch): static leases for node1–node5, dynamic pool 10.0.0.150–10.0.0.249 (10.0.0.64/26 is reserved for Kubernetes LoadBalancer IPs, 10.0.0.10 for the k3s API)
 - DNS forwarder: `homelab.yekvitka.net` and `0.10.in-addr.arpa` go to bind9 on node1 (10.0.0.11), everything else to 1.1.1.1 / 8.8.8.8
 - NTP server on the LAN
+- Prometheus node exporter on the LAN interface (`script/node-exporter.sh`)
 
 Everything else runs on node1 (bind9, Vault, RustFS S3). The k3s API is the kube-vip virtual IP 10.0.0.10 on node2–node4.
 
@@ -92,6 +93,14 @@ ssh root@10.0.0.1 "OCI_ENDPOINT=<offsite_public_ip> OCI_PUBKEY=<VM public key> s
 ```
 
 Firewall zone `oci`: input and forward rejected, `lan` → `oci` allowed, SSH and the Gatus UI (tcp 22, 8080) from the home network (192.168.50.0/24) to the VM allowed. From the VM into the cluster LAN only the outside monitoring targets (`mon_*` rules): bind9 10.0.0.11:53, Envoy gateway 10.0.0.68:443, k3s API 10.0.0.10:6443, Vault 10.0.0.11:8200, RustFS 10.0.0.11:9091. The first install restarts netifd once (it loads protocol handlers at start), a few seconds without uplink.
+
+## Node exporter
+
+`script/node-exporter.sh` installs the Lua node exporter (base metrics, board info, Wi-Fi uplink, network stats, SoC temperature, filesystems) and binds it to the LAN interface on port 9100: kube-prometheus-stack scrapes `gateway.homelab.yekvitka.net:9100`, the home network cannot reach it. Safe to re-run.
+
+```shell
+ssh root@10.0.0.1 'sh -s' < metal/openwrt/script/node-exporter.sh
+```
 
 ## LuCI TLS certificate
 

@@ -104,7 +104,7 @@ lint-fix-whitespace: ## Trim trailing spaces and add final newlines in YAML file
 
 # Build from scratch (docs/build.md)
 
-init: os-upgrade external-setup nodes-setup dns-setup external-services configure-os-backup k3s-install k3s-bootstrap ## Build everything from scratch
+init: os-upgrade external-setup nodes-setup dns-setup external-services configure-os-backup deploy-monitoring-agent k3s-install k3s-bootstrap ## Build everything from scratch
 
 os-upgrade: ## Upgrade the OS packages on every node
 	$(RUNNER) ansible-playbook update.yml
