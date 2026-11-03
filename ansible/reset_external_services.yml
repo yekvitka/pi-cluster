@@ -278,6 +278,8 @@
   become: true
   gather_facts: false
   tags: [vault, stage4]
+  vars_files:
+    - vars/picluster.yml
   tasks:
     - name: Stage 4 banner
       ansible.builtin.debug:
@@ -298,6 +300,8 @@
         state: absent
         path: "{{ item }}"
       with_items:
+        # Raft storage: a new install must not find an initialized Vault
+        - "{{ vault_data_path }}"
         - /var/lib/vault/
         - /etc/vault/
         - /var/log/vault/
@@ -358,6 +362,34 @@
         - /etc/systemd/system/restic-clean.timer
         - /etc/systemd/system/restic-clean.service
       when: restic_clean_service
+
+    # Offsite copy (optional, make configure-offsite-backup): only where installed
+    - name: Find the offsite copy timer
+      ansible.builtin.stat:
+        path: /etc/systemd/system/restic-offsite.timer
+      register: offsite_timer
+
+    - name: Stop and disable the offsite copy
+      ansible.builtin.systemd:
+        name: restic-offsite.timer
+        state: stopped
+        enabled: false
+      when: offsite_timer.stat.exists
+
+    - name: Delete the offsite copy files and Vault snapshots
+      ansible.builtin.file:
+        state: absent
+        path: "{{ item }}"
+      loop:
+        - /etc/systemd/system/restic-offsite.service
+        - /etc/systemd/system/restic-offsite.timer
+        - /usr/local/sbin/vault-raft-snapshot.sh
+        - /var/backups/vault
+      when: offsite_timer.stat.exists
+
+    - name: Reload systemd daemon
+      ansible.builtin.systemd:
+        daemon_reload: true
 
     - name: Reload systemd daemon
       ansible.builtin.systemd:
