@@ -7,7 +7,7 @@
     file_type: any
     hidden: true
   register: directory_content_result
-  when: "'k3s_worker' in group_names"
+  when: k3s_longhorn_storage | default(false) | bool
 
 - name: Clean Longhorn storage | delete content
   become: true
@@ -15,7 +15,7 @@
     path: "{{ item.path }}"
     state: absent
   with_items: "{{ directory_content_result.files }}"
-  when: "'k3s_worker' in group_names"
+  when: k3s_longhorn_storage | default(false) | bool
 
 - name: Clean longhorn iscsi targets and nodes
   ansible.builtin.shell: |
