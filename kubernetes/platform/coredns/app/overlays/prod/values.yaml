@@ -1,4 +1,11 @@
 ---
 # coredns helm values (prod overlay)
-# One replica: no HA on the 4 GB Pis
-replicaCount: 1
+# Two replicas on different nodes: with one, a failed image pull on its new node took down cluster DNS
+replicaCount: 2
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: kubernetes.io/hostname
+    whenUnsatisfiable: DoNotSchedule
+    labelSelector:
+      matchLabels:
+        app.kubernetes.io/name: coredns
