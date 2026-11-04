@@ -11,7 +11,7 @@
 | node5 | 10.0.0.15 | k3s worker, boots from a USB SSD, Longhorn storage node |
 | offsite | 10.99.0.2 (WireGuard) | Oracle Cloud VM (Always Free, Frankfurt): offsite backup copy, outside monitoring ([offsite](offsite.md)) |
 
-Next: [Cluster 2.0](plans/cluster-2.0.md), a Pi 4 8 GB node (node6) as the only API server, two 4 GB nodes as etcd-only members, every node on an SSD.
+Next: [Cluster 2.0](plans/cluster-2.0.md), a Pi 4 8 GB node (node6) as the only API server, two 4 GB nodes as etcd-only members, every node except node2 on an SSD. Until node6 arrives, a beta on the current nodes: node2 the only API server, node3 and node4 etcd-only.
 
 ## IP plan
 

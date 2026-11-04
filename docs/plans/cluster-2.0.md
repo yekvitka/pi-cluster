@@ -1,8 +1,8 @@
 # Cluster 2.0
 
-Goal: run everything enabled today plus Rancher, logs (Loki), traces (Tempo, OpenTelemetry), the Istio mesh (Kiali) and Kafka on the hardware already bought: the Pi 4 4 GB nodes, one new Pi 4 8 GB node (node6) and an SSD in every Pi. One pod per service, no workload replicas, no further spending.
+Goal: run everything enabled today plus Rancher, logs (Loki), traces (Tempo, OpenTelemetry), the Istio mesh (Kiali) and Kafka on the hardware already bought: the Pi 4 4 GB nodes, one new Pi 4 8 GB node (node6) and an SSD in every Pi except node2. One pod per service, no workload replicas, no further spending.
 
-Status (2026-11-02): phase 0 done (repo ready, nothing applied to the nodes). node6 and the SSDs are ordered. node6 becomes the only API server; a second 8 GB node is not planned.
+Status (2026-11-04): phase 0 done (repo ready, nothing applied to the nodes). node4's SSD is connected (SMART healthy, not used yet); node6 and its SSD are ordered; node2 gets no SSD and stays on its SD card. node6 becomes the only API server; a second 8 GB node is not planned. Until node6 arrives, the [beta](#beta-current-hardware-until-node6) runs on the current hardware.
 
 ## Why
 
@@ -13,15 +13,15 @@ The 4 GB control-plane nodes run the k3s server with 1.0-1.9 GB each (measured 2
 | Node | IP (eth0 / Wi-Fi) | Hardware | k3s role | Runs |
 |---|---|---|---|---|
 | node6 | 10.0.0.16 / 192.168.50.206 | Pi 4 8 GB, SSD | the only API server + etcd, tainted | API server, scheduler, controllers, kube-vip, Rancher |
-| node2 | 10.0.0.12 / 192.168.50.202 | Pi 4 4 GB, SSD (reinstalled at conversion) | etcd only (`k3s_etcd_only`) | stateless pods: Loki read/gateway/caches, OpenTelemetry collector, istiod, Kiali, operators |
+| node2 | 10.0.0.12 / 192.168.50.202 | Pi 4 4 GB, SD card (no SSD) | etcd only (`k3s_etcd_only`) | stateless pods: Loki read/gateway/caches, OpenTelemetry collector, istiod, Kiali, operators |
 | node3 | 10.0.0.13 / 192.168.50.203 | Pi 4 4 GB, SSD | etcd only + Longhorn | Loki write and backend, Tempo (volumes) |
-| node4 | 10.0.0.14 / 192.168.50.204 | Pi 4 4 GB, SSD (reinstalled at conversion) | worker + Longhorn | Kafka broker (volume) |
+| node4 | 10.0.0.14 / 192.168.50.204 | Pi 4 4 GB, SSD (since beta B2) | worker + Longhorn | Kafka broker (volume) |
 | node5 | 10.0.0.15 / 192.168.50.205 | Pi 4 4 GB, SSD | worker + Longhorn | Prometheus, Alertmanager, Grafana |
 | node1 | 10.0.0.11 / 192.168.50.201 | Pi 4 4 GB, SSD for data | outside the cluster | Vault, RustFS, bind9, certbot, offsite backup push (unchanged) |
 | gateway | 10.0.0.1 / 192.168.50.200 | Pi 4, OpenWrt | router | NAT, DNS forwarder, WireGuard to the Oracle VM (unchanged) |
 | pimaster | 10.0.0.20 / 192.168.50.100 | VM | control host | Ansible runner |
 
-- **etcd**: 3 members, node6 + node2 + node3, all on SSDs. Survives one member down.
+- **etcd**: 3 members, node6 + node2 + node3: node6 and node3 on SSDs, node2 on its SD card. Survives one member down.
 - **API**: node6 only, behind the kube-vip address 10.0.0.10 (kept, so a second API server can join later without changes). Cilium reaches the API through the k3s local load balancer (`127.0.0.1:6444`) on every node.
 - **node6 down**: running pods keep running and serving, and kubelets restart crashed containers; nothing can be deployed, changed or rescheduled, and Flux and Rancher stop. etcd keeps the data on node2 + node3. Recovery: bring node6 back from its SSD, or rejoin node2 as a full server (about 30 minutes, Rancher off).
 - **Workloads**: one pod each; DaemonSets one per node. Longhorn one replica per volume (Velero daily, offsite nightly). Pods with volumes run on the Longhorn nodes (`node_storage=longhorn`): node3, node4, node5.
@@ -69,6 +69,36 @@ Measure after each phase and stop adding services when a 4 GB node has less than
 - Loki P1 overlay, Fluent Bit `loki` component, Rancher app (all not enabled); `k3s-loki` excluded from the offsite copy.
 - pimaster moved to 10.0.0.20.
 
+## Beta: current hardware, until node6
+
+node2 stands in for node6 as the only API server. It needs no change: it is already tainted, the `k3s_cluster_init_node` and the node with the most free memory. node3 and node4 become etcd-only servers, and node4 moves to its SSD. Everything except node4's interim role is a step the target needs anyway.
+
+| Node | Disk | Today (k3s memory, available; measured 2026-11-04) | Beta | Available (estimate) |
+|---|---|---|---|---|
+| node2 | SD | server, tainted (1.05 GB, 2.3 GB) | the only API server + etcd, tainted | ~2.0 GB: all API clients connect to it |
+| node3 | SSD | server + Longhorn (1.15 GB, 1.5 GB) | etcd only + Longhorn | ~2.1 GB |
+| node4 | SD, SSD unused | server (1.57 GB, 1.15 GB) | etcd only + Longhorn, on its SSD | ~2.2 GB |
+| node5 | SSD | worker + Longhorn + monitoring (0.17 GB, 1.5 GB) | unchanged | 1.5 GB |
+
+An etcd-only server runs k3s in about 0.5 GB and reserves 768Mi instead of 1700Mi: node3 and node4 each get about 0.9 GB more allocatable memory. The kube-vip address stays on node2, the only node with the `control-plane` label.
+
+| Phase | Change | etcd members | Validation | Rollback |
+|---|---|---|---|---|
+| B1 | node3 to etcd only (`k3s_etcd_only: true`, `k3s_kube_reserved_memory: 768Mi`): remove, wipe `/var/lib/rancher/k3s/server/db`, `k3s_install.yml --limit node3` | 3 → 2 → 3 | voter again, no API server on node3, Cilium healthy on node3 (API through 6444), Longhorn node `Ready`, Grafana and Alertmanager volumes (replicas on node3) healthy | rejoin as a full server |
+| B2 | node4 to its SSD as etcd only + Longhorn (`k3s_etcd_only: true`, `k3s_longhorn_storage: true`, 768Mi), with the [runbook](../runbooks/node-ssd-migration.md); keep the SD card | 3 → 2 → 3 | voter, boots from the SSD, Longhorn node `Ready`, API server and VIP only on node2 | SD card back in, rejoin as a full server |
+| B3 | measure memory, reservations follow the measured k3s usage | 3 | numbers vs the table above | revert variables |
+| B4 | Loki + Fluent Bit (phase 7) | 3 | logs in Grafana, write/backend volumes on a Longhorn node | remove from the list |
+| B5 | Tempo + OpenTelemetry collector (phase 9), Tempo single binary if memory is tight | 3 | traces in Grafana | remove from the list |
+| B6 | Hubble relay and UI (from phase 12) | 3 | flows in the Hubble UI | disable |
+
+The phase rules apply, with one exception: without a fourth node, B1 and B2 run on 2 etcd members while the node rejoins (about 15 and 45 minutes), as when node3 moved to its SSD. A member failing in that window means restoring the snapshot taken just before. Measure after B4-B6 and stop at the 0.5 GB rule. Loki read, gateway and caches land on node3 or node4 (node2 is tainted).
+
+Risk: the only API server boots from an SD card. With node2 down, running pods keep serving but nothing can change until node2 is back or node3 rejoins as a full server.
+
+Not in the beta: Rancher (only with node6 as the only API server), Kafka (1.8 GB), Istio ambient + Kiali, descheduler, tofu-controller. Alertmanager Telegram notifications come once node6 and its SSD are in place.
+
+When node6 arrives, the phases below run without the beta's steps: phase 3 is done (B1), node4 is on its SSD (B2), phases 7 and 9 and Hubble are done (B4-B6).
+
 ## Phases
 
 Rules for every phase: a fresh etcd snapshot before any etcd change (`k3s etcd-snapshot save --name pre-<phase>` on a server), etcd never below 3 members, one change at a time, the user approves each etcd step. Converting a server: drain, `systemctl disable --now k3s`, `kubectl delete node` (k3s removes its etcd member), wipe or reinstall, rejoin. Runbook details: [docs/runbooks/node-ssd-migration.md](../runbooks/node-ssd-migration.md).
@@ -77,16 +107,16 @@ Rules for every phase: a fresh etcd snapshot before any etcd change (`k3s etcd-s
 |---|---|---|---|---|
 | 1 | node6: flash the SSD from node1 (`dd` by `/dev/disk/by-id`, cloud-init from `metal/rpi` templates, network-config from a node's netplan with the IPs changed), boot without SD, EEPROM check, inventory + DHCP lease (MAC) + bind9 records, `update.yml`, `setup_picluster.yml --tags node`, load test | 3 | SSH, `vcgencmd get_throttled` = `0x0` under load | reflash |
 | 2 | node6 joins as a full server (`k3s_install.yml --limit node6`) | 3 → 4 | `Ready`, `EtcdIsVoter`, VIP can move to node6 | delete node6, wipe |
-| 3 | node3 to etcd only (`k3s_etcd_only: true`, reserve 768Mi): remove, wipe `/var/lib/rancher/k3s/server/db`, rejoin | 4 → 3 → 4 | voter again, Cilium healthy on node3 (API through 6444), Longhorn node `Ready` | rejoin as a full server |
-| 4 | node2 to etcd only: remove, reinstall on its SSD, rejoin with `k3s_etcd_only: true` | 4 → 3 → 4 | voter, no API server on node2 | rejoin as a full server |
-| 5 | node4 to worker + Longhorn (`k3s_longhorn_storage: true`): remove from etcd, reinstall on its SSD as an agent, move to `k3s_worker` | 4 → 3 (node6, node2, node3) | 3 voters, API only on node6, VIP on node6, Longhorn node `Ready` | rejoin as a server |
+| 3 | node3 to etcd only (`k3s_etcd_only: true`, reserve 768Mi): remove, wipe `/var/lib/rancher/k3s/server/db`, rejoin. Done in beta B1 | 4 → 3 → 4 | voter again, Cilium healthy on node3 (API through 6444), Longhorn node `Ready` | rejoin as a full server |
+| 4 | node2 to etcd only, on its SD card: remove, wipe `/var/lib/rancher/k3s/server/db`, rejoin with `k3s_etcd_only: true` | 4 → 3 → 4 | voter, no API server on node2 | rejoin as a full server |
+| 5 | node4 to worker + Longhorn (on its SSD since B2): remove from etcd, `k3s_etcd_only` off, reinstall k3s as an agent, move to `k3s_worker` | 4 → 3 (node6, node2, node3) | 3 voters, API only on node6, VIP on node6, Longhorn node `Ready` | rejoin as a server |
 | 6 | `k3s_cluster_init_node` to node6; measure memory, adjust reservations | 3 | numbers vs budget | revert variables |
-| 7 | Loki + Fluent Bit: add `loki-app.yaml`, `fluent-app.yaml` to the prod kustomization | 3 | logs in Grafana, write/backend volumes on node3 | remove from the list |
+| 7 | Loki + Fluent Bit: add `loki-app.yaml`, `fluent-app.yaml` to the prod kustomization. Done in beta B4 | 3 | logs in Grafana, write/backend volumes on node3 | remove from the list |
 | 8 | Rancher: add `rancher-app.yaml` | 3 | UI, k3s memory on node6 before and after | remove from the list |
-| 9 | Tempo + OpenTelemetry collector | 3 | traces in Grafana, Tempo volume on node3 | remove from the list |
+| 9 | Tempo + OpenTelemetry collector. Done in beta B5 | 3 | traces in Grafana, Tempo volume on node3 | remove from the list |
 | 10 | Istio ambient + Kiali with the Cilium `istio-config` component, on the dev cluster first | 3 | pod traffic and Gateway routes unchanged, Kiali graph | remove; Cilium component off |
 | 11 | Kafka: Strimzi operator + one broker | 3 | broker `Ready` on node4, produce and consume a test topic | remove from the list |
-| 12 | descheduler (safer policy), Hubble relay/UI, tofu-controller (only if used) | 3 | no evictions onto full nodes | disable |
+| 12 | descheduler (safer policy), tofu-controller (only if used); Hubble relay/UI done in beta B6 | 3 | no evictions onto full nodes | disable |
 | 13 | Gatus checks (Rancher), docs, CLAUDE.md | 3 | everything green | - |
 
 Phases 7-12: measure after each and stop at the 0.5 GB rule.
@@ -97,9 +127,9 @@ If a second 8 GB node is added later, it joins as a second API server (phases 1-
 
 ## Spare SD cards
 
-Every Pi moves to an SSD. The freed SD cards hold no cluster data (slow random writes, they wear out):
+Every Pi except node2 moves to an SSD. The freed SD cards hold no cluster data (slow random writes, they wear out):
 
-- Gateway spare: the same OpenWrt image plus a config backup (`sysupgrade -b`) on a second card. The gateway is the only Pi still booting from SD.
+- Gateway spare: the same OpenWrt image plus a config backup (`sysupgrade -b`) on a second card. The gateway and node2 are the only Pis still booting from SD.
 - Offline copy of the keys, encrypted: Vault unseal keys, restic password, SSH keys (today only in `~/.secrets` on pimaster).
 - Rescue cards: Ubuntu with the cloud-init keys. With `BOOT_ORDER=0xf41` a Pi boots an inserted SD card before its SSD: insert one only to repair, never leave it in.
 
@@ -114,9 +144,9 @@ Every Pi moves to an SSD. The freed SD cards hold no cluster data (slow random w
 ## Risks
 
 - One API server: with node6 down, nothing can change (running workloads continue) until it is back or node2 rejoins as a server.
-- Three etcd members: one can fail.
+- Three etcd members: one can fail. node2's member writes to an SD card (slower, wears out); the etcd snapshots on S3 cover it.
 - The 4 GB nodes are planned down to 0.7-1.1 GB free: a failed node's pods cannot move elsewhere (one pod per service, accepted).
 - Rancher's memory on node6: measured before and after, limit 1536Mi, reservation 3072Mi.
 - Istio ambient changes pod networking next to Cilium: dev cluster first, removable.
 - Kafka is CPU-heavy for a Pi 4: one broker, measured.
-- Each etcd conversion has a short window at 4 members; a snapshot exists before each.
+- Each etcd conversion has a short window at 4 members; a snapshot exists before each. The beta's conversions (B1, B2) have a window at 2 members instead.

@@ -112,7 +112,7 @@ flowchart LR
 
 ## Next: Cluster 2.0
 
-No new spending beyond one Raspberry Pi 4 8 GB and SSDs: the 8 GB node becomes the only API server, two 4 GB nodes become etcd-only members, every node boots from an SSD. That frees the memory for Rancher, Loki, Tempo, Istio and Kafka. The repo is prepared; the plan, memory budget, phases and rollbacks are in [docs/plans/cluster-2.0.md](docs/plans/cluster-2.0.md).
+No new spending beyond one Raspberry Pi 4 8 GB and SSDs: the 8 GB node becomes the only API server, two 4 GB nodes become etcd-only members, every node but one boots from an SSD. That frees the memory for Rancher, Loki, Tempo, Istio and Kafka. Until the 8 GB node arrives, a beta runs on the current nodes: one API server, two etcd-only members, Loki and Tempo. The repo is prepared; the plan, memory budget, phases and rollbacks are in [docs/plans/cluster-2.0.md](docs/plans/cluster-2.0.md).
 
 ## Use it
 
