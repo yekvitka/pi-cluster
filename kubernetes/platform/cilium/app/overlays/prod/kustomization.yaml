@@ -9,6 +9,7 @@ resources:
 components:
   - ../../components/monitoring
   - ../../components/hubble
+  - ../../components/route-basic-auth
 
 configMapGenerator:
   - name: cilium-helm-values
