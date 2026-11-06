@@ -8,7 +8,7 @@ resources:
 
 components:
   - ../../components/monitor
-  - ../../components/istio
+  # components/istio (PeerAuthentication) comes with Istio (Cluster 2.0 phase 10)
 
 configMapGenerator:
   - name: strimzi-kafka-operator-helm-values
