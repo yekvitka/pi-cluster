@@ -29,7 +29,10 @@ write:
       cpu: 25m
       memory: 128Mi
     limits:
-      cpu: 200m
+      # 200m was too little to catch up after an outage: Fluent Bit resends its
+      # backlog, pushes time out after 5 s and the retries keep the ingester
+      # saturated (2026-11-06, 15 min of rejected pushes until raised)
+      cpu: "1"
       # Ingesters go past 256Mi under load
       memory: 512Mi
 
