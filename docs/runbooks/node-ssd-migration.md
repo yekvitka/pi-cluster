@@ -31,4 +31,4 @@ A hard power cut can corrupt a member's database (`panic: freepages: failed to g
 
 ## Longhorn node selector
 
-Changing `systemManagedComponentsNodeSelector` (Longhorn) is applied only with all Longhorn volumes detached: scale down Prometheus, Alertmanager and Grafana (suspend their Flux Kustomizations and HelmReleases first), let Flux upgrade Longhorn, then scale back up. Existing volumes keep their replica count: set `numberOfReplicas` on each `volumes.longhorn.io`.
+Changing `systemManagedComponentsNodeSelector` or `taintToleration` (Longhorn) is applied only with all Longhorn volumes detached (Loki write and backend have volumes too): scale down Prometheus, Alertmanager and Grafana (suspend their Flux Kustomizations and HelmReleases first), let Flux upgrade Longhorn, then scale back up. Existing volumes keep their replica count: set `numberOfReplicas` on each `volumes.longhorn.io`.

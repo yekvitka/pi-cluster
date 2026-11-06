@@ -2,7 +2,7 @@
 
 Goal: run everything enabled today plus Rancher, logs (Loki), traces (Tempo, OpenTelemetry), the Istio mesh (Kiali) and Kafka on the hardware already bought: the Pi 4 4 GB nodes, one new Pi 4 8 GB node (node6) and the SSDs already bought: every Pi except node2 and node4 on an SSD. One pod per service, no workload replicas, no further spending.
 
-Status (2026-11-06): phases 1-6 done, the target node layout runs: node6 is the only API server (+ etcd, tainted, `k3s_cluster_init_node`, VIP 10.0.0.10), node2 and node3 are etcd-only, node4 and node5 are workers; etcd has 3 voters (node2, node3, node6). Phases 7 (Loki + Fluent Bit) and 8 (Rancher) run since 2026-11-06; next: phase 9 (Tempo + OpenTelemetry). node6 (Pi 4 8 GB) boots from node4's former SSD (Kingston SH103S3120G, Initio adapter, UAS without a quirk); node4 and node2 stay on their SD cards. node6 becomes the only API server; a second 8 GB node is not planned. The [beta](#beta-not-run) did not run: node6 arrived first.
+Status (2026-11-06): phases 1-6 done, the target node layout runs: node6 is the only API server (+ etcd, tainted, `k3s_cluster_init_node`, VIP 10.0.0.10), node2 and node3 are etcd-only, node4 and node5 are workers; etcd has 3 voters (node2, node3, node6). Phases 7 (Loki + Fluent Bit), 8 (Rancher) and 9 (Tempo + OpenTelemetry) run since 2026-11-06; next: 11 (Kafka on node6), 12 (Hubble), 10 (Istio, dev cluster first). Not planned any more: descheduler, tofu-controller (user, 2026-11-06). node6 (Pi 4 8 GB) boots from node4's former SSD (Kingston SH103S3120G, Initio adapter, UAS without a quirk); node4 and node2 stay on their SD cards. node6 becomes the only API server; a second 8 GB node is not planned. The [beta](#beta-not-run) did not run: node6 arrived first.
 
 ## Why
 
@@ -12,7 +12,7 @@ The 4 GB control-plane nodes run the k3s server with 1.0-1.9 GB each (measured 2
 
 | Node | IP (eth0 / Wi-Fi) | Hardware | k3s role | Runs |
 |---|---|---|---|---|
-| node6 | 10.0.0.16 / 192.168.50.206 | Pi 4 8 GB, SSD | the only API server + etcd, tainted | API server, scheduler, controllers, kube-vip, Rancher |
+| node6 | 10.0.0.16 / 192.168.50.206 | Pi 4 8 GB, SSD | the only API server + etcd, tainted, Longhorn (Kafka only) | API server, scheduler, controllers, kube-vip, Rancher, Kafka broker |
 | node2 | 10.0.0.12 / 192.168.50.202 | Pi 4 4 GB, SD card (no SSD) | etcd only (`k3s_etcd_only`) | stateless pods: Loki read/gateway/caches, OpenTelemetry collector, istiod, Kiali, operators |
 | node3 | 10.0.0.13 / 192.168.50.203 | Pi 4 4 GB, SSD | etcd only + Longhorn | Loki write and backend, Tempo (volumes) |
 | node4 | 10.0.0.14 / 192.168.50.204 | Pi 4 4 GB, SD card (its SSD went to node6) | worker, no Longhorn | stateless pods |
@@ -67,7 +67,7 @@ About 15 GB available in total, ~1.4 GB more than the estimate. Reservations unc
 | Loki P1: Simple Scalable, one pod per component, S3 on RustFS (`k3s-loki`), chunks and results caches, 7 days retention; Fluent Bit straight to Loki | ~1.1 GB | prepared, `loki-app` and `fluent-app` not enabled | write and backend on node3, the rest on node2 |
 | Tempo + OpenTelemetry collector | ~1.0 GB | prod overlays; `tempo-app` prepared, collector Kustomization to add | Tempo on node3 (volume); single binary if memory is tight |
 | Istio ambient (istiod, ztunnel, CNI) + Kiali | ~0.8 GB | prod overlays; Kustomizations to add, Cilium `istio-config` component (`cni.exclusive: false`) | changes pod networking next to Cilium: dev cluster first; Kiali logs in with a service account token |
-| Kafka: Strimzi operator, one KRaft broker | ~1.8 GB | prod overlays (operator, cluster, Kafdrop, Schema Registry); Kustomizations to add | the broker needs a volume on a Longhorn node (node3 or node5), and neither has 1.8 GB left: placement open until phase 11; Kafdrop and Schema Registry only when used, Kafdrop through port-forward until it gets a basic-auth route |
+| Kafka: Strimzi operator, one KRaft broker | ~1.8 GB | prod overlays (operator, cluster, Kafdrop, Schema Registry); Kustomizations to add | broker on node6 with its volume on node6's SSD (Longhorn tolerates the control-plane taint, StorageClass `longhorn-kafka` keeps the replica local): node3 and node5 have no 1.8 GB left, node4 has no SSD; Kafdrop and Schema Registry only when used, Kafdrop through port-forward until it gets a basic-auth route |
 | descheduler, Hubble relay/UI, tofu-controller | ~0.4 GB | not deployed | descheduler needs a policy that does not pack evicted pods onto the emptiest node (why it was removed); tofu-controller only once Terraform runs in Flux (today it runs from the runner) |
 
 
@@ -101,9 +101,9 @@ Rules for every phase: a fresh etcd snapshot before any etcd change (`k3s etcd-s
 | 6 | measure memory, adjust reservations (`k3s_cluster_init_node` moved to node6 in phase 4). Done 2026-11-06, see [measured](#measured-after-phase-5) | 3 | numbers vs budget | revert variables |
 | 7 | Loki + Fluent Bit: add `loki-app.yaml`, `fluent-app.yaml` to the prod kustomization. Done 2026-11-06: write and backend on node3, read, gateway and caches on node4; ~350 MB after start (caches fill up to 384 MB), Fluent Bit ~10 MB per node; available after: node2 2.4, node3 2.35, node4 2.8, node5 1.2, node6 5.4 GB | 3 | logs in Grafana, write/backend volumes on node3 | remove from the list |
 | 8 | Rancher: add `rancher-app.yaml`. Done 2026-11-06: Rancher 1.1 GB on node6, plus webhook, Fleet, Turtles and CAPI controllers (~0.45 GB, mostly node4 and node6); k3s on node6 1.63 → 2.73 GB (+1.1 GB, more than the 0.7 GB estimate), node6 available 5.4 → 3.4 GB. node6's reservation (3072Mi) now about equals k3s + OS: raise it at the next k3s restart. k3s versions stay with Renovate and the system-upgrade plans: never change the version in Rancher (it would create its own upgrade plans) | 3 | UI, k3s memory on node6 before and after | remove from the list |
-| 9 | Tempo + OpenTelemetry collector | 3 | traces in Grafana, Tempo volume on node3 | remove from the list |
+| 9 | Tempo + OpenTelemetry collector. Done 2026-11-06: ingester and metrics-generator on node3 (write-ahead logs on the SSD), the rest and the collector on node4; idle Tempo 160 MB (ingester up to 768Mi under load), collector 53 MB. A test trace sent through the gateway (`otel-collector.homelab.yekvitka.net/v1/traces`) shows in Tempo, Grafana and TraceQL search; span metrics reach Prometheus with UTF-8 names (`traces.span.metrics.calls_total`, label `service.name`) | 3 | traces in Grafana, Tempo volume on node3 | remove from the list |
 | 10 | Istio ambient + Kiali with the Cilium `istio-config` component, on the dev cluster first | 3 | pod traffic and Gateway routes unchanged, Kiali graph | remove; Cilium component off |
-| 11 | Kafka: Strimzi operator + one broker | 3 | broker `Ready` on a Longhorn node, produce and consume a test topic | remove from the list |
+| 11 | Kafka: Strimzi operator + one broker on node6. Longhorn's taint toleration changes only with every volume detached: scale Prometheus, Alertmanager, Grafana and Loki write/backend to 0 for the change, label node6 `node_storage=longhorn`, scale back up | 3 | broker `Ready` on a Longhorn node, produce and consume a test topic | remove from the list |
 | 12 | descheduler (safer policy), Hubble relay/UI, tofu-controller (only if used) | 3 | no evictions onto full nodes | disable |
 | 13 | Gatus checks (Rancher), docs, CLAUDE.md | 3 | everything green | - |
 

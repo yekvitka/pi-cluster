@@ -1,16 +1,17 @@
 ---
 # node6 node variables (Cluster 2.0, docs/plans/cluster-2.0.md)
 # Pi 4 8 GB, boots from a USB SSD. The only API server: API server, scheduler,
-# controllers and an etcd member. Tainted: only system pods and Rancher (it
-# tolerates the taint) run here
+# controllers and an etcd member. Tainted: only system pods, Rancher and the
+# Kafka broker (they tolerate the taint) run here
 
 # k3s server with Rancher's load measured at 1.8-1.9 GB on 4 GB masters;
 # as the only API server it serves every client, so more headroom: the scheduler
 # does not hand this memory to pods. Re-measured in phase 6
 k3s_kube_reserved_memory: 3072Mi
 
-# Control-plane only, no Longhorn data (it can be enabled later: true)
-k3s_longhorn_storage: false
+# Longhorn storage node for Kafka's volume only (Cluster 2.0 phase 11): Longhorn
+# tolerates the control-plane taint; other pods with volumes do not
+k3s_longhorn_storage: true
 
 # SSD: Kingston SH103S3120G (node4's former SSD) on an Initio 13fd:5917 adapter:
 # UAS without errors under load (2026-11-06), as node3. Quirk if it ever times
