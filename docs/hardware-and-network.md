@@ -9,7 +9,7 @@
 | node1 | 10.0.0.11 | External services: bind9 (authoritative DNS), Vault, RustFS (S3), certbot, offsite backup push |
 | node2–node4 | 10.0.0.12–14 | k3s control plane (embedded etcd). k3s API virtual IP 10.0.0.10 (kube-vip). node3 boots from a USB SSD and is a Longhorn storage node |
 | node5 | 10.0.0.15 | k3s worker, boots from a USB SSD, Longhorn storage node |
-| node6 | 10.0.0.16 | Pi 4 8 GB, boots from a USB SSD. Not in k3s yet: joins as the only API server ([Cluster 2.0](plans/cluster-2.0.md), phase 2) |
+| node6 | 10.0.0.16 | Pi 4 8 GB, boots from a USB SSD. k3s control plane (embedded etcd), tainted; becomes the only API server ([Cluster 2.0](plans/cluster-2.0.md)) |
 | offsite | 10.99.0.2 (WireGuard) | Oracle Cloud VM (Always Free, Frankfurt): offsite backup copy, outside monitoring ([offsite](offsite.md)) |
 
 Next: [Cluster 2.0](plans/cluster-2.0.md), node6 as the only API server, node2 and node3 as etcd-only members, node4 and node5 as workers.

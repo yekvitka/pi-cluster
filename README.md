@@ -79,7 +79,7 @@ flowchart LR
 | | |
 |---|---|
 | Hardware | 7 × Raspberry Pi 4 (6 servers + OpenWrt router), USB SSDs replacing SD cards, one switch |
-| Kubernetes | k3s 1.36, 4 nodes, 16 ARM cores, 15 GiB RAM, 3 etcd members |
+| Kubernetes | k3s 1.36, 5 nodes, 20 ARM cores, 22.6 GiB RAM, 4 etcd members |
 | Workloads | 57 pods, 17 Helm releases, 30 Flux Kustomizations |
 | Security | 4 auto-renewed Let's Encrypt certificates, 8 secrets synced from Vault |
 | Resilience | 3 copies of the data, 1 offsite and encrypted, Vault snapshotted nightly |
