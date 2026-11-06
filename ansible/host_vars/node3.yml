@@ -1,7 +1,10 @@
 ---
 # node3 node variables
 
-# Control plane node that also runs light, stateless workloads. Boots from SSD:
-# Longhorn storage node (node_storage=longhorn), second replica of each volume
+# etcd-only server (Cluster 2.0 beta B1): etcd member without API server,
+# controller manager and scheduler; runs light, stateless workloads. Boots from
+# SSD: Longhorn storage node (node_storage=longhorn)
+k3s_etcd_only: true
+k3s_kube_reserved_memory: 768Mi
 k3s_control_plane_taint: false
 k3s_longhorn_storage: true

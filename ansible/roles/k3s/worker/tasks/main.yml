@@ -13,3 +13,11 @@
   environment:
     INSTALL_K3S_VERSION: "{{ k3s_version }}"
   changed_when: true
+
+# The script skips the start when binary and unit are unchanged ("No change
+# detected"): an agent rejoining after `systemctl disable --now k3s-agent` stays down
+- name: Start K3s agent
+  ansible.builtin.systemd:
+    name: k3s-agent
+    state: started
+    enabled: true
