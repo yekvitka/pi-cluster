@@ -23,11 +23,15 @@ data:
       storage.backlog.mem_limit: 5M
       storage.metrics: true
     parsers:
-      - name: syslog-rfc3164-nopri
+      # Ubuntu 24.04 rsyslog writes RFC 3339 timestamps
+      # (2026-11-06T19:17:01.092741+01:00 node4 CRON[17202]: ...). The old
+      # "Nov  6 19:17:01" regex shifted every field: the first word of the
+      # message became the host label
+      - name: syslog-rfc3339-nopri
         format: regex
-        regex: '/^(?<time>[^ ]* {1,2}[^ ]* [^ ]*) (?<host>[^ ]*) (?<ident>[a-zA-Z0-9_\/\.\-]*)(?:\[(?<pid>[0-9]+)\])?(?:[^\:]*\:)? *(?<log>.*)$/'
+        regex: '/^(?<time>[^ ]+) (?<host>[^ ]*) (?<ident>[a-zA-Z0-9_\/\.\-]*)(?:\[(?<pid>[0-9]+)\])?(?:[^\:]*\:)? *(?<log>.*)$/'
         time_key: time
-        time_format: '%b %d %H:%M:%S'
+        time_format: '%Y-%m-%dT%H:%M:%S.%L%z'
         time_keep: false
     pipeline:
       inputs:
@@ -44,7 +48,7 @@ data:
           alias: input.host
           path: /var/log/auth.log, /var/log/syslog
           path_key: filename
-          parser: syslog-rfc3164-nopri
+          parser: syslog-rfc3339-nopri
           tag: host.*
           db: /var/log/fluentbit/flb_host.db
           storage.type: filesystem
