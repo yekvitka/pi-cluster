@@ -2,7 +2,7 @@
 
 Goal: run everything enabled today plus Rancher, logs (Loki), traces (Tempo, OpenTelemetry), the Istio mesh (Kiali) and Kafka on the hardware already bought: the Pi 4 4 GB nodes, one new Pi 4 8 GB node (node6) and the SSDs already bought: every Pi except node2 and node4 on an SSD. One pod per service, no workload replicas, no further spending.
 
-Status (2026-11-06): phases 1-6 done, the target node layout runs: node6 is the only API server (+ etcd, tainted, `k3s_cluster_init_node`, VIP 10.0.0.10), node2 and node3 are etcd-only, node4 and node5 are workers; etcd has 3 voters (node2, node3, node6). Next: the service phases (7-12). node6 (Pi 4 8 GB) boots from node4's former SSD (Kingston SH103S3120G, Initio adapter, UAS without a quirk); node4 and node2 stay on their SD cards. node6 becomes the only API server; a second 8 GB node is not planned. The [beta](#beta-not-run) did not run: node6 arrived first.
+Status (2026-11-06): phases 1-6 done, the target node layout runs: node6 is the only API server (+ etcd, tainted, `k3s_cluster_init_node`, VIP 10.0.0.10), node2 and node3 are etcd-only, node4 and node5 are workers; etcd has 3 voters (node2, node3, node6). Phase 7 (Loki + Fluent Bit) runs since 2026-11-06; next: phase 8 (Rancher). node6 (Pi 4 8 GB) boots from node4's former SSD (Kingston SH103S3120G, Initio adapter, UAS without a quirk); node4 and node2 stay on their SD cards. node6 becomes the only API server; a second 8 GB node is not planned. The [beta](#beta-not-run) did not run: node6 arrived first.
 
 ## Why
 
@@ -99,7 +99,7 @@ Rules for every phase: a fresh etcd snapshot before any etcd change (`k3s etcd-s
 | 4 | node2 to etcd only, on its SD card: `k3s_cluster_init_node` to node6 first (node2 rejoining with an empty db as init node would start a second cluster), remove, wipe `/var/lib/rancher/k3s/server/db`, rejoin with `k3s_etcd_only: true`, untainted. Done 2026-11-06 | 4 → 3 → 4 | voter, no API server on node2 | rejoin as a full server |
 | 5 | node4 to worker, on its SD card without Longhorn: remove from etcd, `k3s-uninstall.sh`, move to `k3s_worker`, install k3s as an agent. Done 2026-11-06 (VIP moved to node6 in ~15 s) | 4 → 3 (node6, node2, node3) | 3 voters, API only on node6, VIP on node6 | rejoin as a server |
 | 6 | measure memory, adjust reservations (`k3s_cluster_init_node` moved to node6 in phase 4). Done 2026-11-06, see [measured](#measured-after-phase-5) | 3 | numbers vs budget | revert variables |
-| 7 | Loki + Fluent Bit: add `loki-app.yaml`, `fluent-app.yaml` to the prod kustomization | 3 | logs in Grafana, write/backend volumes on node3 | remove from the list |
+| 7 | Loki + Fluent Bit: add `loki-app.yaml`, `fluent-app.yaml` to the prod kustomization. Done 2026-11-06: write and backend on node3, read, gateway and caches on node4; ~350 MB after start (caches fill up to 384 MB), Fluent Bit ~10 MB per node; available after: node2 2.4, node3 2.35, node4 2.8, node5 1.2, node6 5.4 GB | 3 | logs in Grafana, write/backend volumes on node3 | remove from the list |
 | 8 | Rancher: add `rancher-app.yaml` | 3 | UI, k3s memory on node6 before and after | remove from the list |
 | 9 | Tempo + OpenTelemetry collector | 3 | traces in Grafana, Tempo volume on node3 | remove from the list |
 | 10 | Istio ambient + Kiali with the Cilium `istio-config` component, on the dev cluster first | 3 | pod traffic and Gateway routes unchanged, Kiali graph | remove; Cilium component off |
