@@ -2,7 +2,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 # Not enabled yet (docs/plans/cluster-2.0.md):
-# tempo-app, otel-collector-app: phase 9; descheduler-app: phase 12
+# descheduler-app: phase 12
 resources:
   - cert-manager-app.yaml
   - cilium-app.yaml
@@ -19,8 +19,10 @@ resources:
   - loki-app.yaml
   - longhorn-app.yaml
   - metrics-server-app.yaml
+  - otel-collector-app.yaml
   - rancher-app.yaml
   - system-upgrade-app.yaml
+  - tempo-app.yaml
   - vault-app.yaml
   - velero-app.yaml
   - kube-vip-app.yaml

@@ -20,7 +20,7 @@ What runs in the cluster and how it fits 4 GB Raspberry Pis. Every app in the re
 
 ## Known limits
 
-- Rancher does not fit 4 GB API servers. Its cluster agent watches every resource type, which adds about 700Mi to every API server; on the 4 GB control plane node3 started to thrash. Rancher runs once node6 (8 GB) is the only API server.
+- Rancher does not fit 4 GB API servers. Its cluster agent watches every resource type, which adds about 700Mi to every API server; on the 4 GB control plane node3 started to thrash. Rancher runs on node6 (8 GB), the only API server, since 2026-11-06 (k3s there +1.1 GB). Never change the k3s version in Rancher: upgrades go through Renovate and the system-upgrade plans.
 - Prometheus has a 900Mi memory limit (640Mi request), below node5's free memory: it is OOM-killed and restarted instead of hanging the node. It stays under the limit with a 60s scrape interval (30s for node-exporter and the kubelet/cAdvisor, because Lens computes rates over 1m windows), 6h / 1GB retention and trimmed kubelet histograms (`app/overlays/prod/values.yaml`).
 
 ## Web UIs

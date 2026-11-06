@@ -6,6 +6,20 @@
 
 ingester:
   replicas: 1
+  # Write-ahead log in an emptyDir on the node's disk: SSD nodes only
+  # (node_storage=longhorn), node3 preferred over node5 (monitoring).
+  # The chart templates affinity as a string; it replaces the default pod
+  # anti-affinity, which has no effect with one replica
+  nodeSelector:
+    node_storage: longhorn
+  affinity: |
+    nodeAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          preference:
+            matchExpressions:
+              - key: node_type
+                operator: DoesNotExist
   config:
     replication_factor: 1
   resources:
@@ -53,6 +67,20 @@ queryFrontend:
       memory: 256Mi
 
 metricsGenerator:
+  # Write-ahead log in an emptyDir on the node's disk: SSD nodes only
+  # (node_storage=longhorn), node3 preferred over node5 (monitoring).
+  # The chart templates affinity as a string; it replaces the default pod
+  # anti-affinity, which has no effect with one replica
+  nodeSelector:
+    node_storage: longhorn
+  affinity: |
+    nodeAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          preference:
+            matchExpressions:
+              - key: node_type
+                operator: DoesNotExist
   resources:
     requests:
       cpu: 25m

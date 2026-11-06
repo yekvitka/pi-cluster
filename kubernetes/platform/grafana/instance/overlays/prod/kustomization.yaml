@@ -9,6 +9,7 @@ resources:
 components:
   - ../../components/prometheus
   - ../../components/loki
+  - ../../components/tempo
   - ../../components/monitoring
   - ../../components/persistence
   - ../../components/route
