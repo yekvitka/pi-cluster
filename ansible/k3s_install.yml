@@ -176,7 +176,8 @@
   tasks:
     - name: Label k3s worker nodes
       ansible.builtin.command:
-        cmd: "kubectl label nodes {{ item }} kubernetes.io/role=worker"
+        # Through the API address: an etcd-only server has no local API server
+        cmd: "kubectl --server https://{{ k3s_api_vip }}:6443 label nodes {{ item }} kubernetes.io/role=worker"
       register: worker_label
       changed_when: "'not labeled' not in worker_label.stdout"
       run_once: true
@@ -197,7 +198,9 @@
 
     - name: Write Kubernetes config file with the correct cluster address
       ansible.builtin.copy:
-        content: "{{ kubeconfig_base64.content | b64decode | replace('127.0.0.1', k3s_api_vip) }}"
+        # The port too: an etcd-only server's k3s.yaml points to its local
+        # load balancer (127.0.0.1:6444), not to an API server (6443)
+        content: "{{ kubeconfig_base64.content | b64decode | regex_replace('https://127\\.0\\.0\\.1:[0-9]+', 'https://' ~ k3s_api_vip ~ ':6443') }}"
         dest: "~/.kube/config"
         mode: "0600"
       delegate_to: localhost

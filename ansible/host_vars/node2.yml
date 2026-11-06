@@ -1,0 +1,9 @@
+---
+# node2 node variables
+
+# etcd-only server (Cluster 2.0 phase 4): etcd member without API server,
+# controller manager and scheduler. Boots from its SD card (no SSD): no
+# Longhorn. Untainted: runs light, stateless workloads
+k3s_etcd_only: true
+k3s_kube_reserved_memory: 768Mi
+k3s_control_plane_taint: false

@@ -22,7 +22,7 @@ k3s_config_directory: /etc/rancher/k3s
 # Explicit, not "first host of k3s_master": a new control-plane node listed first
 # must join the existing cluster, never create a second one. Point it to a running
 # server; for a rebuild from scratch, to the first server installed
-k3s_cluster_init_node: node2
+k3s_cluster_init_node: node6
 
 k3s_kubelet_config: |
   apiVersion: kubelet.config.k8s.io/v1beta1

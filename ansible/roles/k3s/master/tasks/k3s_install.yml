@@ -11,6 +11,14 @@
     INSTALL_K3S_VERSION: "{{ k3s_version }}"
   changed_when: true
 
+# The script skips the start when binary and unit are unchanged ("No change
+# detected"): a server rejoining after `systemctl disable --now k3s` stays down
+- name: Start K3s
+  ansible.builtin.systemd:
+    name: k3s
+    state: started
+    enabled: true
+
 - name: Create directory .kube
   ansible.builtin.file:
     path: ~{{ ansible_user }}/.kube

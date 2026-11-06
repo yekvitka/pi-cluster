@@ -11,6 +11,20 @@ pimaster is a VM without USB, so the SSD is flashed from the node itself while i
 
 Rollback before step 3: wipe the SSD. After step 3: unplug the SSD, insert the SD card (SD boots first), delete `/var/lib/rancher/k3s/server/db` on the node and rerun `k3s_install.yml --limit <node>`.
 
+## Convert a server's role (etcd-only, agent)
+
+Cluster 2.0 conversions (node3 to etcd-only, 2026-11-06), with 4 etcd members so quorum holds throughout:
+
+1. `k3s etcd-snapshot save --name pre-<phase>` on another server.
+2. Longhorn volumes whose only replica is on the node: stop their pods so the volumes detach. Grafana: `flux suspend kustomization grafana-instance`, then `spec.deployment.spec.replicas: 0` on `grafanas.grafana.integreatly.org/grafana` (the short name `grafana` resolves to an External Secrets generator). Alertmanager: `spec.replicas: 0` on the `Alertmanager` resource.
+3. Longhorn's default `node-drain-policy` (`block-if-contains-last-replica`) blocks the drain even with those replicas stopped: set `allow-if-replica-is-stopped` for the conversion. `csi-attacher` and `csi-provisioner` (one replica each) keep a `minAvailable: 1` PDB while any volume is attached elsewhere: if they run on the node, delete their pods (a delete is not an eviction) and they start on another node.
+4. `kubectl drain`, `systemctl disable --now k3s`, `kubectl delete node <node>` (k3s removes the etcd member), then move `/var/lib/rancher/k3s/server/db` aside (`db.pre-<phase>`) and set the host_vars (`k3s_etcd_only`, `k3s_kube_reserved_memory`).
+5. `k3s_install.yml --limit <node>`. The role starts k3s itself: the install script skips the start when nothing changed (`No change detected`), which left node3 down before the role was fixed.
+6. Check `kubectl get node <node> -o jsonpath='{.spec.unschedulable}'`: before the `k3s-agent` plan required `node_type=worker`, a rejoining server matched it for a few seconds and its job, deleted mid-way, left the node cordoned (Longhorn then cannot start the node's instance manager). Uncordon if needed.
+7. Scale the pods back up, remove the Grafana `replicas` override, resume Flux, set `node-drain-policy` back to `block-if-contains-last-replica`.
+
+An etcd-only server listens on 6443 (k3s supervisor, `/api` answers 503) and 6444 (local load balancer); the `kubernetes` Service endpoints list only real API servers.
+
 ## Corrupted etcd member
 
 A hard power cut can corrupt a member's database (`panic: freepages: failed to get all reachable pages` in the k3s log, k3s restarting in a loop). With the other two members healthy: snapshot, `systemctl stop k3s` on the node, `kubectl delete node <node>` (removes the member), delete `/var/lib/rancher/k3s/server/db` on the node, `systemctl start k3s`. It rejoins as a learner and is promoted.

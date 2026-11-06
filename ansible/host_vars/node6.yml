@@ -12,6 +12,8 @@ k3s_kube_reserved_memory: 3072Mi
 # Control-plane only, no Longhorn data (it can be enabled later: true)
 k3s_longhorn_storage: false
 
-# USB-SATA adapter quirk if it times out with UAS (lsusb ID), as node1/node5:
+# SSD: Kingston SH103S3120G (node4's former SSD) on an Initio 13fd:5917 adapter:
+# UAS without errors under load (2026-11-06), as node3. Quirk if it ever times
+# out, as node1/node5:
 # rpi_usb_storage_quirks:
-#   - "<vendor>:<product>:u"
+#   - "13fd:5917:u"

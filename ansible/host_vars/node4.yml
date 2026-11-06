@@ -1,6 +1,5 @@
 ---
 # node4 node variables
 
-# Control plane node that also runs light, stateless workloads (no Longhorn
-# components or data: Longhorn runs on node_storage=longhorn nodes only)
-k3s_control_plane_taint: false
+# Worker (Cluster 2.0 phase 5) on its SD card: its SSD went to node6
+# (2026-11-06). No Longhorn (no SSD): runs light, stateless workloads
