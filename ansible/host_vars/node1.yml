@@ -56,6 +56,9 @@ bind9_zones:
       - label: node5
         type: A
         rdata: 10.0.0.15
+      - label: node6
+        type: A
+        rdata: 10.0.0.16
       - label: vault
         type: A
         rdata: 10.0.0.11
@@ -65,7 +68,7 @@ bind9_zones:
   - name: 0.10.in-addr.arpa
     type: primary
     default_ttl: 600
-    serial: 2024102001
+    serial: 2024102002
     refresh: 1D
     retry: 2H
     expire: 1000H
@@ -92,6 +95,9 @@ bind9_zones:
       - label: 15.0
         type: PTR
         rdata: "node5.{{ dns_domain }}."
+      - label: 16.0
+        type: PTR
+        rdata: "node6.{{ dns_domain }}."
 
 ############################
 # restic backup role variables

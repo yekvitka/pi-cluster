@@ -142,6 +142,7 @@ static_lease node2 D8:3A:DD:3B:46:EC 10.0.0.12
 static_lease node3 D8:3A:DD:D4:99:81 10.0.0.13
 static_lease node4 D8:3A:DD:D4:8E:FB 10.0.0.14
 static_lease node5 D8:3A:DD:3B:47:2E 10.0.0.15
+static_lease node6 E4:5F:01:3C:A4:EC 10.0.0.16
 
 ########################
 # Firewall

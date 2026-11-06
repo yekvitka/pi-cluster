@@ -10,7 +10,7 @@ The cluster gateway is a Raspberry Pi running OpenWrt. It is not managed by Ansi
 Services provided by the gateway:
 
 - Routing, firewall and NAT (cluster LAN → home network)
-- DHCP for 10.0.0.0/24: disabled by default (`LAN_DHCP=0`). The cluster LAN and the home network share one switch, so a second DHCP server would answer home devices; nodes use static IPs. With `LAN_DHCP=1` (dedicated cluster switch): static leases for node1–node5, dynamic pool 10.0.0.150–10.0.0.249 (10.0.0.64/26 is reserved for Kubernetes LoadBalancer IPs, 10.0.0.10 for the k3s API)
+- DHCP for 10.0.0.0/24: disabled by default (`LAN_DHCP=0`). The cluster LAN and the home network share one switch, so a second DHCP server would answer home devices; nodes use static IPs. With `LAN_DHCP=1` (dedicated cluster switch): static leases for node1–node6, dynamic pool 10.0.0.150–10.0.0.249 (10.0.0.64/26 is reserved for Kubernetes LoadBalancer IPs, 10.0.0.10 for the k3s API)
 - DNS forwarder: `homelab.yekvitka.net` and `0.10.in-addr.arpa` go to bind9 on node1 (10.0.0.11), everything else to 1.1.1.1 / 8.8.8.8
 - NTP server on the LAN
 - Prometheus node exporter on the LAN interface (`script/node-exporter.sh`)

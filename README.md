@@ -78,7 +78,7 @@ flowchart LR
 
 | | |
 |---|---|
-| Hardware | 6 × Raspberry Pi 4 (5 servers + OpenWrt router), USB SSDs replacing SD cards, one switch |
+| Hardware | 7 × Raspberry Pi 4 (6 servers + OpenWrt router), USB SSDs replacing SD cards, one switch |
 | Kubernetes | k3s 1.36, 4 nodes, 16 ARM cores, 15 GiB RAM, 3 etcd members |
 | Workloads | 57 pods, 17 Helm releases, 30 Flux Kustomizations |
 | Security | 4 auto-renewed Let's Encrypt certificates, 8 secrets synced from Vault |
@@ -112,7 +112,7 @@ flowchart LR
 
 ## Next: Cluster 2.0
 
-No new spending beyond one Raspberry Pi 4 8 GB and SSDs: the 8 GB node becomes the only API server, two 4 GB nodes become etcd-only members, every node but one boots from an SSD. That frees the memory for Rancher, Loki, Tempo, Istio and Kafka. Until the 8 GB node arrives, a beta runs on the current nodes: one API server, two etcd-only members, Loki and Tempo. The repo is prepared; the plan, memory budget, phases and rollbacks are in [docs/plans/cluster-2.0.md](docs/plans/cluster-2.0.md).
+No new spending beyond one Raspberry Pi 4 8 GB and SSDs: the 8 GB node becomes the only API server, two 4 GB nodes become etcd-only members, the 8 GB node and the storage nodes boot from SSDs. That frees the memory for Rancher, Loki, Tempo, Istio and Kafka. The 8 GB node is in place (phase 1 done); the plan, memory budget, phases and rollbacks are in [docs/plans/cluster-2.0.md](docs/plans/cluster-2.0.md).
 
 ## Use it
 

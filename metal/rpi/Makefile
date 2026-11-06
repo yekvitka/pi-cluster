@@ -1,7 +1,7 @@
 IMG=ubuntu-24.04.5-preinstalled-server-arm64+raspi.img.xz
 URL_IMG=https://cdimage.ubuntu.com/releases/24.04/release/${IMG}
 # REPLACE WITH YOUR BOOT DISK (`lsblk`). Every node boots from a USB SSD (Cluster 2.0);
-# node1, node2 and node4 still boot from SD cards until their SSDs are in
+# node1 (SSD for data only), node2 and node4 boot from SD cards
 USB=/dev/sda
 SYSTEM_BOOT_MOUNT=/tmp/pi-disk
 # node1: SD card OS, SSD1 formatted and mounted at /storage (RustFS, Vault)
