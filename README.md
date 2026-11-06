@@ -34,7 +34,7 @@ flowchart LR
       dns["bind9<br/>homelab DNS"]
       certbot["certbot<br/>auto-renew"]
     end
-    subgraph kube["☸️ k3s · node2–4 control plane + etcd · node5 worker"]
+    subgraph kube["☸️ k3s · node6 API server + etcd · node2, node3 etcd · node4, node5 workers"]
       flux["Flux<br/>GitOps"]
       envoy["Envoy Gateway<br/>10.0.0.68 · TLS"]
       apps["Grafana · Prometheus<br/>Alertmanager · Longhorn"]
@@ -79,7 +79,7 @@ flowchart LR
 | | |
 |---|---|
 | Hardware | 7 × Raspberry Pi 4 (6 servers + OpenWrt router), USB SSDs replacing SD cards, one switch |
-| Kubernetes | k3s 1.36, 5 nodes, 20 ARM cores, 22.6 GiB RAM, 4 etcd members |
+| Kubernetes | k3s 1.36, 5 nodes, 20 ARM cores, 22.6 GiB RAM, 1 API server, 3 etcd members |
 | Workloads | 57 pods, 17 Helm releases, 30 Flux Kustomizations |
 | Security | 4 auto-renewed Let's Encrypt certificates, 8 secrets synced from Vault |
 | Resilience | 3 copies of the data, 1 offsite and encrypted, Vault snapshotted nightly |
@@ -112,7 +112,7 @@ flowchart LR
 
 ## Next: Cluster 2.0
 
-No new spending beyond one Raspberry Pi 4 8 GB and SSDs: the 8 GB node becomes the only API server, two 4 GB nodes become etcd-only members, the 8 GB node and the storage nodes boot from SSDs. That frees the memory for Rancher, Loki, Tempo, Istio and Kafka. The 8 GB node is in place (phase 1 done); the plan, memory budget, phases and rollbacks are in [docs/plans/cluster-2.0.md](docs/plans/cluster-2.0.md).
+No new spending beyond one Raspberry Pi 4 8 GB and SSDs: the 8 GB node becomes the only API server, two 4 GB nodes become etcd-only members, the 8 GB node and the storage nodes boot from SSDs. That frees the memory for Rancher, Loki, Tempo, Istio and Kafka. The node layout runs since 2026-11-06 (8 GB node the only API server, node2 and node3 etcd-only); the services come next; the plan, memory budget, phases and rollbacks are in [docs/plans/cluster-2.0.md](docs/plans/cluster-2.0.md).
 
 ## Use it
 

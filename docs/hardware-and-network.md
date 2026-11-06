@@ -7,12 +7,13 @@
 | gateway | 10.0.0.1 / 192.168.50.200 | OpenWrt router: firewall/NAT, DHCP, DNS forwarder, NTP, WireGuard to the offsite VM ([metal/openwrt](../metal/openwrt/README.md)) |
 | pimaster | 192.168.50.100 / 10.0.0.20 | Ansible control node, VM on the shared home/cluster segment ([control host](control-host.md)) |
 | node1 | 10.0.0.11 | External services: bind9 (authoritative DNS), Vault, RustFS (S3), certbot, offsite backup push |
-| node2–node4 | 10.0.0.12–14 | k3s servers (embedded etcd). node2 and node3: etcd only (no API server); node4: control plane. node3 boots from a USB SSD and is a Longhorn storage node |
+| node2, node3 | 10.0.0.12–13 | k3s etcd-only servers (no API server). node3 boots from a USB SSD and is a Longhorn storage node |
+| node4 | 10.0.0.14 | k3s worker, boots from SD card, no Longhorn |
 | node5 | 10.0.0.15 | k3s worker, boots from a USB SSD, Longhorn storage node |
-| node6 | 10.0.0.16 | Pi 4 8 GB, boots from a USB SSD. k3s control plane (embedded etcd), tainted; becomes the only API server ([Cluster 2.0](plans/cluster-2.0.md)). k3s API virtual IP 10.0.0.10 (kube-vip) on node4 and node6 |
+| node6 | 10.0.0.16 | Pi 4 8 GB, boots from a USB SSD. The only k3s API server (+ etcd), tainted. k3s API virtual IP 10.0.0.10 (kube-vip) |
 | offsite | 10.99.0.2 (WireGuard) | Oracle Cloud VM (Always Free, Frankfurt): offsite backup copy, outside monitoring ([offsite](offsite.md)) |
 
-Next: [Cluster 2.0](plans/cluster-2.0.md), node6 as the only API server, node2 and node3 as etcd-only members, node4 and node5 as workers.
+[Cluster 2.0](plans/cluster-2.0.md): this node layout runs since 2026-11-06; the services (Loki, Tempo, Rancher, Istio, Kafka) come next.
 
 ## IP plan
 

@@ -46,11 +46,11 @@ all:
       children:
         k3s_master:
           hosts:
-            node[2:4]:
+            node[2:3]:
             node6:
         k3s_worker:
           hosts:
-            node5:
+            node[4:5]:
     s3:
       hosts:
         node1:
