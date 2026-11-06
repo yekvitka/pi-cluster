@@ -12,6 +12,16 @@ write:
   replicas: 1
   nodeSelector:
     node_storage: longhorn
+  # Prefer node3 (etcd-only storage node) over node5 (worker running monitoring):
+  # merged with the chart's default podAntiAffinity
+  affinity:
+    nodeAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          preference:
+            matchExpressions:
+              - key: node_type
+                operator: DoesNotExist
   persistence:
     size: 1Gi
   resources:
@@ -39,6 +49,16 @@ backend:
   replicas: 1
   nodeSelector:
     node_storage: longhorn
+  # Prefer node3 (etcd-only storage node) over node5 (worker running monitoring):
+  # merged with the chart's default podAntiAffinity
+  affinity:
+    nodeAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          preference:
+            matchExpressions:
+              - key: node_type
+                operator: DoesNotExist
   resources:
     requests:
       cpu: 50m
