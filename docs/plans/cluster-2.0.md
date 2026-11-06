@@ -2,7 +2,7 @@
 
 Goal: run everything enabled today plus Rancher, logs (Loki), traces (Tempo, OpenTelemetry), the Istio mesh (Kiali) and Kafka on the hardware already bought: the Pi 4 4 GB nodes, one new Pi 4 8 GB node (node6) and the SSDs already bought: every Pi except node2 and node4 on an SSD. One pod per service, no workload replicas, no further spending.
 
-Status (2026-11-06): phases 1-3 done: node6 is a k3s server (API + etcd, tainted), node3 is etcd-only (k3s 0.28 GB instead of 1.15 GB), etcd has 4 voters (node2, node3, node4, node6), API servers node2, node4, node6, the VIP is on node4. node6 (Pi 4 8 GB) boots from node4's former SSD (Kingston SH103S3120G, Initio adapter, UAS without a quirk); node4 and node2 stay on their SD cards. node6 becomes the only API server; a second 8 GB node is not planned. The [beta](#beta-not-run) did not run: node6 arrived first.
+Status (2026-11-06): phases 1-4 done: node6 is a k3s server (API + etcd, tainted) and the `k3s_cluster_init_node`; node2 and node3 are etcd-only (k3s 0.28 GB each, was 1.43 and 1.15 GB); etcd has 4 voters (node2, node3, node4, node6); API servers node4 and node6, the VIP on node4. node6 (Pi 4 8 GB) boots from node4's former SSD (Kingston SH103S3120G, Initio adapter, UAS without a quirk); node4 and node2 stay on their SD cards. node6 becomes the only API server; a second 8 GB node is not planned. The [beta](#beta-not-run) did not run: node6 arrived first.
 
 ## Why
 
@@ -82,9 +82,9 @@ Rules for every phase: a fresh etcd snapshot before any etcd change (`k3s etcd-s
 | 1 | node6: write Ubuntu to node6's own SSD (never node1's `DATA` SSD: Vault and RustFS) by `/dev/disk/by-id`, from node6 booted from a temporary SD card or from another host; cloud-init from the `metal/rpi` templates; boot without SD, EEPROM check, inventory + DHCP lease (MAC) + bind9 records, `update.yml`, `setup_picluster.yml --tags node`, load test. Done 2026-11-06 | 3 | SSH, `vcgencmd get_throttled` = `0x0` under load | reflash |
 | 2 | node6 joins as a full server (`k3s_install.yml --limit node6`). Done 2026-11-06 | 3 → 4 | `Ready`, `EtcdIsVoter`, VIP can move to node6 | delete node6, wipe |
 | 3 | node3 to etcd only (`k3s_etcd_only: true`, reserve 768Mi): remove, wipe `/var/lib/rancher/k3s/server/db`, rejoin ([runbook](../runbooks/node-ssd-migration.md#convert-a-servers-role-etcd-only-agent)). Done 2026-11-06 | 4 → 3 → 4 | voter again, Cilium healthy on node3 (API through 6444), Longhorn node `Ready` | rejoin as a full server |
-| 4 | node2 to etcd only, on its SD card: remove, wipe `/var/lib/rancher/k3s/server/db`, rejoin with `k3s_etcd_only: true` | 4 → 3 → 4 | voter, no API server on node2 | rejoin as a full server |
+| 4 | node2 to etcd only, on its SD card: `k3s_cluster_init_node` to node6 first (node2 rejoining with an empty db as init node would start a second cluster), remove, wipe `/var/lib/rancher/k3s/server/db`, rejoin with `k3s_etcd_only: true`, untainted. Done 2026-11-06 | 4 → 3 → 4 | voter, no API server on node2 | rejoin as a full server |
 | 5 | node4 to worker, on its SD card without Longhorn: remove from etcd, reinstall k3s as an agent, move to `k3s_worker` | 4 → 3 (node6, node2, node3) | 3 voters, API only on node6, VIP on node6 | rejoin as a server |
-| 6 | `k3s_cluster_init_node` to node6; measure memory, adjust reservations | 3 | numbers vs budget | revert variables |
+| 6 | measure memory, adjust reservations (`k3s_cluster_init_node` moved to node6 in phase 4) | 3 | numbers vs budget | revert variables |
 | 7 | Loki + Fluent Bit: add `loki-app.yaml`, `fluent-app.yaml` to the prod kustomization | 3 | logs in Grafana, write/backend volumes on node3 | remove from the list |
 | 8 | Rancher: add `rancher-app.yaml` | 3 | UI, k3s memory on node6 before and after | remove from the list |
 | 9 | Tempo + OpenTelemetry collector | 3 | traces in Grafana, Tempo volume on node3 | remove from the list |
