@@ -103,11 +103,25 @@ k3s_server_config:
   etcd-s3-config-secret: k3s-etcd-snapshot-s3-config
   kubelet-arg:
     - 'config=/etc/rancher/k3s/kubelet.config'
+  # Leader leases 60s/40s/5s instead of 15s/10s/2s: k3s exits when one of these
+  # loses its lease. With node6 starved of CPU (2026-11-07) etcd took 2-4 s per
+  # request, the 10 s renewal deadline passed and k3s restarted 17 times. One API
+  # server: no other candidate waits for the lease
   kube-controller-manager-arg:
     - 'bind-address=0.0.0.0'
     - 'terminated-pod-gc-threshold=10'
+    - 'leader-elect-lease-duration=60s'
+    - 'leader-elect-renew-deadline=40s'
+    - 'leader-elect-retry-period=5s'
   kube-scheduler-arg:
     - 'bind-address=0.0.0.0'
+    - 'leader-elect-lease-duration=60s'
+    - 'leader-elect-renew-deadline=40s'
+    - 'leader-elect-retry-period=5s'
+  kube-cloud-controller-manager-arg:
+    - 'leader-elect-lease-duration=60s'
+    - 'leader-elect-renew-deadline=40s'
+    - 'leader-elect-retry-period=5s'
 
 # k3s agent-config
 # Equivalent to start agent installer with the following options
