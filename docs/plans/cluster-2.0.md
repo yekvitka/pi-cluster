@@ -120,7 +120,7 @@ It then kept restarting (17 times in 1.5 hours):
 
 node6 has no CPU left for a mesh or a broker: Istio (ztunnel and istio-cni on every node) and Kafka (the broker on node6) are out. Their prod overlays stay in the repo.
 
-Afterwards (2026-11-07): Cilium's `istio-config` component off, Longhorn off node6, and longer leader leases (60 s lease, 40 s renewal deadline, 5 s retry instead of 15/10/2) for k3s's controller-manager, scheduler and cloud-controller-manager (`k3s_server_config`) and for kube-vip, so a slow API no longer restarts k3s or moves the VIP. kube-vip v1.2.0 always deletes the VIP when it starts and needs the API to add it back: a k3s restart still costs node6 one Cilium recompile.
+Afterwards (2026-11-07): Cilium's `istio-config` component off, Longhorn off node6, and longer leader leases (60 s lease, 40 s renewal deadline, 5 s retry instead of 15/10/2) for k3s's controller-manager and scheduler (`k3s_server_config`) and for kube-vip, so a slow API no longer restarts k3s or moves the VIP. The cloud-controller-manager runs on all three servers and its holder's k3s exited with every API outage, on node2 and node3 taking their etcd member with it: its lease is 240 s with a 180 s renewal deadline, longer than a k3s restart on node6 (95 s). kube-vip v1.2.0 always deletes the VIP when it starts and needs the API to add it back: a k3s restart still costs node6 one Cilium recompile.
 
 The `dev/` tooling is stale (k3s 1.30.6 image in the k3d template, `helmfile.yaml` and `kubernetes/clusters/bootstrap/flux` missing): the phase 10 test used k3d (installed on pimaster, arm64) directly with Helm and the repo values, then deleted the cluster.
 
