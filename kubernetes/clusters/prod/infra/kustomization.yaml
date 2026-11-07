@@ -1,7 +1,8 @@
 ---
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-# Not enabled: descheduler-app (dropped, docs/plans/cluster-2.0.md phase 12)
+# Not enabled: descheduler-app (dropped, docs/plans/cluster-2.0.md phase 12);
+# istio, kiali and kafka (removed 2026-11-07, same plan, phases 10 and 11)
 resources:
   - cert-manager-app.yaml
   - cilium-app.yaml
@@ -13,9 +14,6 @@ resources:
   - fluent-app.yaml
   - flux-app.yaml
   - grafana-app.yaml
-  - istio-app.yaml
-  - kafka-app.yaml
-  - kiali-app.yaml
   - k3s-etcd-backup-app.yaml
   - kube-prometheus-stack-app.yaml
   - loki-app.yaml
