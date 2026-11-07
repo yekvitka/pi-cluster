@@ -66,8 +66,8 @@ About 15 GB available in total, ~1.4 GB more than the estimate. Reservations unc
 | Rancher 2.15, route `rancher.homelab.yekvitka.net` | ~2.2 GB with the API server load | prepared, `rancher-app` not enabled | node6, limit 1536Mi |
 | Loki P1: Simple Scalable, one pod per component, S3 on RustFS (`k3s-loki`), chunks and results caches, 7 days retention; Fluent Bit straight to Loki | ~1.1 GB | prepared, `loki-app` and `fluent-app` not enabled | write and backend on node3, the rest on node2 |
 | Tempo + OpenTelemetry collector | ~1.0 GB | prod overlays; `tempo-app` prepared, collector Kustomization to add | Tempo on node3 (volume); single binary if memory is tight |
-| Istio ambient (istiod, ztunnel, CNI) + Kiali | ~0.8 GB | removed 2026-11-07 (never installed in prod); prod overlays kept | changes pod networking next to Cilium: dev cluster first; Kiali logs in with a service account token |
-| Kafka: Strimzi operator, one KRaft broker | ~1.8 GB | removed 2026-11-07 (ran on node6 from 2026-11-06); prod overlays kept | broker on node6 with its volume on node6's SSD (Longhorn tolerates the control-plane taint, StorageClass `longhorn-kafka` keeps the replica local): node3 and node5 have no 1.8 GB left, node4 has no SSD; Kafdrop and Schema Registry only when used, Kafdrop through port-forward until it gets a basic-auth route |
+| Istio ambient (istiod, ztunnel, CNI) + Kiali | ~0.8 GB | removed 2026-11-07 (never installed in prod), deleted from the repo | changes pod networking next to Cilium: dev cluster first; Kiali logs in with a service account token |
+| Kafka: Strimzi operator, one KRaft broker | ~1.8 GB | removed 2026-11-07 (ran on node6 from 2026-11-06), deleted from the repo | broker on node6 with its volume on node6's SSD (Longhorn tolerates the control-plane taint, StorageClass `longhorn-kafka` keeps the replica local): node3 and node5 have no 1.8 GB left, node4 has no SSD; Kafdrop and Schema Registry only when used, Kafdrop through port-forward until it gets a basic-auth route |
 | descheduler, Hubble relay/UI, tofu-controller | ~0.4 GB | not deployed | descheduler needs a policy that does not pack evicted pods onto the emptiest node (why it was removed); tofu-controller only once Terraform runs in Flux (today it runs from the runner) |
 
 
@@ -118,7 +118,7 @@ It then kept restarting (17 times in 1.5 hours):
 - Each k3s restart makes kube-vip lose its lease and drop the API virtual IP (10.0.0.10) from node6's eth0, and put it back when k3s returns. Cilium counts the address as one of the node's own, so every change makes it recompile and reload the programs for all endpoints on node6, starving k3s again.
 - Every controller in the cluster restarts and re-lists everything when the API goes away. Rancher on node6 misses its probes under the load and restarts; each start checks out its chart catalogs with `git` again.
 
-node6 has no CPU left for a mesh or a broker: Istio (ztunnel and istio-cni on every node) and Kafka (the broker on node6) are out. Their prod overlays stay in the repo.
+node6 has no CPU left for a mesh or a broker: Istio (ztunnel and istio-cni on every node) and Kafka (the broker on node6) are out, and deleted from the repo (git history keeps them).
 
 Afterwards (2026-11-07): Cilium's `istio-config` component off, Longhorn off node6, and longer leader leases (60 s lease, 40 s renewal deadline, 5 s retry instead of 15/10/2) for k3s's controller-manager and scheduler (`k3s_server_config`) and for kube-vip, so a slow API no longer restarts k3s or moves the VIP. The cloud-controller-manager runs on all three servers and its holder's k3s exited with every API outage, on node2 and node3 taking their etcd member with it: its lease is 240 s with a 180 s renewal deadline, longer than a k3s restart on node6 (95 s). kube-vip v1.2.0 always deletes the VIP when it starts and needs the API to add it back: a k3s restart still costs node6 one Cilium recompile.
 

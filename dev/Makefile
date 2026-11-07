@@ -23,7 +23,6 @@ helm-setup:
 	helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 	helm repo add cilium https://helm.cilium.io/
 	helm repo add coredns https://coredns.github.io/helm
-	helm repo add istio https://istio-release.storage.googleapis.com/charts
 	helm repo update
 
 .PHONY: cluster-setup
