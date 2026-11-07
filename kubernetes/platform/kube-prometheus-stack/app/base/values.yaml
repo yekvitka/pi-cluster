@@ -184,10 +184,10 @@ kubeControllerManager:
   # endpoints : IP addresses of K3s control plane nodes
   # K3d tip: Get the K3d control plane node IPs e.g. as follows:
   # kubectl get nodes -l node-role.kubernetes.io/control-plane=true -o jsonpath='{.items[*].status.addresses[?(@.type=="InternalIP")].address}' | tr ' ' ',' | sed 's/^/[&/;s/$/]/'
+  # Cluster 2.0: node6 is the only server with a controller manager and scheduler
+  # (the prod k3s component disables this scrape: kubelet metrics include them)
   endpoints: &cp
-    - 10.0.0.12
-    - 10.0.0.13
-    - 10.0.0.14
+    - 10.0.0.16
   service:
     # Enable creation of service
     enable: true
@@ -198,8 +198,12 @@ kubeControllerManager:
 ## Etcd monitoring
 kubeEtcd:
   enabled: true
-  # K3s etcd not running as a POD, so endpoints need to be configured
-  endpoints: *cp
+  # K3s etcd not running as a POD, so endpoints need to be configured: the etcd
+  # members node2, node3 (etcd-only) and node6
+  endpoints:
+    - 10.0.0.12
+    - 10.0.0.13
+    - 10.0.0.16
   service:
     enabled: true
     port: 2381

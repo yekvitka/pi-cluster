@@ -1,0 +1,47 @@
+---
+# Start order after a power cycle (setup_picluster.yml, tag boot-order).
+#
+# Raspberry Pis have no battery clock: they boot with the last saved time, up to
+# days behind, and chrony corrects it 30 s to 3 min later (the nodes ask the
+# gateway, which boots without a clock too). Services started before that write
+# leases, tokens and timestamps with the wrong time: on 2026-11-06 node1 and node2
+# booted 42 hours behind, and Vault logins failed with "invalid not before".
+# chrony-wait holds time-sync.target until chrony is synced, at most 180 s;
+# without NTP the services start as before.
+#
+# Variables:
+#   boot_order_services: units that wait for the clock (and for the mounts)
+#   boot_order_mounts: paths these units need mounted (node1: the DATA SSD, so
+#     Vault and RustFS never start on an empty directory if the SSD is late)
+
+- name: Enable chrony-wait (time-sync.target waits for a synced clock)
+  ansible.builtin.systemd_service:
+    name: chrony-wait.service
+    enabled: true
+
+- name: Create drop-in directories
+  ansible.builtin.file:
+    path: "/etc/systemd/system/{{ item }}.service.d"
+    state: directory
+    mode: "0755"
+  loop: "{{ boot_order_services }}"
+
+- name: Start the services after the clock is synced
+  ansible.builtin.copy:
+    dest: "/etc/systemd/system/{{ item }}.service.d/10-boot-order.conf"
+    content: |
+      # Managed by Ansible (ansible/tasks/boot_order.yml)
+      [Unit]
+      Wants=time-sync.target
+      After=time-sync.target
+      {% for path in boot_order_mounts | default([]) %}
+      RequiresMountsFor={{ path }}
+      {% endfor %}
+    mode: "0644"
+  loop: "{{ boot_order_services }}"
+
+# Takes effect at the next start of each service; a reload restarts nothing
+- name: Reload systemd
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+  changed_when: false
