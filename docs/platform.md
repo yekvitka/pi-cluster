@@ -15,7 +15,7 @@ What runs in the cluster and how it fits 4 GB Raspberry Pis. Every app in the re
 - node6 keeps the control-plane `NoSchedule` taint; node2, node3 (etcd-only) and node4 also run light, stateless workloads (`k3s_control_plane_taint: false` in host_vars).
 - The kubelet reserves memory for k3s and the OS (`k3s_kube_reserved_memory`: 1700Mi on servers, 3072Mi on node6, 768Mi on etcd-only servers, 600Mi on workers, plus 300Mi for the system) and evicts pods below 300Mi free.
 - One pod per service, no replicas, except CoreDNS: two replicas on different nodes, because cluster DNS going down stops Flux, Longhorn and everything else.
-- Longhorn runs on the SSD nodes only (`node_storage=longhorn`): node3, node5, and node6, left from Kafka (Longhorn tolerates its control-plane taint, other pods with volumes do not). Prometheus, Alertmanager and Grafana are pinned to workers that are storage nodes (`node_type=worker` + `node_storage=longhorn`).
+- Longhorn runs on the SSD nodes only (`node_storage=longhorn`): node3 and node5 (node6 was one for Kafka's volume, 2026-11-06/07). Prometheus, Alertmanager and Grafana are pinned to workers that are storage nodes (`node_type=worker` + `node_storage=longhorn`).
 - Logs, traces and Rancher came with Cluster 2.0, once node6 was the only API server (2026-11-06). Istio and Kafka were removed (2026-11-07): node6 has no CPU left for them.
 
 ## Known limits

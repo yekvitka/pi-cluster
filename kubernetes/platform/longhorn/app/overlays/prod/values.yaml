@@ -1,8 +1,7 @@
 ---
 # longhorn helm values (prod overlay)
-# Storage nodes (node_storage=longhorn, SSD): node3 (etcd-only), node5 (worker)
-# and node6 (the only API server, tainted: Kafka's volume only). One replica per
-# volume: no redundancy, Velero backups only
+# Storage nodes (node_storage=longhorn, SSD): node3 (etcd-only), node5 (worker).
+# One replica per volume: no redundancy, Velero backups only
 persistence:
   defaultClassReplicaCount: 1
 defaultSettings:
@@ -12,9 +11,9 @@ defaultSettings:
   # Delete stale replica data and processes (orphans) after the 5-minute grace
   # period: with one replica, a copy left behind is never used again
   orphanResourceAutoDeletion: "replica-data;instance"
-  # Instance managers, engine images and the CSI plugin also on node6, which
-  # keeps the control-plane taint. Longhorn applies a change of this setting
-  # only with every volume detached (docs/runbooks/node-ssd-migration.md)
+  # Left from Kafka's volume on node6 (2026-11-06/07): no effect while no
+  # tainted node has node_storage=longhorn. Longhorn applies a change of this
+  # setting only with every volume detached (docs/runbooks/node-ssd-migration.md)
   taintToleration: "node-role.kubernetes.io/control-plane:NoSchedule"
 
 # Longhorn only on storage nodes (node_storage=longhorn, k3s config): no
@@ -23,19 +22,9 @@ defaultSettings:
 longhornManager:
   nodeSelector:
     node_storage: longhorn
-  # node6 (Kafka's volume) keeps the control-plane taint
-  tolerations:
-    - key: node-role.kubernetes.io/control-plane
-      operator: Exists
-      effect: NoSchedule
 longhornDriver:
   nodeSelector:
     node_storage: longhorn
-  # node6 (Kafka's volume) keeps the control-plane taint
-  tolerations:
-    - key: node-role.kubernetes.io/control-plane
-      operator: Exists
-      effect: NoSchedule
 longhornUI:
   replicas: 1
   nodeSelector:

@@ -18,7 +18,7 @@ Every app in `kubernetes/platform/`. **prod** apps are listed in `kubernetes/clu
 | kube-prometheus-stack | prod | Prometheus, Alertmanager, node-exporter, kube-state-metrics, k3s mixins |
 | kube-vip | prod | Virtual IP 10.0.0.10 for the k3s API |
 | loki | prod | Logs, Simple Scalable (one pod per component), S3 on RustFS, 7 days |
-| longhorn | prod | Block storage on the SSD nodes (node3, node5; node6 still a Longhorn node from Kafka), one replica per volume |
+| longhorn | prod | Block storage on the SSD nodes (node3, node5), one replica per volume |
 | metrics-server | prod | Resource metrics (`kubectl top`) |
 | opentelemetry-collector | prod | OTLP in (`otel-collector.${CLUSTER_DOMAIN}`), traces to Tempo, span metrics to Prometheus, logs to Loki |
 | rancher | prod | Rancher on node6, the only API server (`rancher.${CLUSTER_DOMAIN}`); k3s versions stay with system-upgrade |
