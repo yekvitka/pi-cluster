@@ -10,6 +10,9 @@ components:
   - ../../components/monitoring
   - ../../components/hubble
   - ../../components/route-basic-auth
+  # Istio ambient (Cluster 2.0 phase 10): cni.exclusive false lets istio-cni
+  # chain into Cilium's CNI config, socket LB in the host namespace only
+  - ../../components/istio-config
 
 configMapGenerator:
   - name: cilium-helm-values

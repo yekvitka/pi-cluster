@@ -1,0 +1,27 @@
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: istio-app
+  namespace: flux-system
+spec:
+  interval: 30m
+  timeout: 15m
+  targetNamespace: istio-system
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  # cilium-app first: its istio-config component (cni.exclusive false) must be
+  # in place before istio-cni chains into Cilium's CNI config.
+  # ServiceMonitor/PodMonitor and GrafanaDashboard CRDs
+  dependsOn:
+    - name: cilium-app
+    - name: kube-prometheus-stack-app
+    - name: grafana-operator-app
+  path: ./kubernetes/platform/istio/app/overlays/prod
+  prune: true
+  wait: true
+  postBuild:
+    substituteFrom:
+      - kind: ConfigMap
+        name: cluster-settings
