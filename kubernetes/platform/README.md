@@ -5,7 +5,7 @@ Every app in `kubernetes/platform/`. **prod** apps are listed in `kubernetes/clu
 | App | Status | What it does here |
 |---|---|---|
 | cert-manager | prod | Let's Encrypt wildcard certificate (IONOS DNS-01 webhook), internal CA |
-| cilium | prod | CNI, kube-proxy replacement, LoadBalancer IPs (L2), Hubble metrics, relay and UI (`hubble.${CLUSTER_DOMAIN}`, basic auth); `istio-config` component still on, to be turned off now that Istio is gone |
+| cilium | prod | CNI, kube-proxy replacement, LoadBalancer IPs (L2), Hubble metrics, relay and UI (`hubble.${CLUSTER_DOMAIN}`, basic auth) |
 | coredns | prod | Cluster DNS |
 | csi-external-snapshotter | prod | CSI snapshot CRDs and controller (Velero → Longhorn) |
 | envoy-gateway | prod | Gateway API: `public-gateway` on 10.0.0.68, TLS for all web UIs |
