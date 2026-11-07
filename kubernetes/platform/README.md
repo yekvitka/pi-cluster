@@ -27,9 +27,8 @@ Every app in `kubernetes/platform/`. **prod** apps are listed in `kubernetes/clu
 | vault | prod | Vault agent injector (Vault itself runs on node1) |
 | velero | prod | Daily backups to RustFS |
 | descheduler | not used | Dropped (2026-11-06): it packed evicted pods onto the emptiest node |
-| istio | not used | Removed (2026-11-07), never installed in prod: node6 has no CPU left for it. Prod overlay kept (istio-cni talks to the API through the k3s virtual IP) |
-| kafka | not used | Removed (2026-11-07): the broker ran on node6, which has no CPU left for it. Prod overlays kept (one KRaft broker, SCRAM users) |
-| kiali | not used | Removed with Istio (2026-11-07) |
+
+Istio, Kiali and Kafka were removed (2026-11-07, node6 has no CPU left for them) and deleted from the repo; git history keeps them.
 
 Web UIs without their own login get basic auth at the gateway.
 

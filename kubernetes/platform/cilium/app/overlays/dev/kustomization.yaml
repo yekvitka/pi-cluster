@@ -6,9 +6,6 @@ namespace: kube-system
 resources:
   - ../../base
 
-components:
-  - ../../components/istio-config
-
 configMapGenerator:
   - name: cilium-overlay-values
     files:

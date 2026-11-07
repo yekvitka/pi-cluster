@@ -36,9 +36,6 @@
     - name: Install longhorn utilities
       ansible.builtin.include_tasks: tasks/install_longhorn_util.yml
 
-    - name: Install istio cli
-      ansible.builtin.include_tasks: tasks/install_istio_cli.yml
-
     - name: Install velero cli
       ansible.builtin.include_tasks: tasks/install_velero_cli.yml
 
