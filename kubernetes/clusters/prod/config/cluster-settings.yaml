@@ -6,6 +6,8 @@ metadata:
   namespace: flux-system
 data:
   CLUSTER_DOMAIN: homelab.yekvitka.net
+  # k3s API virtual IP (kube-vip), ansible/vars/picluster.yml k3s_api_vip
+  K3S_API_VIP: 10.0.0.10
   S3_SERVER: object-store.homelab.yekvitka.net
   EXTERNAL_DNS_SERVER: 10.0.0.11
   HTTP_GATEWAY_LOAD_BALANCER_IP: 10.0.0.68

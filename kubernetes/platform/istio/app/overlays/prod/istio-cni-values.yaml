@@ -1,2 +1,12 @@
 ---
-# istio-cni helm values (prod patch)
+# istio-cni helm values (prod overlay)
+# The CNI plugin runs in the node's network namespace for every new pod and asks
+# the API server whether the pod is in the mesh. By default it uses the
+# kubernetes Service (10.43.0.1), which on a node only works through Cilium's
+# socket load balancer: if that is not there, no pod on the node starts (seen on
+# the k3d test cluster, 2026-11-07). The API virtual IP does not depend on
+# Cilium, as Cilium's own k8sServiceHost does not. The node agent and the plugin
+# kubeconfig it writes both use these
+env:
+  KUBERNETES_SERVICE_HOST: ${K3S_API_VIP}
+  KUBERNETES_SERVICE_PORT: "6443"

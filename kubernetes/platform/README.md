@@ -1,35 +1,35 @@
 # Platform catalog
 
-Every app in `kubernetes/platform/`. **prod** apps are listed in `kubernetes/clusters/prod/infra/kustomization.yaml` and reconciled by Flux; **planned** apps follow the phases of [Cluster 2.0](../../docs/plans/cluster-2.0.md).
+Every app in `kubernetes/platform/`. **prod** apps are listed in `kubernetes/clusters/prod/infra/kustomization.yaml` and reconciled by Flux; the [Cluster 2.0](../../docs/plans/cluster-2.0.md) plan added Loki, Rancher, Tempo, Istio, Kafka and Hubble.
 
 | App | Status | What it does here |
 |---|---|---|
 | cert-manager | prod | Let's Encrypt wildcard certificate (IONOS DNS-01 webhook), internal CA |
-| cilium | prod | CNI, kube-proxy replacement, LoadBalancer IPs (L2), Hubble metrics |
+| cilium | prod | CNI, kube-proxy replacement, LoadBalancer IPs (L2), Hubble metrics, relay and UI (`hubble.${CLUSTER_DOMAIN}`, basic auth); `istio-config` component for Istio ambient |
 | coredns | prod | Cluster DNS |
 | csi-external-snapshotter | prod | CSI snapshot CRDs and controller (Velero → Longhorn) |
 | envoy-gateway | prod | Gateway API: `public-gateway` on 10.0.0.68, TLS for all web UIs |
 | external-dns | prod | Publishes routes to bind9 on node1 (RFC 2136) |
 | external-secrets | prod | Secrets from Vault (node1) into the cluster |
 | flux-operator | prod | Flux instance (GitOps), syncs `master` |
-| grafana | prod | Grafana operator and instance, dashboards |
+| fluent | prod | Fluent Bit on every node straight to Loki (`components/loki`) |
+| grafana | prod | Grafana operator and instance, dashboards; Prometheus, Loki and Tempo datasources |
+| istio | prod | Service mesh, ambient mode (istiod, istio-cni, ztunnel); istio-cni talks to the API through the k3s virtual IP |
 | k3s-etcd-backup | prod | S3 settings for k3s etcd snapshots (from Vault) |
+| kafka | prod | Strimzi operator, one KRaft broker on node6 (Longhorn volume on node6's SSD), SCRAM users; Kafdrop and Schema Registry when used |
+| kiali | prod | Istio console (`kiali.${CLUSTER_DOMAIN}`, service account token login) |
 | kube-prometheus-stack | prod | Prometheus, Alertmanager, node-exporter, kube-state-metrics, k3s mixins |
 | kube-vip | prod | Virtual IP 10.0.0.10 for the k3s API |
-| longhorn | prod | Block storage on the SSD nodes, one replica per volume |
+| loki | prod | Logs, Simple Scalable (one pod per component), S3 on RustFS, 7 days |
+| longhorn | prod | Block storage on the SSD nodes (node3, node5, node6 for Kafka), one replica per volume |
 | metrics-server | prod | Resource metrics (`kubectl top`) |
+| opentelemetry-collector | prod | OTLP in (`otel-collector.${CLUSTER_DOMAIN}`), traces to Tempo, span metrics to Prometheus, logs to Loki |
+| rancher | prod | Rancher on node6, the only API server (`rancher.${CLUSTER_DOMAIN}`); k3s versions stay with system-upgrade |
 | system-upgrade | prod | k3s upgrades from Git (upgrade plans) |
+| tempo | prod | Tracing (tempo-distributed), S3 on RustFS |
 | vault | prod | Vault agent injector (Vault itself runs on node1) |
 | velero | prod | Daily backups to RustFS |
-| loki | planned | Logs, Simple Scalable, S3 on RustFS |
-| fluent | planned | Fluent Bit straight to Loki (`components/loki`) |
-| rancher | planned | Rancher on node6, the only API server |
-| tempo | planned | Tracing |
-| opentelemetry-collector | planned | Telemetry pipeline |
-| istio | planned | Service mesh, ambient mode (with the Cilium `istio-config` component) |
-| kiali | planned | Istio console |
-| kafka | planned | Strimzi Kafka, one broker; Kafdrop and Schema Registry when used |
-| descheduler | planned | Rebalances pods; needs a policy that never packs evicted pods onto the emptiest node |
+| descheduler | not used | Dropped (2026-11-06): it packed evicted pods onto the emptiest node |
 
 Web UIs without their own login get basic auth at the gateway; Kiali uses its service account token login.
 

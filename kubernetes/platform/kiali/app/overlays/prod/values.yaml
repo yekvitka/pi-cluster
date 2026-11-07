@@ -1,2 +1,14 @@
 ---
 # kiali-operator helm values (prod overlay)
+cr:
+  spec:
+    external_services:
+      tracing:
+        # Tempo query frontend: HTTP 3200 (gRPC 9095), Grafana datasource uid tempo
+        internal_url: "http://tempo-query-frontend.tempo.svc.cluster.local:3200/"
+        tempo_config:
+          datasource_uid: "tempo"
+    deployment:
+      logger:
+        log_level: info
+# kiali-operator helm values (prod overlay)
