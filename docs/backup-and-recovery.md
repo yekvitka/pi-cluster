@@ -33,4 +33,6 @@ On start, without manual steps:
 - etcd needs two of node2, node3 and node6.
 - Flux retries a failed app every 2 minutes (`retryInterval` patch in `kubernetes/clusters/prod/infra/kustomization.yaml`), instead of after its 30-minute interval.
 
+Measured 2026-11-08 (`make shutdown-picluster`, power off ~10 minutes): all Pis up 1 minute after power-on, the API answers through the VIP after 6 minutes, every Flux app is ready after 9 minutes, no manual step. The clocks booted ~3 minutes behind; chrony then needed 3.5 minutes from the gateway (no `iburst`), so k3s on node3-node6 started on the 180 s timeout.
+
 Check: every node `Ready`, `kubectl get kustomization -A`, `kubectl get helmrelease -A`, `kubectl get externalsecret -A` all ready, no pod outside `Running`/`Completed`, no alert firing in Alertmanager but `Watchdog`. An ExternalSecret that stays `SecretSyncedError` while `vault-backend` is valid waits out ESO's retry backoff (up to ~16 minutes): `kubectl annotate externalsecret <name> -n <ns> force-sync=$(date +%s) --overwrite`.

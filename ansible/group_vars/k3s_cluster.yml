@@ -5,6 +5,11 @@
 # ntp role variables
 ####################
 
+# iburst: the first four requests 2 s apart instead of 64 s. Without it chrony
+# took 3.5 min to sync after a power cycle (2026-11-08), longer than chrony-wait
+# waits (180 s, tasks/boot_order.yml): k3s started on the wrong clock
 ntp_servers:
   - server: "{{ default_gateway }}"
     type: server
+    options:
+      - option: iburst
