@@ -22,6 +22,15 @@ Three copies, two locations, one of them offsite and encrypted.
 - Vault: `vault operator raft snapshot inspect <file>` on a restored `vault.snap` (as root on node1).
 - etcd: `k3s etcd-snapshot ls` on a server; restore with `k3s server --cluster-reset --cluster-reset-restore-path=<snapshot>`.
 
-## After a full power cycle
+## Power cycle
 
-Vault unseals itself (`vault-unseal.service`), but ExternalSecrets that failed while Vault was unreachable wait for their refresh interval and block the Flux chain (cert-manager-config first). Check `kubectl get externalsecret -A`; re-sync the failed ones with `kubectl annotate externalsecret <name> -n <ns> force-sync=$(date +%s) --overwrite`.
+Planned: `make shutdown-picluster` halts node1-node6 within a minute; cut the power when the green LEDs stay off. Power on everything at once; the gateway must be up for the nodes to get the time.
+
+On start, without manual steps:
+
+- Every Pi waits for chrony to sync the clock before its services start (`chrony-wait`, at most 180 s; `ansible/tasks/boot_order.yml`, applied by `make nodes-setup` and `make external-setup`, alone with `setup_picluster.yml --tags boot-order`). The Pis have no battery clock and boot up to days behind: services started on the wrong time issue leases and tokens with it (Vault logins failed with "invalid not before"), and every ExternalSecret looks due for a refresh while Vault may still be down.
+- node1: Vault and RustFS also wait for the DATA SSD (`/storage`), so they never start on an empty directory; `vault-unseal.service` unseals Vault.
+- etcd needs two of node2, node3 and node6.
+- Flux retries a failed app every 2 minutes (`retryInterval` patch in `kubernetes/clusters/prod/infra/kustomization.yaml`), instead of after its 30-minute interval.
+
+Check: every node `Ready`, `kubectl get kustomization -A`, `kubectl get helmrelease -A`, `kubectl get externalsecret -A` all ready, no pod outside `Running`/`Completed`, no alert firing in Alertmanager but `Watchdog`. An ExternalSecret that stays `SecretSyncedError` while `vault-backend` is valid waits out ESO's retry backoff (up to ~16 minutes): `kubectl annotate externalsecret <name> -n <ns> force-sync=$(date +%s) --overwrite`.

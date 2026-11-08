@@ -19,6 +19,15 @@
     - role: ricsanfre.ntp
       tags: [ntp]
 
+  tasks:
+    # Vault and RustFS wait for a synced clock and for the DATA SSD (/storage)
+    - name: Start order after a power cycle
+      ansible.builtin.import_tasks: tasks/boot_order.yml
+      vars:
+        boot_order_services: [vault, rustfs]
+        boot_order_mounts: [/storage]
+      tags: [boot-order]
+
 - name: Configure Pi Cluster Nodes
   hosts: k3s_cluster
   gather_facts: true
@@ -38,6 +47,13 @@
       tags: [ntp]
 
   tasks:
+    # k3s waits for a synced clock
+    - name: Start order after a power cycle
+      ansible.builtin.import_tasks: tasks/boot_order.yml
+      vars:
+        boot_order_services: "{{ ['k3s'] if 'k3s_master' in group_names else ['k3s-agent'] }}"
+      tags: [boot-order]
+
     - name: Storage prerequisites
       tags: [storage]
       block:

@@ -26,3 +26,15 @@ resources:
   - vault-app.yaml
   - velero-app.yaml
   - kube-vip-app.yaml
+
+patches:
+  # A failed reconciliation retries after 2 minutes, not after the interval
+  # (30m): after a power cycle health checks fail until the services they
+  # wait for are up, and each app would otherwise stay failed for 30 minutes
+  - target:
+      group: kustomize.toolkit.fluxcd.io
+      kind: Kustomization
+    patch: |-
+      - op: add
+        path: /spec/retryInterval
+        value: 2m
