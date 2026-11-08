@@ -8,6 +8,12 @@ loki:
   # Disable multi-tenant support
   auth_enabled: false
 
+  # Rejoin the memberlist cluster every minute: memberlist joins only at start.
+  # loki-read started while node3 (backend, write) was down after a power cycle
+  # (2026-11-08), stayed alone with an empty scheduler ring and never got ready
+  extraMemberlistConfig:
+    rejoin_interval: 1m
+
   limits_config:
     allow_structured_metadata: true
     max_query_lookback: 168h

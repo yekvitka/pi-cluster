@@ -24,7 +24,7 @@ Three copies, two locations, one of them offsite and encrypted.
 
 ## Power cycle
 
-Planned: `make shutdown-picluster` halts node1-node6 within a minute; cut the power when the green LEDs stay off. Power on everything at once; the gateway must be up for the nodes to get the time.
+Planned: `make shutdown-picluster` halts node1-node6 within a minute; cut the power when the green LEDs stay off. Never cut it without: a hard cut corrupted node3's etcd database on 2026-11-08 (runbook: [Corrupted etcd member](runbooks/node-ssd-migration.md#corrupted-etcd-member)). Power on everything at once; the gateway must be up for the nodes to get the time.
 
 On start, without manual steps:
 
@@ -35,5 +35,7 @@ On start, without manual steps:
 - The kubelet's graceful shutdown marks the pods it stops as Failed or Succeeded; their replacements start, the old pods stay listed (Error or Completed) until `pod-cleanup` deletes them, within 10 minutes.
 
 Measured 2026-11-08 (`make shutdown-picluster`, power off ~10 minutes): all Pis up 1 minute after power-on, the API answers through the VIP after 6 minutes, every Flux app is ready after 9 minutes, no manual step. The clocks booted ~3 minutes behind; chrony then needed 3.5 minutes from the gateway (no `iburst`), so k3s on node3-node6 started on the 180 s timeout.
+
+Hard power cut 2026-11-08 (no shutdown, ~3 minutes off): with `iburst` every clock synced 26-35 s after boot and k3s started right after; the API was back 1.3 minutes after the Pis. node3's etcd database was corrupted (`panic: freepages`), recovered with the runbook in 5 minutes; Grafana, Alertmanager and Loki (single volume copies on node3) were down until then and Longhorn recovered their volumes by itself. Two fixes from that boot: kube-vip's IPVS load balancer is off (its health check restarted kube-vip and dropped the VIP while node6 was busy), and Loki rejoins memberlist every minute (loki-read had started alone and never got ready).
 
 Check: every node `Ready`, `kubectl get kustomization -A`, `kubectl get helmrelease -A`, `kubectl get externalsecret -A` all ready, no pod outside `Running`/`Completed`, no alert firing in Alertmanager but `Watchdog`. An ExternalSecret that stays `SecretSyncedError` while `vault-backend` is valid waits out ESO's retry backoff (up to ~16 minutes): `kubectl annotate externalsecret <name> -n <ns> force-sync=$(date +%s) --overwrite`.
