@@ -1,0 +1,64 @@
+---
+# Deletes Failed pods that do not belong to a Job.
+#
+# The kubelet's graceful node shutdown marks the pods it stops as Failed; their
+# Deployment starts a replacement, but Kubernetes never deletes the old pod (the
+# terminated pod GC starts only above terminated-pod-gc-threshold, 10). After a
+# power cycle they stay listed as Error or Completed (2026-11-08: csi-snapshotter,
+# loki-read, external-secrets-cert-controller). Evicted pods and pods with a lost
+# container status (ContainerStatusUnknown) are the same kind of leftover.
+# Job pods keep their logs: Jobs and CronJobs clean them up with their history.
+# Field selectors cannot match status.reason and the kubectl image has no shell,
+# hence phase Failed + no Job label.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: pod-cleanup
+spec:
+  schedule: "*/10 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 300
+      template:
+        spec:
+          serviceAccountName: pod-cleanup
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            runAsGroup: 65534
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: kubectl
+              image: registry.k8s.io/kubectl:v1.36.5
+              args:
+                - delete
+                - pods
+                - --all-namespaces
+                - --field-selector=status.phase=Failed
+                - --selector=!batch.kubernetes.io/job-name
+                - --ignore-not-found
+                - --wait=false
+                - --cache-dir=/tmp/kube-cache
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 32Mi
+                limits:
+                  memory: 96Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              volumeMounts:
+                - name: tmp
+                  mountPath: /tmp
+          volumes:
+            - name: tmp
+              emptyDir: {}

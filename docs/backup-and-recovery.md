@@ -32,6 +32,7 @@ On start, without manual steps:
 - node1: Vault and RustFS also wait for the DATA SSD (`/storage`), so they never start on an empty directory; `vault-unseal.service` unseals Vault.
 - etcd needs two of node2, node3 and node6.
 - Flux retries a failed app every 2 minutes (`retryInterval` patch in `kubernetes/clusters/prod/infra/kustomization.yaml`), instead of after its 30-minute interval.
+- The kubelet's graceful shutdown marks the pods it stops as Failed; their replacements start, the old pods stay listed (Error or Completed) until `pod-cleanup` deletes them, within 10 minutes.
 
 Measured 2026-11-08 (`make shutdown-picluster`, power off ~10 minutes): all Pis up 1 minute after power-on, the API answers through the VIP after 6 minutes, every Flux app is ready after 9 minutes, no manual step. The clocks booted ~3 minutes behind; chrony then needed 3.5 minutes from the gateway (no `iburst`), so k3s on node3-node6 started on the 180 s timeout.
 
