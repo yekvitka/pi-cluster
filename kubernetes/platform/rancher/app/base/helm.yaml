@@ -34,3 +34,29 @@ spec:
   - kind: ConfigMap
     name: rancher-helm-values
     valuesKey: base-values.yaml
+  # Rancher clones its chart catalogs (~155k files) into the container's
+  # writable layer, and containerd walks that layer for every kubelet stats
+  # request: a full core on node6 and slow etcd answers (2026-11-08). On an
+  # emptyDir the kubelet measures it once a minute instead
+  postRenderers:
+  - kustomize:
+      patches:
+      - target:
+          kind: Deployment
+          name: rancher
+        patch: |
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: rancher
+          spec:
+            template:
+              spec:
+                containers:
+                  - name: rancher
+                    volumeMounts:
+                      - name: local-catalogs
+                        mountPath: /var/lib/rancher-data/local-catalogs
+                volumes:
+                  - name: local-catalogs
+                    emptyDir: {}
