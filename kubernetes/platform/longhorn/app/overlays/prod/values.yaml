@@ -11,10 +11,10 @@ defaultSettings:
   # Delete stale replica data and processes (orphans) after the 5-minute grace
   # period: with one replica, a copy left behind is never used again
   orphanResourceAutoDeletion: "replica-data;instance"
-  # Left from Kafka's volume on node6 (2026-11-06/07): no effect while no
-  # tainted node has node_storage=longhorn. Longhorn applies a change of this
-  # setting only with every volume detached (docs/runbooks/node-ssd-migration.md)
-  taintToleration: "node-role.kubernetes.io/control-plane:NoSchedule"
+  # No tolerations: Longhorn runs on untainted storage nodes only. Longhorn
+  # applies a change of this setting only with every volume detached (a power
+  # cycle, or the window in docs/runbooks/node-ssd-migration.md)
+  taintToleration: ""
 
 # Longhorn only on storage nodes (node_storage=longhorn, k3s config): no
 # Longhorn components or data on the SD card nodes. Pods with Longhorn volumes

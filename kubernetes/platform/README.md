@@ -29,7 +29,7 @@ Every app in `kubernetes/platform/`. **prod** apps are listed in `kubernetes/clu
 | velero | prod | Daily backups to RustFS |
 | descheduler | not used | Dropped (2026-11-06): it packed evicted pods onto the emptiest node |
 
-Istio, Kiali and Kafka were removed (2026-11-07, node6 has no CPU left for them) and deleted from the repo; git history keeps them.
+Istio and Kiali were removed (2026-11-07, node6 has no CPU left for them) and deleted from the repo; git history keeps them.
 
 Web UIs without their own login get basic auth at the gateway.
 
