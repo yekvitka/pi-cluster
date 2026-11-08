@@ -24,7 +24,12 @@ spec:
   jobTemplate:
     spec:
       backoffLimit: 2
-      activeDeadlineSeconds: 300
+      # A run scheduled during a power cut starts only when the nodes are back:
+      # 300 s ran out before scheduling and the image pull (2026-11-08)
+      activeDeadlineSeconds: 900
+      # Finished Jobs go away after 30 minutes: a kept failed Job keeps
+      # KubeJobFailed firing even after later runs succeed
+      ttlSecondsAfterFinished: 1800
       template:
         spec:
           serviceAccountName: pod-cleanup
