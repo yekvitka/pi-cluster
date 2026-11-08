@@ -45,23 +45,32 @@ if ! member=$($KC get node "$NODE" -o jsonpath="{.metadata.annotations.etcd\.k3s
   log "API not reachable ($member): k3s retries"
   exit 0
 fi
-if [ -z "$member" ]; then
+removed=$($KC get node "$NODE" -o jsonpath="{.metadata.annotations.etcd\.k3s\.cattle\.io/removed-node-name}" 2>/dev/null)
+
+if [ -z "$member" ] && [ -n "$removed" ]; then
+  # k3s clears the member name when it removes the member: an earlier run
+  # requested the removal and stopped waiting before it happened
+  # (2026-11-08: the API needed more than 2 minutes after a power cut)
+  log "member $removed already removed"
+  member="$removed"
+elif [ -z "$member" ]; then
   log "node $NODE has no etcd member name: nothing to remove"
   exit 0
-fi
-
-# A removed-node-name left by an earlier heal would make k3s skip this request
-$KC annotate node "$NODE" "$ANN/removed-node-name-" >/dev/null 2>&1
-$KC annotate node "$NODE" "$ANN/remove=true" --overwrite >/dev/null || exit 0
-removed=""
-for _ in $(seq 1 24); do
-  removed=$($KC get node "$NODE" -o jsonpath="{.metadata.annotations.etcd\.k3s\.cattle\.io/removed-node-name}" 2>/dev/null)
-  [ "$removed" = "$member" ] && break
-  sleep 5
-done
-if [ "$removed" != "$member" ]; then
-  log "member $member was not removed (API or quorum): k3s retries"
-  exit 0
+else
+  # A removed-node-name left by an earlier heal would make k3s skip this request
+  $KC annotate node "$NODE" "$ANN/removed-node-name-" >/dev/null 2>&1
+  $KC annotate node "$NODE" "$ANN/remove=true" --overwrite >/dev/null || exit 0
+  removed=""
+  # Up to 5 minutes: right after a power cut the API answers slowly
+  for _ in $(seq 1 60); do
+    removed=$($KC get node "$NODE" -o jsonpath="{.metadata.annotations.etcd\.k3s\.cattle\.io/removed-node-name}" 2>/dev/null)
+    [ "$removed" = "$member" ] && break
+    sleep 5
+  done
+  if [ "$removed" != "$member" ]; then
+    log "member $member was not removed yet (API or quorum): k3s retries"
+    exit 0
+  fi
 fi
 
 rm -rf "$DB".corrupt-*
