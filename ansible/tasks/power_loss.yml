@@ -18,13 +18,22 @@
     src: /boot/firmware/cmdline.txt
   register: power_loss_cmdline
 
+# The boot partition is FAT: no ':' in file names, so no backup=true there
+- name: Keep a copy of the kernel command line before the change
+  ansible.builtin.copy:
+    src: /boot/firmware/cmdline.txt
+    dest: /root/cmdline.txt.before-power-loss
+    remote_src: true
+    force: false
+    mode: "0644"
+  when: "'fsck.repair=' not in (power_loss_cmdline.content | b64decode)"
+
 # One line; takes effect at the next boot
 - name: Repair filesystems at boot without asking (fsck.repair=yes)
   ansible.builtin.copy:
     dest: /boot/firmware/cmdline.txt
     content: "{{ (power_loss_cmdline.content | b64decode | trim) ~ ' fsck.repair=yes\n' }}"
     mode: preserve
-    backup: true
   when: "'fsck.repair=' not in (power_loss_cmdline.content | b64decode)"
 
 - name: Disable the write cache of USB disks at every boot and hotplug
