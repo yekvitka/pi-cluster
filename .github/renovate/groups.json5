@@ -26,16 +26,6 @@
       "separateMinorPatch": true
     },
     {
-      "description": ["Schema Registry Group"],
-      "groupName": "Schema-Registry",
-      "matchPackagePatterns": ["schema-registry"],
-      "matchDatasources": ["helm"],
-      "group": {
-        "commitMessageTopic": "{{{groupName}}} group"
-      },
-      "separateMinorPatch": true
-    },
-    {
       "description": ["System Upgrade Controller Group"],
       "groupName": "System Upgrade Controller",
       "matchPackagePatterns": ["system-upgrade-controller"],

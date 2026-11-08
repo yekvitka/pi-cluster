@@ -13,7 +13,7 @@
 | node6 | 10.0.0.16 | Pi 4 8 GB, boots from a USB SSD. The only k3s API server (+ etcd), tainted. k3s API virtual IP 10.0.0.10 (kube-vip). |
 | offsite | 10.99.0.2 (WireGuard) | Oracle Cloud VM (Always Free, Frankfurt): offsite backup copy, outside monitoring ([offsite](offsite.md)) |
 
-[Cluster 2.0](plans/cluster-2.0.md): this node layout runs since 2026-11-06, with Loki, Tempo, Rancher and Hubble on it. Istio and Kafka were removed on 2026-11-07: node6 has no CPU left for them.
+[Cluster 2.0](plans/cluster-2.0.md): this node layout runs since 2026-11-06, with Loki, Tempo, Rancher and Hubble on it. Istio was removed on 2026-11-07: node6 has no CPU left for it.
 
 ## IP plan
 
