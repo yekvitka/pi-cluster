@@ -24,13 +24,15 @@ Three copies, two locations, one of them offsite and encrypted.
 
 ## Power cycle
 
-Planned: `make shutdown-picluster` halts node1-node6 within a minute; cut the power when the green LEDs stay off. Never cut it without: a hard cut corrupted node3's etcd database on 2026-11-08 (runbook: [Corrupted etcd member](runbooks/node-ssd-migration.md#corrupted-etcd-member)). Power on everything at once; the gateway must be up for the nodes to get the time.
+Planned: `make shutdown-picluster` halts node1-node6 within a minute; cut the power when the green LEDs stay off. A power outage (no UPS) has to work too: the cluster comes back by itself, losing some recent data is acceptable. Power on everything at once; the gateway must be up for the nodes to get the time.
 
 On start, without manual steps:
 
 - Every Pi waits for chrony to sync the clock before its services start (`chrony-wait`, at most 180 s; `ansible/tasks/boot_order.yml`, applied by `make nodes-setup` and `make external-setup`, alone with `setup_picluster.yml --tags boot-order`). The Pis have no battery clock and boot up to days behind: services started on the wrong time issue leases and tokens with it (Vault logins failed with "invalid not before"), and every ExternalSecret looks due for a refresh while Vault may still be down.
 - node1: Vault and RustFS also wait for the DATA SSD (`/storage`), so they never start on an empty directory; `vault-unseal.service` unseals Vault.
 - etcd needs two of node2, node3 and node6.
+- A filesystem check at boot repairs what it finds (`fsck.repair=yes`) instead of waiting at an emergency shell; the USB disks run without their volatile write cache, which the USB-SATA bridges here do not reliably write out (`ansible/tasks/power_loss.yml`, tag `power-loss`).
+- A corrupted etcd database on node2 or node3 (k3s panics in bbolt on every start) heals itself: after two such starts `k3s-etcd-selfheal` (k3s `ExecStartPre`) asks the API to remove the member, moves the database aside and k3s rejoins as a new member. node6's own database and a lost quorum (two members corrupted) still need the [runbook](runbooks/node-ssd-migration.md#corrupted-etcd-member).
 - Flux retries a failed app every 2 minutes (`retryInterval` patch in `kubernetes/clusters/prod/infra/kustomization.yaml`), instead of after its 30-minute interval.
 - The kubelet's graceful shutdown marks the pods it stops as Failed or Succeeded; their replacements start, the old pods stay listed (Error or Completed) until `pod-cleanup` deletes them, within 10 minutes.
 

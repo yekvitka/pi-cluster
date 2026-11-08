@@ -28,6 +28,11 @@
         boot_order_mounts: [/storage]
       tags: [boot-order]
 
+    # Filesystem repair at boot, USB disk write cache off
+    - name: Come back from a power cut without help
+      ansible.builtin.import_tasks: tasks/power_loss.yml
+      tags: [power-loss]
+
 - name: Configure Pi Cluster Nodes
   hosts: k3s_cluster
   gather_facts: true
@@ -53,6 +58,11 @@
       vars:
         boot_order_services: "{{ ['k3s'] if 'k3s_master' in group_names else ['k3s-agent'] }}"
       tags: [boot-order]
+
+    # Filesystem repair at boot, USB disk write cache off, etcd self-heal
+    - name: Come back from a power cut without help
+      ansible.builtin.import_tasks: tasks/power_loss.yml
+      tags: [power-loss]
 
     - name: Storage prerequisites
       tags: [storage]

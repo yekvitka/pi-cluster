@@ -1,0 +1,94 @@
+---
+# Come back from a power cut without help (setup_picluster.yml, tag power-loss).
+#
+# Goal (2026-11-08): after a power outage every node and service starts again
+# by itself; losing some recent data is acceptable, a node waiting for a person
+# is not. No UPS.
+#
+# - Filesystem check at boot repairs what it finds (fsck.repair=yes) instead of
+#   stopping at an emergency shell.
+# - USB disks run without their volatile write cache: the USB-SATA bridges here
+#   (Initio 13fd:5917, Realtek RTL9201) do not reliably write it out, and a hard
+#   cut on 2026-11-08 corrupted node3's etcd database. Writes get slower.
+# - etcd servers (k3s_master): k3s-etcd-selfheal resets a member whose database
+#   is corrupted and lets it rejoin (k3s ExecStartPre).
+
+- name: Read the kernel command line
+  ansible.builtin.slurp:
+    src: /boot/firmware/cmdline.txt
+  register: power_loss_cmdline
+
+# One line; takes effect at the next boot
+- name: Repair filesystems at boot without asking (fsck.repair=yes)
+  ansible.builtin.copy:
+    dest: /boot/firmware/cmdline.txt
+    content: "{{ (power_loss_cmdline.content | b64decode | trim) ~ ' fsck.repair=yes\n' }}"
+    mode: preserve
+    backup: true
+  when: "'fsck.repair=' not in (power_loss_cmdline.content | b64decode)"
+
+- name: Disable the write cache of USB disks at every boot and hotplug
+  ansible.builtin.copy:
+    dest: /etc/udev/rules.d/69-usb-disk-write-cache.rules
+    content: |
+      # Managed by Ansible (ansible/tasks/power_loss.yml): USB disks without the
+      # volatile write cache, so an acknowledged write survives a power cut.
+      # SUBSYSTEMS=="usb" leaves Longhorn's iSCSI disks (also sd*) alone
+      ACTION=="add|change", SUBSYSTEM=="block", ENV{DEVTYPE}=="disk", KERNEL=="sd[a-z]", SUBSYSTEMS=="usb", RUN+="/usr/sbin/hdparm -W 0 /dev/%k"
+    mode: "0644"
+
+- name: Disable the write cache of USB disks now
+  ansible.builtin.shell: |
+    set -o pipefail
+    for d in /sys/block/sd*; do
+      [ -e "$d" ] || continue
+      readlink -f "$d" | grep -q /usb || continue
+      dev="/dev/$(basename "$d")"
+      if hdparm -W "$dev" | grep -q "write-caching =  1"; then
+        hdparm -W 0 "$dev" >/dev/null && echo "disabled $dev"
+      fi
+    done
+  args:
+    executable: /bin/bash
+  register: power_loss_write_cache
+  changed_when: power_loss_write_cache.stdout | length > 0
+
+- name: Self-heal etcd on the servers
+  when: "'k3s_master' in group_names"
+  block:
+    # Only the API address, in its own namespace: vars/picluster.yml is not a
+    # vars file of this playbook
+    - name: Read the k3s API address
+      ansible.builtin.include_vars:
+        file: "{{ playbook_dir }}/vars/picluster.yml"
+        name: power_loss_picluster
+
+    - name: Install k3s-etcd-selfheal
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/templates/k3s-etcd-selfheal.sh.j2"
+        dest: /usr/local/sbin/k3s-etcd-selfheal
+        mode: "0755"
+      vars:
+        api_url: "https://{{ power_loss_picluster.k3s_api_vip }}:6443"
+
+    - name: Create the k3s drop-in directory
+      ansible.builtin.file:
+        path: /etc/systemd/system/k3s.service.d
+        state: directory
+        mode: "0755"
+
+    # The leading "-": a failing script never blocks k3s
+    - name: Run k3s-etcd-selfheal before every k3s start
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/k3s.service.d/20-etcd-selfheal.conf
+        content: |
+          # Managed by Ansible (ansible/tasks/power_loss.yml)
+          [Service]
+          ExecStartPre=-/usr/local/sbin/k3s-etcd-selfheal
+        mode: "0644"
+
+    # Takes effect at the next k3s start; a reload restarts nothing
+    - name: Reload systemd
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+      changed_when: false
