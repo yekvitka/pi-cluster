@@ -28,9 +28,12 @@ env:
   cp_namespace: "kube-system"
   # ARP configuration
   enable_node_labeling: "true"
-  # Enables IPVS LoadBalancer functionality
-  lb_enable: "true"
-  lb_port: "6443"
+  # No IPVS load balancer: with one API server it only forwarded the VIP to
+  # node6's own listener (k3s binds *:6443), and its health check restarted
+  # kube-vip, dropping the VIP, when the API answered slowly after a power
+  # cycle (2026-11-08: 3 restarts, "no local backends available"). Turn it back
+  # on with a second API server to spread the API load
+  lb_enable: "false"
   # Enable Prometheus metrics
   prometheus_server: ":2112"
 

@@ -27,7 +27,7 @@ An etcd-only server listens on 6443 (k3s supervisor, `/api` answers 503) and 644
 
 ## Corrupted etcd member
 
-A hard power cut can corrupt a member's database (`panic: freepages: failed to get all reachable pages` in the k3s log, k3s restarting in a loop). With the other two members healthy: snapshot, `systemctl stop k3s` on the node, `kubectl delete node <node>` (removes the member), delete `/var/lib/rancher/k3s/server/db` on the node, `systemctl start k3s`. It rejoins as a learner and is promoted.
+A hard power cut can corrupt a member's database (`panic: freepages: failed to get all reachable pages` in the k3s log, k3s restarting in a loop). With the other two members healthy: snapshot, `systemctl stop k3s` on the node, `kubectl delete node <node>` (removes the member), delete `/var/lib/rancher/k3s/server/db` on the node, `systemctl start k3s`. It rejoins as a learner and is promoted. Move the database aside (`db.corrupt-<date>`) instead of deleting it. node3, 2026-11-08: 5 minutes, voter again 55 s after the start; the faulted single-copy Longhorn volumes on node3 (Grafana, Alertmanager, Loki) recovered by themselves once node3 was back.
 
 ## Longhorn node selector
 
