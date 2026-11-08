@@ -8,8 +8,17 @@
 # iburst: the first four requests 2 s apart instead of 64 s. Without it chrony
 # took 3.5 min to sync after a power cycle (2026-11-08), longer than chrony-wait
 # waits (180 s, tasks/boot_order.yml): k3s started on the wrong clock
+# The Ubuntu pool as a second source: after a power cut the gateway boots
+# without a clock too and serves time only once it has synced; the nodes then
+# waited out chrony-wait's 180 s (2026-11-08), node1 (pool) synced in 33 s
 ntp_servers:
   - server: "{{ default_gateway }}"
     type: server
     options:
       - option: iburst
+  - server: ntp.ubuntu.com
+    type: pool
+    options:
+      - option: iburst
+      - option: maxsources
+        val: 2

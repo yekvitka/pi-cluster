@@ -9,6 +9,13 @@
 # does not hand this memory to pods. Re-measured in phase 6
 k3s_kube_reserved_memory: 3072Mi
 
+# Keep the SSD's write cache (tasks/power_loss.yml): without it a synced 8 KB
+# write took 49 ms instead of 1.4 ms (HyperX 3K behind the Initio bridge), etcd
+# commits reached 500 ms p99 and the leader changed every few minutes
+# (2026-11-08). With the cache the kernel sends flushes; node6 came through three
+# hard power cuts without corruption
+usb_disk_write_cache: true
+
 # SSD: Kingston SH103S3120G (node4's former SSD) on an Initio 13fd:5917 adapter:
 # UAS without errors under load (2026-11-06), as node3. Quirk if it ever times
 # out, as node1/node5:
