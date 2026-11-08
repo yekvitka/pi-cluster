@@ -54,7 +54,6 @@
       community.hashi_vault.vault_kv2_get:
         url: "{{ vault_addr }}"
         token: "{{ vault_token }}"
-        validate_certs: "{{ not (enable_letsencrypt | default(false)) }}"
         ca_cert: "{{ vault_cacert | default(omit) }}"
         mount_point: "secret"
         path: "s3/rustfsadmin"
@@ -117,7 +116,6 @@
         VAULT_CACERT: "{{ vault_cacert if (not enable_letsencrypt | default(false)) else '' }}"
         TF_VAR_minio_endpoint: "{{ minio_endpoint }}"
         TF_VAR_minio_use_ssl: "true"
-        TF_VAR_minio_ssl_verify: "true"
         TF_VAR_minio_admin_user: "{{ minio_root_user }}"
         TF_VAR_minio_admin_password: "{{ minio_root_password }}"
         TF_VAR_vault_address: "{{ vault_addr }}"
@@ -139,7 +137,6 @@
         VAULT_CACERT: "{{ vault_cacert if (not enable_letsencrypt | default(false)) else '' }}"
         TF_VAR_minio_endpoint: "{{ minio_endpoint }}"
         TF_VAR_minio_use_ssl: "true"
-        TF_VAR_minio_ssl_verify: "true"
         TF_VAR_minio_admin_user: "{{ minio_root_user }}"
         TF_VAR_minio_admin_password: "{{ minio_root_password }}"
         TF_VAR_vault_address: "{{ vault_addr }}"

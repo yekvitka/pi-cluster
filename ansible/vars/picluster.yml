@@ -46,7 +46,7 @@ k3s_kubelet_config: |
 
 # k3s server-config
 # Equivalent to start master installer with the following options
-# --write-kubeconfig-mode '0644'
+# --write-kubeconfig-mode '0600'
 # --flannel-backend=none
 # --disable-kube-proxy
 # --disable-network-policy
@@ -82,7 +82,8 @@ k3s_server_config:
     - servicelb
     - traefik
     - metrics-server
-  write-kubeconfig-mode: 644
+  # The admin kubeconfig: root only
+  write-kubeconfig-mode: "0600"
   # Control plane nodes only run system pods, unless k3s_control_plane_taint is
   # false (host_vars). Applied when the node registers
   node-taint: "{{ ['node-role.kubernetes.io/control-plane:NoSchedule'] if k3s_control_plane_taint | default(true) | bool else [] }}"
@@ -184,7 +185,8 @@ rustfs_site_region: "eu-west-1"
 
 # Enabling TLS
 rustfs_enable_tls: true
-rustfs_validate_certificate: false
+# Let's Encrypt certificates verify against the system CA bundle
+rustfs_validate_certificate: "{{ enable_letsencrypt }}"
 
 # Enable console
 rustfs_console_enable: true

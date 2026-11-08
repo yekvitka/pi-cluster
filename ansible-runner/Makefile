@@ -5,6 +5,8 @@ default: start-ansible-runner
 
 create-local-directories:
 	mkdir -p ${LOCAL_DIRS}
+	# Mounted as a file: Docker would create a directory if it were missing
+	touch ${HOME}/.ssh/known_hosts
 
 ${HOME}/.ssh/id_rsa:
 	ssh-keygen -t rsa -P '' -f ${HOME}/.ssh/id_rsa

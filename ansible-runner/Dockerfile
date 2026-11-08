@@ -8,8 +8,6 @@ COPY --from=ghcr.io/opentofu/opentofu:1.12.6 /usr/local/bin/tofu /usr/local/bin/
 FROM ghcr.io/astral-sh/uv:0.12.17 AS uv
 
 FROM python:3.14-slim
-ARG ANSIBLE_GALAXY_CLI_COLLECTION_OPTS=--ignore-certs
-ARG ANSIBLE_GALAXY_CLI_ROLE_OPTS=--ignore-certs
 ENV UV_LINK_MODE=copy
 ENV UV_PROJECT_ENVIRONMENT=/home/runner/.venv
 RUN apt-get update -qq && \
@@ -58,18 +56,21 @@ RUN uv sync --frozen --no-dev
 # Install ansible roles/collections dependencies
 RUN set -eux; \
         for attempt in 1 2 3; do \
-            uv run ansible-galaxy role install $ANSIBLE_GALAXY_CLI_ROLE_OPTS --force -r requirements.yml --roles-path "/home/runner/.ansible/roles" --timeout 600 && break; \
+            uv run ansible-galaxy role install --force -r requirements.yml --roles-path "/home/runner/.ansible/roles" --timeout 600 && break; \
             if [ "$attempt" -eq 3 ]; then exit 1; fi; \
             sleep 10; \
         done
 RUN set -eux; \
         for attempt in 1 2 3; do \
-            uv run ansible-galaxy collection install $ANSIBLE_GALAXY_CLI_COLLECTION_OPTS -r requirements.yml --collections-path "/home/runner/.ansible/collections" && break; \
+            uv run ansible-galaxy collection install -r requirements.yml --collections-path "/home/runner/.ansible/collections" && break; \
             if [ "$attempt" -eq 3 ]; then exit 1; fi; \
             sleep 10; \
         done
 
-# Install helm required plugins
-RUN helm plugin install --verify=false https://github.com/databus23/helm-diff
+# Helm plugins. --verify=false: Helm verifies signatures only for plugin
+# archives, and this one installs from Git; the pinned version keeps builds equal
+# renovate: datasource=github-releases depName=databus23/helm-diff
+ARG HELM_DIFF_VERSION=v3.15.15
+RUN helm plugin install --verify=false --version ${HELM_DIFF_VERSION} https://github.com/databus23/helm-diff
 
 WORKDIR /ansible

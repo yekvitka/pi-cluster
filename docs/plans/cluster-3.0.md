@@ -2,7 +2,7 @@
 
 Goal: the same hardware and services as [Cluster 2.0](cluster-2.0.md), run from a repository a platform team would sign off on: every pull request checked by CI, no known security defects, the owner's values in one place, decisions and incidents written down, alerts that reach a person, restores that are proven. No new hardware and no new services, except alert delivery.
 
-Status (2026-11-08): plan written. Next: phase 1.
+Status (2026-11-08): plan written; phase 1 on its branch. Next: phase 2.
 
 ## Why
 
@@ -40,7 +40,7 @@ A review of the repository (2026-11-08) found:
 
 ### Phase 1: security defects
 
-- **TLS to Vault and RustFS.** The inverted `validate_certs: "{{ not (enable_letsencrypt | default(false)) }}"` goes from the 13 Vault calls: the modules verify by default, and `vault_cacert` is still passed for a private CA. `rustfs_validate_certificate: "{{ enable_letsencrypt }}"`, the way `tls_skip_verify` already works for Vault. Checked before the change: the runner verifies `vault.<domain>:8200` and `object-store.<domain>:9091` with the system CA bundle. `TF_VAR_minio_ssl_verify` goes too: `terraform/minio` has no such variable.
+- **TLS to Vault and RustFS.** The inverted `validate_certs: "{{ not (enable_letsencrypt | default(false)) }}"` goes from the 12 Vault calls: the modules verify by default, and `vault_cacert` is still passed for a private CA. `rustfs_validate_certificate: "{{ enable_letsencrypt }}"`, the way `tls_skip_verify` already works for Vault. Checked before the change: the runner verifies `vault.<domain>:8200` and `object-store.<domain>:9091` with the system CA bundle. `TF_VAR_minio_ssl_verify` goes too: `terraform/minio` has no such variable.
 - **SSH host keys.** `host_key_checking = true` with `StrictHostKeyChecking=accept-new`: a new host is trusted on first use, a changed key stops the run. The runner mounts the control host's `~/.ssh/known_hosts`, so what it trusts survives a rebuild. After a node is reprovisioned, remove its old key (`ssh-keygen -R <ip>`, `ssh-keygen -R <name>`).
 - **kubeconfig.** `write-kubeconfig-mode: "0600"`. Live, without a k3s restart, once by the user: set the same line in `/etc/rancher/k3s/config.yaml` and the mode of `/etc/rancher/k3s/k3s.yaml` on node2, node3 and node6 (ad-hoc commands in the PR). k3s keeps the mode at its next start.
 - **Runner image.** Galaxy installs with TLS verification (no `--ignore-certs` default). helm-diff pinned to the version every build has picked so far (3.15.15), managed by Renovate.
