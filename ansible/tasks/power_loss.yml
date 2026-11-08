@@ -10,6 +10,8 @@
 # - USB disks run without their volatile write cache: the USB-SATA bridges here
 #   (Initio 13fd:5917, Realtek RTL9201) do not reliably write it out, and a hard
 #   cut on 2026-11-08 corrupted node3's etcd database. Writes get slower.
+#   usb_disk_write_cache: true (host_vars) keeps it on where the disk is too slow
+#   without it (node6).
 # - etcd servers (k3s_master): k3s-etcd-selfheal resets a member whose database
 #   is corrupted and lets it rejoin (k3s ExecStartPre).
 
@@ -37,6 +39,7 @@
   when: "'fsck.repair=' not in (power_loss_cmdline.content | b64decode)"
 
 - name: Disable the write cache of USB disks at every boot and hotplug
+  when: not (usb_disk_write_cache | default(false) | bool)
   ansible.builtin.copy:
     dest: /etc/udev/rules.d/69-usb-disk-write-cache.rules
     content: |
@@ -46,15 +49,22 @@
       ACTION=="add|change", SUBSYSTEM=="block", ENV{DEVTYPE}=="disk", KERNEL=="sd[a-z]", SUBSYSTEMS=="usb", RUN+="/usr/sbin/hdparm -W 0 /dev/%k"
     mode: "0644"
 
-- name: Disable the write cache of USB disks now
+- name: Keep the write cache of USB disks (usb_disk_write_cache)
+  ansible.builtin.file:
+    path: /etc/udev/rules.d/69-usb-disk-write-cache.rules
+    state: absent
+  when: usb_disk_write_cache | default(false) | bool
+
+- name: Set the write cache of USB disks now
   ansible.builtin.shell: |
     set -o pipefail
+    want={{ 1 if (usb_disk_write_cache | default(false) | bool) else 0 }}
     for d in /sys/block/sd*; do
       [ -e "$d" ] || continue
       readlink -f "$d" | grep -q /usb || continue
       dev="/dev/$(basename "$d")"
-      if hdparm -W "$dev" | grep -q "write-caching =  1"; then
-        hdparm -W 0 "$dev" >/dev/null && echo "disabled $dev"
+      if ! hdparm -W "$dev" | grep -q "write-caching =  $want"; then
+        hdparm -W "$want" "$dev" >/dev/null && echo "write cache $want on $dev"
       fi
     done
   args:
