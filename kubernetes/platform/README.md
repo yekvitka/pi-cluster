@@ -21,7 +21,7 @@ Every app in `kubernetes/platform/`. **prod** apps are listed in `kubernetes/clu
 | longhorn | prod | Block storage on the SSD nodes (node3, node5), one replica per volume |
 | metrics-server | prod | Resource metrics (`kubectl top`) |
 | opentelemetry-collector | prod | OTLP in (`otel-collector.${CLUSTER_DOMAIN}`), traces to Tempo, span metrics to Prometheus, logs to Loki |
-| pod-cleanup | prod | CronJob, every 10 minutes: deletes Failed pods outside Jobs (left by the kubelet's graceful node shutdown, evictions) |
+| pod-cleanup | prod | CronJob, every 10 minutes: deletes finished pods outside Jobs (left by the kubelet's graceful node shutdown, evictions) |
 | rancher | prod | Rancher on node6, the only API server (`rancher.${CLUSTER_DOMAIN}`); k3s versions stay with system-upgrade |
 | system-upgrade | prod | k3s upgrades from Git (upgrade plans) |
 | tempo | prod | Tracing (tempo-distributed), S3 on RustFS |
