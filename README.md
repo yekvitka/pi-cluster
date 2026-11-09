@@ -147,6 +147,7 @@ make init      # build from scratch: docs/quick-start.md
 - [Control host](docs/control-host.md)
 - [Runbook: node to SSD boot](docs/runbooks/node-ssd-migration.md)
 - [Cluster 2.0](docs/plans/cluster-2.0.md)
+- [Cluster 3.0](docs/plans/cluster-3.0.md): the repository a team would sign off on
 
 ## Credits
 
