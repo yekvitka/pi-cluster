@@ -19,6 +19,8 @@ services:
       - ${HOME}/.secrets:/home/runner/.secrets
       - ${HOME}/.ssh/id_rsa:/home/runner/.ssh/id_rsa:ro
       - ${HOME}/.ssh/id_rsa.pub:/home/runner/.ssh/id_rsa.pub:ro
+      # The control host's trusted host keys, shared with its own ssh
+      - ${HOME}/.ssh/known_hosts:/home/runner/.ssh/known_hosts
       - ${HOME}/.kube:/home/runner/.kube
       - ${HOME}/.certbot/log:/home/runner/.certbot/log
       - ${HOME}/.certbot/config:/home/runner/.certbot/config

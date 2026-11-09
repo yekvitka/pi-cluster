@@ -27,7 +27,6 @@ Every app in `kubernetes/platform/`. **prod** apps are listed in `kubernetes/clu
 | tempo | prod | Tracing (tempo-distributed), S3 on RustFS |
 | vault | prod | Vault agent injector (Vault itself runs on node1) |
 | velero | prod | Daily backups to RustFS |
-| descheduler | not used | Dropped (2026-11-06): it packed evicted pods onto the emptiest node |
 
 Istio and Kiali were removed (2026-11-07, node6 has no CPU left for them) and deleted from the repo; git history keeps them.
 

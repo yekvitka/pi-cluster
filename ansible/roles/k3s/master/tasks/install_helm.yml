@@ -1,7 +1,7 @@
 ---
 # Variables required:
 # helm_bin_path: Path to install helm binary (default: /usr/local/bin/helm)
-# helm_version: Helm version (default: v3.13.2)
+# helm_version: Helm version (vars/picluster.yml)
 # k8s_platform: Autodetected from ansible_system (linux, etc)
 # k8s_arch: Autodetected from ansible_architecture (amd64, arm64, etc)
 
@@ -37,12 +37,12 @@
         or helm_existing_version.rc is not defined
         or helm_existing_version.rc != 0
         or helm_existing_version.stdout is not defined
-        or (helm_version | default('v3.13.2')) not in (helm_existing_version.stdout | string)
+        or helm_version not in (helm_existing_version.stdout | string)
     ))
   block:
     - name: Download and extract helm binary
       ansible.builtin.unarchive:
-        src: "https://get.helm.sh/helm-{{ helm_version | default('v3.13.2') }}-{{ k8s_platform }}-{{ k8s_arch }}.tar.gz"
+        src: "https://get.helm.sh/helm-{{ helm_version }}-{{ k8s_platform }}-{{ k8s_arch }}.tar.gz"
         dest: /tmp
         remote_src: true
         mode: "0755"

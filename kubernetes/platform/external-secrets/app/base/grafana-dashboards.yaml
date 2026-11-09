@@ -9,4 +9,5 @@ spec:
   instanceSelector:
     matchLabels:
       dashboards: grafana
-  url: https://raw.githubusercontent.com/external-secrets/external-secrets/main/docs/snippets/dashboard.json
+  # The release Flux deploys (helm.yaml): update it with the chart
+  url: https://raw.githubusercontent.com/external-secrets/external-secrets/v2.10.0/docs/snippets/dashboard.json

@@ -50,7 +50,6 @@ NODE1_IP := $(shell awk '/^ +node1:$$/{f=1} f && /ansible_host:/{print $$2; exit
 	configure-offsite-monitoring \
 	os-backup \
 	get-pi-status \
-	install-local-utils \
 	shutdown-k3s-worker \
 	shutdown-k3s-master \
 	shutdown-picluster \
@@ -185,9 +184,6 @@ os-backup: ## Run the restic backup on every node now
 
 get-pi-status: ## Throttling and power status of every Pi
 	$(RUNNER) ansible -b -m shell -a "pi_throttling" raspberrypi
-
-install-local-utils: ## Install the CLI tools on this host (asks for sudo)
-	cd ansible; ansible-playbook install_utilities_localhost.yml --ask-become-pass
 
 shutdown-k3s-worker: ## Shut down the workers in 1 minute
 	$(RUNNER) ansible -b -m shell -a "shutdown -h 1 min" k3s_worker

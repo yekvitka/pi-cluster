@@ -1,82 +1,41 @@
 #!/bin/bash
+# Creates the k3d dev cluster: k3s without flannel, kube-proxy, CoreDNS and
+# the other add-ons, as in the real cluster. Its kubeconfig goes to
+# dev/kubeconfig, never to the default one.
 
-set -e
+set -euo pipefail
 
-# Compute WORK_DIR
-SCRIPT="$(readlink -f "$0")"
-WORK_DIR="$(dirname "$SCRIPT")"
-# WORK_DIR_RELPATH=".."
-# WORK_DIR="$(readlink -f "$SCRIPT_DIR/$WORK_DIR_RELPATH")"
-
+WORK_DIR="$(dirname "$(readlink -f "$0")")"
 K3D_DIR="$WORK_DIR/k3d-cluster"
-# Go templates
-TMPL_K3D_CONFIG_YAML="$K3D_DIR/k3d-cluster.yaml.tmpl"
-K3D_CONFIG_YAML="$K3D_DIR/k3d-cluster.yaml"
+KUBECONFIG_FILE="$WORK_DIR/kubeconfig"
 
-# Cluster network configuration
-CLUSTER_SUBNET="10.42.0.0/16"
-SERVICE_SUBNET="10.43.0.0/16"
+# Pod and service networks, as in the real cluster
+export CLUSTER_SUBNET="10.42.0.0/16"
+export SERVICE_SUBNET="10.43.0.0/16"
 
-# Docker network configuration
+# Docker network for the k3d nodes; the API listens on a loopback address
 NETWORK_NAME="picluster"
-NETWORK_TYPE="bridge"
 NET_PREFIX="172.30"
-NETWORK_SUBNET="$NET_PREFIX.0.0/16"
-NETWORK_GATEWAY="$NET_PREFIX.0.1"
-NETWORK_IP_RANGE="$NET_PREFIX.0.0/17"
-HOST_IP="127.$NET_PREFIX.1"
+export HOST_IP="127.$NET_PREFIX.1"
 
-# LoadBalancer CIDR
-LB_POOL_CDIR="$NET_PREFIX.200.0/24"
-LB_POOL_RANGE="$NET_PREFIX.200.1-$NET_PREFIX.200.254"
+if docker network inspect "$NETWORK_NAME" >/dev/null 2>&1; then
+  echo "Using the existing network '$NETWORK_NAME'"
+else
+  echo "Creating the network '$NETWORK_NAME'"
+  docker network create \
+    --driver bridge \
+    --subnet "$NET_PREFIX.0.0/16" \
+    --gateway "$NET_PREFIX.0.1" \
+    --ip-range "$NET_PREFIX.0.0/17" \
+    "$NETWORK_NAME"
+fi
 
+# shellcheck disable=SC2016 # the variable names are for envsubst, not the shell
+envsubst '${HOST_IP} ${CLUSTER_SUBNET} ${SERVICE_SUBNET}' \
+  < "$K3D_DIR/k3d-cluster.yaml.tmpl" > "$K3D_DIR/k3d-cluster.yaml"
 
-create_network() {
-  NETWORK_ID="$(
-    docker network inspect "$NETWORK_NAME" --format "{{.Id}}" 2>/dev/null
-  )" || true
-  if [ "$NETWORK_ID" ]; then
-    echo "Using existing network '$NETWORK_NAME' with id '$NETWORK_ID'"
-  else
-    echo "Creating network '$NETWORK_NAME' in docker"
-    docker network create \
-      --driver "$NETWORK_TYPE" \
-      --subnet "$NETWORK_SUBNET" \
-      --gateway "$NETWORK_GATEWAY" \
-      --ip-range "$NETWORK_IP_RANGE" \
-      "$NETWORK_NAME"
-  fi
-}
+K3D_FIX_MOUNTS=1 K3D_FIX_DNS=0 k3d cluster create -c "$K3D_DIR/k3d-cluster.yaml"
+k3d kubeconfig get "$NETWORK_NAME" > "$KUBECONFIG_FILE"
+chmod 600 "$KUBECONFIG_FILE"
 
-create_cluster() {
-  echo "Creating dev cluster"
-  
-  echo '{"k3d_dir":"'${K3D_DIR}'", "host_ip":"'${HOST_IP}'", "cluster_subnet":"'${CLUSTER_SUBNET}'", "service_subnet":"'${SERVICE_SUBNET}'"}' > data.json
-  
-  tmpl -data=@data.json "$TMPL_K3D_CONFIG_YAML"
-
-  K3D_FIX_MOUNTS=1 K3D_FIX_DNS=0 k3d cluster create -c "$K3D_CONFIG_YAML"
-  
-  echo "Cluster info"
-  kubectl cluster-info
-}
-
-master_node_ip() {
-  # If we are not running kube-proxy the cilium Pods can't reach the api server
-  # because the in-cluster service can't be reached, to fix the issue we use an
-  # internal IP that the pods can reach, in this case we get the internal IP of
-  # the master node container
-  MASTER_NODE="node/k3d-$NETWORK_NAME-server-0";
-  kubectl get "$MASTER_NODE" -o wide --no-headers |
-    awk '{ print $6 }'
-}
-
-# MAIN
-create_network
-create_cluster
-
-MASTER_NODE_IP="$(master_node_ip)"
-echo "Master node IP: $MASTER_NODE_IP"
-
-
-
+echo "Dev cluster created. Use it with: export KUBECONFIG=$KUBECONFIG_FILE"

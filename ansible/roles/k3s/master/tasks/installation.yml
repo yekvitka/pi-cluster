@@ -50,7 +50,9 @@
           kubernetes.core.helm_template:
             binary_path: /usr/local/bin/helm
             chart_ref: oci://ghcr.io/grafana/helm-charts/grafana-operator
-            chart_version: 5.22.2
+            # The version Flux deploys (kubernetes/platform/grafana)
+            # renovate: datasource=docker depName=ghcr.io/grafana/helm-charts/grafana-operator
+            chart_version: 5.25.0
             release_name: grafana-operator
             release_namespace: grafana
             include_crds: true

@@ -9,4 +9,5 @@ spec:
   instanceSelector:
     matchLabels:
       dashboards: grafana
-  url: https://raw.githubusercontent.com/grafana/jsonnet-libs/refs/heads/master/vault-mixin/dashboards/vault.json
+  # A fixed commit: the repository has no releases
+  url: https://raw.githubusercontent.com/grafana/jsonnet-libs/1abcc571e0882164a917e848ae2d9426188bf016/vault-mixin/dashboards/vault.json

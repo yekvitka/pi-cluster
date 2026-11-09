@@ -2,7 +2,6 @@
   $schema: 'https://docs.renovatebot.com/renovate-schema.json',
   extends: [
     'config:recommended',
-    ':skipStatusChecks',
     'github>yekvitka/pi-cluster//.github/renovate/clusters.json5',
     'github>yekvitka/pi-cluster//.github/renovate/customManagers.json5',
     'github>yekvitka/pi-cluster//.github/renovate/grafanaDashboards.json5',

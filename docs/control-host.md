@@ -52,4 +52,6 @@ Disk: 32 GB. The Ubuntu installer gives the root LV only half of the volume grou
 sudo lvextend -r -l +100%FREE /dev/ubuntu-vg/ubuntu-lv
 ```
 
+The runner mounts `~/.ssh/known_hosts`: Ansible checks host keys and trusts a new host on first use; after a node is reprovisioned, remove its old key with `ssh-keygen -R <ip>`.
+
 The Ansible runner wrapper uses `docker exec -it`: from a non-interactive shell wrap it, `script -qec "./ansible-runner/ansible-runner.sh <cmd>" /dev/null`.

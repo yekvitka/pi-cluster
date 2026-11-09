@@ -9,9 +9,9 @@
 .venv
 /certs
 
-# Terraform: providers, local state, plans and variable files stay on the control host
+# Terraform: providers, local state, plans and variable files stay on the control
+# host; the provider lock files are in Git
 /terraform/*/.terraform
-/terraform/*/.terraform.lock.hcl
 /terraform/*/terraform.tfstate
 /terraform/*/terraform.tfstate.backup
 /terraform/*/terraform.tfvars

@@ -11,7 +11,7 @@
     {
       "customType": "regex",
       "description": ["Process legacy Grafana Helm dashboards"],
-      "fileMatch": ["(^|/)kubernetes/.+\\.ya?ml(?:\\.j2)?$"],
+      "managerFilePatterns": ["/(^|/)kubernetes/.+\\.ya?ml(?:\\.j2)?$/"],
       "matchStrings": ["depName=\"(?<depName>.*)\"\\n(?<indentation>\\s+)gnetId: (?<packageName>\\d+)\\n.+revision: (?<currentValue>\\d+)"],
       "autoReplaceStringTemplate": "depName=\"{{{depName}}}\"\n{{{indentation}}}gnetId: {{{packageName}}}\n{{{indentation}}}revision: {{{newValue}}}",
       "datasourceTemplate": "custom.grafana-dashboards",
@@ -20,7 +20,7 @@
     {
       "customType": "regex",
       "description": ["Process Grafana Operator dashboards from Grafana.com"],
-      "fileMatch": ["(^|/)kubernetes/.+\\.ya?ml(?:\\.j2)?$"],
+      "managerFilePatterns": ["/(^|/)kubernetes/.+\\.ya?ml(?:\\.j2)?$/"],
       "matchStrings": [
         "grafanaCom:\\n(?<indentation>\\s+)id:\\s+(?<packageName>\\d+)\\n\\s+revision:\\s+(?<currentValue>\\d+)"
       ],

@@ -4,10 +4,11 @@
     {
       "customType": "regex",
       "description": ["Process custom dependencies"],
-      "fileMatch": [
-        "(^|/).+\\.env(?:\\.j2)?$",
-        "(^|/).+\\.sh(?:\\.j2)?$",
-        "(^|/).+\\.ya?ml(?:\\.j2)?$"
+      "managerFilePatterns": [
+        "/(^|/).+\\.env(?:\\.j2)?$/",
+        "/(^|/).+\\.sh(?:\\.j2)?$/",
+        "/(^|/).+\\.ya?ml(?:\\.j2)?$/",
+        "/(^|/)Dockerfile$/"
       ],
       "matchStrings": [
         // # renovate: datasource=github-releases depName=k3s-io/k3s
@@ -29,7 +30,7 @@
     {
       "customType": "regex",
       "description": ["Process container image tags in Kubernetes manifests"],
-      "fileMatch": ["(^|/)kubernetes/.+\\.ya?ml(?:\\.j2)?$"],
+      "managerFilePatterns": ["/(^|/)kubernetes/.+\\.ya?ml(?:\\.j2)?$/"],
       "matchStrings": ["image(Name)?: (?<depName>\\S+):(?<currentValue>.*)"],
       "datasourceTemplate": "docker",
       "versioningTemplate": "redhat"
@@ -37,8 +38,8 @@
     {
       "customType": "regex",
       "description": ["Process ansible kubernetes helm chart repo"],
-      "fileMatch": [
-        "(^|/)ansible/.+\\.ya?ml(?:\\.j2)?$"
+      "managerFilePatterns": [
+        "/(^|/)ansible/.+\\.ya?ml(?:\\.j2)?$/"
       ],
       "matchStrings": [
         "chart_ref:\\s+(?<depName>.*?)\\s+chart_repo_url:\\s+(?<registryUrl>.*?)\\s+chart_version:\\s+\(?<currentValue>.*)"
@@ -49,8 +50,8 @@
       // OCI Helm Chart configuration following instructions of https://github.com/renovatebot/renovate/discussions/25056
       "customType": "regex",
       "description": ["Process ansible kubernetes oci chart repo"],
-      "fileMatch": [
-        "(^|/)ansible/.+\\.ya?ml(?:\\.j2)?$"
+      "managerFilePatterns": [
+        "/(^|/)ansible/.+\\.ya?ml(?:\\.j2)?$/"
       ],
       "matchStrings": [
         "name:\\s+(?<product>.*?)\\s+chart_ref: oci:\/\/(?<package>.*?)\\s+chart_version:\\s+\(?<currentValue>.*)"
