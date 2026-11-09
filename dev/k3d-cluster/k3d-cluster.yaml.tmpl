@@ -1,3 +1,4 @@
+---
 apiVersion: k3d.io/v1alpha5
 kind: Simple
 metadata:
@@ -5,10 +6,10 @@ metadata:
 servers: 1
 agents: 2
 kubeAPI: # same as `--api-port myhost.my.domain:6445` (where the name would resolve to 127.0.0.1)
-  hostIP: {{ .host_ip }} # where the Kubernetes API will be listening on
+  hostIP: ${HOST_IP} # where the Kubernetes API will be listening on
   hostPort: "6443"
-# Setting version of k3s
-image: rancher/k3s:v1.30.6-k3s1
+# The cluster's k3s version: k3s_version in ansible/vars/picluster.yml
+image: rancher/k3s:v1.36.5-k3s1
 # Setting docker network to be used
 network: picluster
 options:
@@ -58,10 +59,10 @@ options:
         nodeFilters:
          - server:*
       # Adding cluster PODs and Services CIDRs
-      - arg: --cluster-cidr={{ .cluster_subnet }}
+      - arg: --cluster-cidr=${CLUSTER_SUBNET}
         nodeFilters:
           - server:*
-      - arg: --service-cidr={{ .service_subnet }}
+      - arg: --service-cidr=${SERVICE_SUBNET}
         nodeFilters:
           - server:*
       # Exposing metrics
@@ -71,6 +72,9 @@ options:
       - arg: --kube-scheduler-arg=bind-address=0.0.0.0
         nodeFilters:
           - server:*
+  # Never the default kubeconfig: on the control host it points to the real
+  # cluster, and Ansible uses its current context. create_cluster.sh writes
+  # dev/kubeconfig instead
   kubeconfig:
-    updateDefaultKubeconfig: true
-    switchCurrentContext: true
+    updateDefaultKubeconfig: false
+    switchCurrentContext: false

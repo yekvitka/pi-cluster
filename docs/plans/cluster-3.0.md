@@ -2,7 +2,7 @@
 
 Goal: the same hardware and services as [Cluster 2.0](cluster-2.0.md), run from a repository a platform team would sign off on: every pull request checked by CI, no known security defects, the owner's values in one place, decisions and incidents written down, alerts that reach a person, restores that are proven. No new hardware and no new services, except alert delivery.
 
-Status (2026-11-08): plan written; phase 1 on its branch. Next: phase 2.
+Status (2026-11-09): phases 1 and 2 on their branches. Next: phase 3.
 
 ## Why
 
@@ -52,12 +52,12 @@ Validation: syntax-check and ansible-lint; host key checks pass on every host (`
 ### Phase 2: cleanup
 
 - **Delete what is not deployed or not planned:** `platform/descheduler` and `clusters/prod/infra/descheduler-app.yaml`; `platform/flux-operator/tofu-controller`; `host_vars/node7.yml` and `prepare-node7`; `group_vars/external.yml` (there is no `external` group, and it set `ubuntu` where every node uses `root`); `install_utilities_localhost.yml` and `make install-local-utils` (amd64 binaries and kubectl 1.35 on an arm64 host, replaced by `.mise.toml`; it also ran `ansible-playbook` outside the runner).
-- **`dev/`:** delete the broken targets (`helm-setup`, `cluster-setup`, `cluster-bootstrap`: `helmfile.yaml` and `kubernetes/clusters/bootstrap` do not exist), set the k3d image to the cluster's k3s version under Renovate, and document the flow that works (k3d plus Helm with the repo values). The dev Flux instance syncs `kubernetes/cluster/dev` (should be `clusters`), and dev's config still applies an old `flux-system` GitRepository on a `dev` branch that does not exist: both fixed.
+- **`dev/`:** delete the broken targets (`helm-setup`, `cluster-setup`, `cluster-bootstrap`: `helmfile.yaml` and `kubernetes/clusters/bootstrap` do not exist), set the k3d image to the cluster's k3s version under Renovate, and document the flow that works (k3d plus Helm with the repo values). The dev Flux instance syncs `kubernetes/cluster/dev` (should be `clusters`), and dev's config still applies an old `flux-system` GitRepository on a `dev` branch that does not exist: both fixed. Found on the way: `create_cluster.sh` needs `tmpl`, which is not installed (now `envsubst`), and k3d switched the default kubeconfig's context, the one Ansible uses, to the dev cluster (now `dev/kubeconfig`). Tested 2026-11-09: Cilium with the repo values runs and the nodes become Ready; pods do not reach the Kubernetes API Service in k3d, so CoreDNS and Flux do not run there (documented in `dev/README.md`).
 - **One Helm version** (`helm_version` in the cluster variables): the v3.9.4 in `group_vars/k3s_master.yml` and the role fallback v3.13.2 go.
 - **Versions repeated in Ansible follow the cluster:** grafana-operator CRDs 5.22.2 → 5.25.0, with a Renovate comment (the existing custom managers do not match `helm_template`).
 - **No MinIO aliases:** `minio_*` → `rustfs_*` in `configure_minio.yml` and `reset_external_services.yml`; their messages show the RustFS ports (9091, 9092), not 9000 and 9001.
-- **Renovate:** custom managers on `managerFilePatterns` (`fileMatch` is deprecated); `:skipStatusChecks` goes (nothing automerges).
-- **Pinned sources:** the 7 Grafana dashboards fetched from `main` branches pinned to a release tag or commit; Fluent Bit's `busybox` image tagged.
+- **Renovate:** custom managers on `managerFilePatterns` (`fileMatch` is deprecated) and group rules on `matchPackageNames` (`matchPackagePatterns` is deprecated); the group for a runner controller that is not deployed goes; `:skipStatusChecks` goes (nothing automerges); the Dockerfile's `ARG` versions are read too. `renovate-config-validator --strict` passes on all six files.
+- **Pinned sources:** the Grafana dashboards fetched from `main` branches pinned to the release Flux deploys (Envoy Gateway, External Secrets) or a commit (no releases: the Flux and Vault dashboards); Fluent Bit's `busybox` image tagged. The Spegel dashboard is gone: its URL answered 404, and the grafana.com version queries metric names k3s's embedded Spegel does not export.
 - **Small:** ansible.cfg (no `./collections` path, no commented-out vault password, final newline); "IP to HAProxy" (it is kube-vip); "architectire".
 
 Validation: render equality for every Flux path except the deleted apps and the dashboard URLs; syntax-check, lint. Rollback: revert.

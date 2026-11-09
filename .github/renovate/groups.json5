@@ -2,22 +2,9 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "packageRules": [
     {
-      "description": ["Actions Runner Controller Group"],
-      "groupName": "Actions Runner Controller",
-      "matchPackagePatterns": [
-        "gha-runner-scale-set-controller",
-        "gha-runner-scale-set"
-      ],
-      "matchDatasources": ["helm", "docker"],
-      "group": {
-        "commitMessageTopic": "{{{groupName}}} group"
-      },
-      "separateMinorPatch": true
-    },
-    {
       "description": ["Flux Group"],
       "groupName": "Flux",
-      "matchPackagePatterns": ["fluxcd"],
+      "matchPackageNames": ["/fluxcd/"],
       "matchDatasources": ["docker", "helm", "github-tags"],
       "versioning": "semver",
       "group": {
@@ -28,7 +15,7 @@
     {
       "description": ["System Upgrade Controller Group"],
       "groupName": "System Upgrade Controller",
-      "matchPackagePatterns": ["system-upgrade-controller"],
+      "matchPackageNames": ["/system-upgrade-controller/"],
       "matchDatasources": ["docker", "github-releases"],
       "group": {
         "commitMessageTopic": "{{{groupName}}} group"

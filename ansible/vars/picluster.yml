@@ -74,7 +74,7 @@ k3s_server_config:
   embedded-registry: true
   # TLS config
   tls-san:
-    - "{{ k3s_api_vip }}"  # IP to HAProxy
+    - "{{ k3s_api_vip }}"  # the API virtual IP (kube-vip)
   # Disable K3s addons: coredns, local path, servicelb, traefik and metric-server
   disable:
     - coredns
@@ -193,14 +193,6 @@ rustfs_console_enable: true
 
 # Use musl builds for ARM compatibility
 rustfs_use_musl: true
-
-# Backward-compatible aliases for existing playbooks
-minio_hostname: "{{ rustfs_hostname }}"
-minio_endpoint: "{{ rustfs_endpoint }}"
-minio_url: "{{ rustfs_url }}"
-minio_site_region: "{{ rustfs_site_region }}"
-minio_enable_tls: "{{ rustfs_enable_tls }}"
-minio_validate_certificate: "{{ rustfs_validate_certificate }}"
 
 ########################
 # Restic configuration #

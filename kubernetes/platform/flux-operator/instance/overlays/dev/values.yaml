@@ -5,7 +5,7 @@ instance:
     kind: GitRepository
     url: https://github.com/yekvitka/pi-cluster
     ref: refs/heads/master
-    path: kubernetes/cluster/dev
+    path: kubernetes/clusters/dev
     interval: 1h
     ignore: |-
       /ansible/
