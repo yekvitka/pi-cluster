@@ -2,7 +2,7 @@
 {% if k3s_primary_control_node %}
 cluster-init: true
 {% else %}
-server: https://{{ k3s_registration_ip }}:6443
+server: https://{{ k3s_join_server | default(k3s_registration_ip) }}:6443
 {% endif %}
 {% endif %}
 token-file: {{ k3s_token_file }}

@@ -17,12 +17,16 @@ k3s_api_vip: 10.0.0.10
 # k3s config directory
 k3s_config_directory: /etc/rancher/k3s
 
-# kubelet configuration
-# The server that starts a new cluster (cluster-init). Every other server joins it.
-# Explicit, not "first host of k3s_master": a new control-plane node listed first
-# must join the existing cluster, never create a second one. Point it to a running
-# server; for a rebuild from scratch, to the first server installed
+# The server that starts a new cluster (cluster-init) when no server holds etcd
+# data yet. In a running cluster every server joins, through k3s_join_server
+# (host_vars) or the API address. Explicit, not "first host of k3s_master"
 k3s_cluster_init_node: node6
+
+# etcdctl for k3s-etcd-selfheal and the runbooks: the etcd version k3s embeds
+# ("etcd-version" in the k3s log); update it with k3s
+k3s_etcdctl_version: v3.6.14
+
+# kubelet configuration
 
 k3s_kubelet_config: |
   apiVersion: kubelet.config.k8s.io/v1beta1

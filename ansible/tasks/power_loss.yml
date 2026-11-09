@@ -13,7 +13,8 @@
 #   usb_disk_write_cache: true (host_vars) keeps it on where the disk is too slow
 #   without it (node6).
 # - etcd servers (k3s_master): k3s-etcd-selfheal resets a member whose database
-#   is corrupted and lets it rejoin (k3s ExecStartPre).
+#   is corrupted and lets it rejoin (k3s ExecStartPre); etcdctl for the servers
+#   that run the API server, which cannot use the API to heal.
 
 - name: Read the kernel command line
   ansible.builtin.slurp:
@@ -74,13 +75,47 @@
 
 - name: Self-heal etcd on the servers
   when: "'k3s_master' in group_names"
+  vars:
+    power_loss_etcd: "etcd-{{ power_loss_picluster.k3s_etcdctl_version }}-linux-{{ 'arm64' if ansible_facts['architecture'] == 'aarch64' else 'amd64' }}"
   block:
-    # Only the API address, in its own namespace: vars/picluster.yml is not a
-    # vars file of this playbook
-    - name: Read the k3s API address
+    # The API address and the etcd version, in their own namespace:
+    # vars/picluster.yml is not a vars file of this playbook
+    - name: Read the k3s API address and etcd version
       ansible.builtin.include_vars:
         file: "{{ playbook_dir }}/vars/picluster.yml"
         name: power_loss_picluster
+
+    # For the release archive's name: a run with --tags power-loss skips the
+    # play's fact gathering
+    - name: Read the CPU architecture
+      ansible.builtin.setup:
+        gather_subset: ["!all"]
+
+    # Checked against the release's SHA256SUMS; one directory per version
+    - name: Download etcdctl
+      ansible.builtin.get_url:
+        url: "https://github.com/etcd-io/etcd/releases/download/{{ power_loss_picluster.k3s_etcdctl_version }}/{{ power_loss_etcd }}.tar.gz"
+        checksum: "sha256:https://github.com/etcd-io/etcd/releases/download/{{ power_loss_picluster.k3s_etcdctl_version }}/SHA256SUMS"
+        dest: "/var/cache/{{ power_loss_etcd }}.tar.gz"
+        mode: "0644"
+      register: power_loss_etcdctl_download
+      until: power_loss_etcdctl_download is succeeded
+      retries: 3
+      delay: 10
+
+    - name: Unpack etcdctl
+      ansible.builtin.unarchive:
+        src: "/var/cache/{{ power_loss_etcd }}.tar.gz"
+        dest: /usr/local/lib
+        remote_src: true
+        include: ["{{ power_loss_etcd }}/etcdctl"]
+        creates: "/usr/local/lib/{{ power_loss_etcd }}/etcdctl"
+
+    - name: Link etcdctl
+      ansible.builtin.file:
+        src: "/usr/local/lib/{{ power_loss_etcd }}/etcdctl"
+        dest: /usr/local/bin/etcdctl
+        state: link
 
     - name: Install k3s-etcd-selfheal
       ansible.builtin.template:

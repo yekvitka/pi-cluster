@@ -12,12 +12,28 @@
     - groups['k3s_master'] is defined
     - groups['k3s_master'] | length > 1
 
+# A running cluster: another server holds etcd data. Then every server joins
+# it, the cluster-init node too: cluster-init on a running server would start
+# a second cluster the next time its database is reset. Every server must
+# answer, so an unreachable one never reads as "no cluster"
+- name: Look for etcd data on the other servers
+  ansible.builtin.stat:
+    path: /var/lib/rancher/k3s/server/db/etcd/member
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['k3s_master'] | difference([inventory_hostname]) }}"
+  register: k3s_peer_etcd
+
+- name: Detect a running cluster
+  ansible.builtin.set_fact:
+    k3s_cluster_exists: "{{ k3s_peer_etcd.results | map(attribute='stat.exists') | select | list | length > 0 }}"
+
 - name: Ensure a primary k3s control node is defined if multiple masters are found
   ansible.builtin.set_fact:
     k3s_primary_control_node: true
   when:
     - groups['k3s_master'] | length > 1
     - inventory_hostname == (k3s_cluster_init_node | default(groups['k3s_master'][0]))
+    - not k3s_cluster_exists
 
 - name: Ensure registration ip is defined
   ansible.builtin.set_fact:
