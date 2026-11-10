@@ -2,7 +2,7 @@
 
 Goal: the control host (pimaster) moves from the UTM VM on the Mac to a second Oracle Cloud VM that works from any network, and the cluster is rebuilt from empty disks with Ansible logging in as a non-root `ansible` user with sudo. Same nodes, same services, same Git and Flux flow.
 
-Status (2026-11-10): decisions D1–D7 taken as recommended. Next: PR 2, then phase 1. Phase 4 (the Ansible change) starts after [Cluster 3.0](cluster-3.0.md) phase 4 is merged: that phase moves `ansible_user` into `group_vars/all/`.
+Status (2026-11-10): decisions D1–D7 taken as recommended; phases 1–3 done. The new pimaster runs in Oracle: `make verify` passes there in 115 s, Ansible reaches every host, and each Terraform module plans no changes. Next: phase 4 ([Cluster 3.0](cluster-3.0.md) phase 4 is merged, so `ansible_user` now lives in `group_vars/all/`).
 
 ## Why
 
@@ -161,14 +161,14 @@ Steps:
    ssh ubuntu@10.99.0.2 'sudo rm /etc/sysctl.d/90-remote-access.conf && sudo sysctl -w net.ipv4.ip_forward=0'
    ```
 
-4. Laptop: the WireGuard profile keeps its key (`laptop.key`, address 10.99.0.18), and its peer becomes pimaster: pimaster's public key, endpoint `<pimaster_public_ip>:51820`, AllowedIPs 10.99.0.0/24 and 10.0.0.0/24, DNS 10.0.0.1 for the homelab domain, MTU 1280. The phone works the same way, at 10.99.0.19. At home the profile can stay on. Traffic then goes through Frankfurt, about 40 ms per round trip.
+4. Laptop: the WireGuard profile keeps its key (`laptop.key`, address 10.99.0.18), and its peer becomes pimaster: pimaster's public key, endpoint `<pimaster_public_ip>:51820`, AllowedIPs 10.0.0.0/24, 10.99.0.2/32 and 10.99.0.3/32, DNS 10.0.0.1 for the homelab domain, MTU 1280. The VMs need /32 routes: at home the laptop's `10.99.0.0/24` route through the gateway wins over a VPN route of the same size. The phone works the same way, at 10.99.0.19. At home the profile can stay on. Traffic then goes through Frankfurt, about 40 ms per round trip.
 
 Validation:
 
 - On the gateway, `wg show wg_oci` shows a handshake under 2 minutes old for both peers.
 - From the old pimaster, `ssh pimaster@10.99.0.3 cloud-init status` returns `done`.
-- On the new VM:
-  - `ping -c3 10.0.0.1`;
+- On the new VM (TCP only: like the home network, the tunnel gets no ICMP into the cluster LAN, so `ping` fails):
+  - `nc -zv 10.0.0.1 22`;
   - `nc -zv 10.0.0.16 22`;
   - `nc -zv 10.0.0.10 6443`;
   - `nc -zv 10.99.0.2 22`;
