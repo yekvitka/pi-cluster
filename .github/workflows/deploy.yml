@@ -154,7 +154,7 @@ jobs:
           } >>"$GITHUB_STEP_SUMMARY"
 
   ansible-check:
-    name: Ansible dry run (${{ inputs.playbook }})
+    name: Ansible dry run
     if: github.event_name == 'workflow_dispatch'
     runs-on: [self-hosted, pimaster]
     timeout-minutes: 60
@@ -162,7 +162,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           persist-credentials: false
-      - name: ansible-playbook --check --diff
+      - name: ansible-playbook ${{ inputs.playbook }} --check --diff
         env:
           PLAYBOOK: ${{ inputs.playbook }}
           EXTRA_ARGS: ${{ inputs.extra_args }}
@@ -171,7 +171,7 @@ jobs:
           scripts/deploy-run.sh ansible-check ansible-playbook "$PLAYBOOK" --check --diff "${extra[@]}"
 
   ansible-apply:
-    name: Ansible run (${{ inputs.playbook }})
+    name: Ansible run
     needs: ansible-check
     if: github.event_name == 'workflow_dispatch' && !inputs.dry_run
     environment: ansible-deploy
@@ -181,7 +181,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           persist-credentials: false
-      - name: ansible-playbook
+      - name: ansible-playbook ${{ inputs.playbook }}
         env:
           PLAYBOOK: ${{ inputs.playbook }}
           EXTRA_ARGS: ${{ inputs.extra_args }}
