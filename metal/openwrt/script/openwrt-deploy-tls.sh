@@ -5,11 +5,11 @@
 set -euo pipefail
 
 ANSIBLE_DIR="$(cd "$(dirname "$0")/../../../ansible" && pwd)"
-DNS_DOMAIN="${DNS_DOMAIN:-$(sed -n 's/^dns_domain: *//p' "$ANSIBLE_DIR/group_vars/all.yml")}"
+DNS_DOMAIN="${DNS_DOMAIN:-$(sed -n 's/^dns_domain: *//p' "$ANSIBLE_DIR/group_vars/all/site.yml")}"
 CERT_PATH="$HOME/.certbot/config/live/gateway.$DNS_DOMAIN/fullchain.pem"
 KEY_PATH="$HOME/.certbot/config/live/gateway.$DNS_DOMAIN/privkey.pem"
 # Gateway LAN address, root login with the pimaster key
-REMOTE_HOST="${REMOTE_HOST:-root@$(sed -n 's/^default_gateway: *//p' "$ANSIBLE_DIR/group_vars/all.yml")}"
+REMOTE_HOST="${REMOTE_HOST:-root@$(sed -n 's/^default_gateway: *//p' "$ANSIBLE_DIR/group_vars/all/site.yml")}"
 REMOTE_CERT="/etc/uhttpd.crt"
 REMOTE_KEY="/etc/uhttpd.key"
 REMOTE_SERVICE="/etc/init.d/uhttpd"

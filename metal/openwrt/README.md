@@ -47,7 +47,7 @@ If the Wi-Fi radio is not ready on first boot, the uplink is skipped (`logread |
    ssh root@192.168.1.1 "DOMAIN='<dns_domain>' WIFI_SSID='<home ssid>' WIFI_KEY='<home wifi password>' sh /tmp/gateway-setup.sh"
    ```
 
-   `DOMAIN` is `dns_domain` from `ansible/group_vars/all.yml` (`build-image.sh` reads it on its own). Optional overrides: `HOME_ROUTER` (default 192.168.50.1), `HOME_NET`, `WAN_IP`, `WIFI_COUNTRY` (default PL), `WIFI_BAND` (default 5g), `LAN_DHCP` (default 0), `ZONENAME` and `TIMEZONE` (default Europe/Warsaw).
+   `DOMAIN` is `dns_domain` from `ansible/group_vars/all/site.yml` (`build-image.sh` reads it on its own). Optional overrides: `HOME_ROUTER` (default 192.168.50.1), `HOME_NET`, `WAN_IP`, `WIFI_COUNTRY` (default PL), `WIFI_BAND` (default 5g), `LAN_DHCP` (default 0), `ZONENAME` and `TIMEZONE` (default Europe/Warsaw).
 
 5. The gateway reboots. Move eth0 to the cluster switch. It is now reachable at 10.0.0.1 and 192.168.50.200.
 

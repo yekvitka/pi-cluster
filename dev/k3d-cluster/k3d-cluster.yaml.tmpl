@@ -8,7 +8,7 @@ agents: 2
 kubeAPI: # same as `--api-port myhost.my.domain:6445` (where the name would resolve to 127.0.0.1)
   hostIP: ${HOST_IP} # where the Kubernetes API will be listening on
   hostPort: "6443"
-# The cluster's k3s version: k3s_version in ansible/vars/picluster.yml
+# The cluster's k3s version: k3s_version in ansible/group_vars/all/versions.yml
 image: rancher/k3s:v1.36.5-k3s1
 # Setting docker network to be used
 network: picluster

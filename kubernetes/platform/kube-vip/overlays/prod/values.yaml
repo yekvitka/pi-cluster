@@ -16,7 +16,7 @@ env:
   vip_interface: "eth0"
   vip_arp: "true"
   vip_leaderelection: "true"
-  # Lease 60s/40s/5s as k3s's controllers (ansible/vars/picluster.yml): kube-vip
+  # Lease 60s/40s/5s as k3s's controllers (ansible/group_vars/all/k3s.yml): kube-vip
   # deletes the VIP when it cannot renew, and Cilium on node6 recompiles every
   # endpoint for each VIP change (2026-11-07). A slow API under 40 s keeps the
   # VIP; a k3s restart still drops it (kube-vip v1.2.0 deletes it at start)
