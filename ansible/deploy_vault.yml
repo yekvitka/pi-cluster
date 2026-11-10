@@ -35,8 +35,6 @@
     certbot_logs_dir: "{{ lookup('ansible.builtin.env', 'HOME') }}/.certbot/log"
 
   pre_tasks:
-    - name: Include picluster variables
-      ansible.builtin.include_vars: "vars/picluster.yml"
 
     - name: Check Ionos credentials file exists
       ansible.builtin.stat:
@@ -165,8 +163,6 @@
     certbot_logs_dir: "{{ lookup('ansible.builtin.env', 'HOME') }}/.certbot/log"
 
   pre_tasks:
-    - name: Include picluster variables
-      ansible.builtin.include_vars: "vars/picluster.yml"
 
     - name: Check jq command is installed on Vault host
       ansible.builtin.command: jq --version

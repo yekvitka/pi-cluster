@@ -11,44 +11,10 @@
   tags: [minio, terraform]
   vars:
     terraform_project_dir: "../terraform/minio"
-    vault_secret_file: "{{ lookup('ansible.builtin.env', 'HOME') }}/.secrets/vault.env"
 
   pre_tasks:
-    - name: Include picluster variables
-      ansible.builtin.include_vars: "vars/picluster.yml"
-
-    - name: Check Vault secret file exists
-      ansible.builtin.stat:
-        path: "{{ vault_secret_file }}"
-      register: vault_secret_file_stat
-
-    - name: Validate Vault secret file exists
-      ansible.builtin.assert:
-        that:
-          - vault_secret_file_stat.stat.exists
-          - vault_secret_file_stat.stat.isreg
-        fail_msg: |
-          Vault secret file not found: {{ vault_secret_file }}
-
-          Run external services stage 1 first to generate it, or create it with:
-
-            VAULT_ADDR=https://vault.example.com:8200
-            VAULT_TOKEN=s.xxxxxxxxxxxxx
-            VAULT_CACERT=/path/to/certificates/CA.pem
-
-    - name: Get Vault environment from secret file
-      ansible.builtin.set_fact:
-        vault_addr: "{{ lookup('ansible.builtin.ini', 'VAULT_ADDR type=properties file=' ~ vault_secret_file) }}"
-        vault_token: "{{ lookup('ansible.builtin.ini', 'VAULT_TOKEN type=properties file=' ~ vault_secret_file) }}"
-        vault_cacert: "{{ lookup('ansible.builtin.ini', 'VAULT_CACERT type=properties file=' ~ vault_secret_file, errors='ignore') | default('', true) }}"
-
-    - name: Validate Vault variables loaded from secret file
-      ansible.builtin.assert:
-        that:
-          - vault_addr is defined and vault_addr != ""
-          - vault_token is defined and vault_token != ""
-        fail_msg: |
-          Missing VAULT_ADDR or VAULT_TOKEN in {{ vault_secret_file }}
+    - name: Load Vault session (vault_addr, vault_token, vault_cacert)
+      ansible.builtin.include_tasks: tasks/vault_session.yml
 
     - name: Fetch MinIO credentials from Vault
       community.hashi_vault.vault_kv2_get:

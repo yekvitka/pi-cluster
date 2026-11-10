@@ -13,8 +13,6 @@
 - name: Check the repository password on the controller
   hosts: localhost
   gather_facts: false
-  vars_files:
-    - vars/picluster.yml
   tasks:
     - name: Check restic offsite password file
       ansible.builtin.stat:
@@ -28,8 +26,6 @@
 - name: Offsite backup client key on node1
   hosts: s3
   gather_facts: false
-  vars_files:
-    - vars/picluster.yml
   tasks:
     - name: SSH key for the offsite repository
       community.crypto.openssh_keypair:
@@ -66,8 +62,6 @@
 - name: Backup volume and SFTP-only repository user on the VM
   hosts: oci
   gather_facts: false
-  vars_files:
-    - vars/picluster.yml
   tasks:
     - name: Check the backup volume
       ansible.builtin.command: "lsblk -bdno SIZE {{ offsite_backup_device }}"
@@ -165,8 +159,6 @@
 - name: Nightly restic copy from node1
   hosts: s3
   gather_facts: false
-  vars_files:
-    - vars/picluster.yml
   tasks:
     - name: Restic configuration directory
       ansible.builtin.file:

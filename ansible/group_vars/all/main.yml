@@ -1,0 +1,11 @@
+---
+# Ansible connection and security defaults for every host.
+
+# Remote user name (cloud-init creates it; the roles and runner assume root)
+ansible_user: root
+
+# Ansible ssh private key
+ansible_ssh_private_key_file: ~/.ssh/id_rsa
+
+# ricsanfre.security defaults to "no", which locks out ansible_user root
+security_ssh_permit_root_login: "prohibit-password"

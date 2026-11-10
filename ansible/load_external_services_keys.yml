@@ -9,7 +9,10 @@
     vault_host: "{{ groups['vault'][0] }}"
     ionos_credentials_file: "~/.secrets/ionos-credentials.ini"
     github_pat_file: "~/.secrets/github-pat.ini"
-    vault_secret_file: "{{ lookup('ansible.builtin.env', 'HOME') }}/.secrets/vault.env"
+
+  pre_tasks:
+    - name: Load Vault session (vault_addr, vault_token, vault_cacert)
+      ansible.builtin.include_tasks: tasks/vault_session.yml
 
   tasks:
     - name: Display Stage 5 banner
@@ -26,43 +29,6 @@
           • S3 Prometheus metrics token (from filesystem)
           • HTTP Basic Auth credentials
           • General Ansible variables
-
-    - name: Include picluster variables
-      ansible.builtin.include_vars: "vars/picluster.yml"
-
-    - name: Check Vault secret file exists on controller
-      ansible.builtin.stat:
-        path: "{{ vault_secret_file }}"
-      register: vault_secret_file_stat
-      delegate_to: localhost
-      become: false
-      run_once: true
-
-    - name: Validate Vault secret file exists
-      ansible.builtin.assert:
-        that:
-          - vault_secret_file_stat.stat.exists
-          - vault_secret_file_stat.stat.isreg
-        fail_msg: |
-          Vault secret file not found: {{ vault_secret_file }}
-
-          Run Stage 1 first to generate it.
-      run_once: true
-
-    - name: Get Vault environment from secret file
-      ansible.builtin.set_fact:
-        vault_addr: "{{ lookup('ansible.builtin.ini', 'VAULT_ADDR type=properties file=' ~ vault_secret_file) }}"
-        vault_token: "{{ lookup('ansible.builtin.ini', 'VAULT_TOKEN type=properties file=' ~ vault_secret_file) }}"
-        vault_cacert: "{{ lookup('ansible.builtin.ini', 'VAULT_CACERT type=properties file=' ~ vault_secret_file, errors='ignore') | default('', true) }}"
-
-    - name: Validate Vault variables
-      ansible.builtin.assert:
-        that:
-          - vault_addr is defined and vault_addr != ""
-          - vault_token is defined and vault_token != ""
-        fail_msg: |
-          Vault variables not found in {{ vault_secret_file }}.
-          Ensure Stage 1 generated the file with VAULT_ADDR and VAULT_TOKEN.
 
     - name: Load HTTP Basic Authentication credentials
       ansible.builtin.include_tasks:

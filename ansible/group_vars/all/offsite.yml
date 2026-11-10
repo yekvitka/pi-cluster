@@ -1,0 +1,23 @@
+---
+# Offsite backup to the Oracle Cloud VM (10.99.0.2 through the WireGuard tunnel).
+# See docs/offsite.md for the architecture.
+
+offsite_restic_password_file: "{{ lookup('ansible.builtin.env', 'HOME') }}/.secrets/restic-offsite.password"
+offsite_ssh_alias: offsite-backup
+offsite_restic_user: restic
+offsite_backup_device: /dev/sdb
+offsite_backup_label: offsite-backups
+offsite_backup_path: /backup
+offsite_backup_sources:
+  - /storage/rustfs
+  - /var/backups/vault
+# Not worth an offsite copy: Loki logs, 7-day retention
+offsite_backup_excludes:
+  - /storage/rustfs/k3s-loki
+
+offsite_vault_addr: "https://{{ vault_hostname }}:8200"
+offsite_vault_snapshot_dir: /var/backups/vault
+offsite_vault_secret_file: "{{ lookup('ansible.builtin.env', 'HOME') }}/.secrets/vault.env"
+
+offsite_backup_schedule: "*-*-* 05:00:00"
+offsite_restic_retention: "--group-by host,tags --keep-daily 7 --keep-weekly 4 --keep-monthly 6"

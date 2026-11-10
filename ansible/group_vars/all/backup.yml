@@ -1,0 +1,19 @@
+---
+# Restic backup configuration (ricsanfre.backup role).
+
+# Restic S3 repository on RustFS
+restic_repository: "s3:{{ rustfs_url }}/restic"
+restic_use_ca_cert: true
+# S3 credentials: created by terraform/minio, read from Vault (s3/restic)
+# in backup_configuration.yml
+
+# Clean service: enabled on exactly one node (node1 host_vars)
+restic_clean_service: false
+
+# Directories backed up on every node
+restic_backups_dirs:
+  - path: '/etc'
+  - path: '/root'
+    exclude:
+      - pattern: '.cache'
+      - pattern: '.ansible'

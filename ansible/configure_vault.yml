@@ -7,14 +7,13 @@
   vars:
     terraform_vault_dir: "../terraform/vault"
     vault_host: "{{ groups['vault'][0] }}"
-    vault_secret_file: "{{ lookup('ansible.builtin.env', 'HOME') }}/.secrets/vault.env"
     # Kubernetes auth needs a running cluster: on by default; the first Vault step
     # of make init (external_services.yml) runs before k3s and passes false
     vault_enable_kubernetes_auth: "{{ enable_kubernetes_auth | default(true) | bool }}"
 
   pre_tasks:
-    - name: Include picluster variables
-      ansible.builtin.include_vars: "vars/picluster.yml"
+    - name: Load Vault session (vault_addr, vault_token, vault_cacert)
+      ansible.builtin.include_tasks: tasks/vault_session.yml
 
   tasks:
     - name: Display Stage 2 banner
@@ -30,38 +29,6 @@
           • Configure Vault policies
           • Load auto-generated secrets from JSON files
           • Setup Kubernetes authentication method
-
-    - name: Check Vault secret file exists
-      ansible.builtin.stat:
-        path: "{{ vault_secret_file }}"
-      register: vault_secret_file_stat
-
-    - name: Validate Vault secret file exists
-      ansible.builtin.assert:
-        that:
-          - vault_secret_file_stat.stat.exists
-          - vault_secret_file_stat.stat.isreg
-        fail_msg: |
-          Vault secret file not found: {{ vault_secret_file }}
-
-          Run Stage 1 first to generate it, or create it with:
-            VAULT_ADDR=https://vault.example.com:8200
-            VAULT_TOKEN=s.xxxxxxxxxxxxx
-            VAULT_CACERT=/path/to/ca.pem
-
-    - name: Set Vault environment variables
-      ansible.builtin.set_fact:
-        vault_addr: "{{ lookup('ansible.builtin.ini', 'VAULT_ADDR type=properties file=' ~ vault_secret_file) }}"
-        vault_token: "{{ lookup('ansible.builtin.ini', 'VAULT_TOKEN type=properties file=' ~ vault_secret_file) }}"
-        vault_cacert: "{{ lookup('ansible.builtin.ini', 'VAULT_CACERT type=properties file=' ~ vault_secret_file, errors='ignore') | default('', true) }}"
-
-    - name: Validate Vault variables loaded from secret file
-      ansible.builtin.assert:
-        that:
-          - vault_addr is defined and vault_addr != ""
-          - vault_token is defined and vault_token != ""
-        fail_msg: |
-          Missing VAULT_ADDR or VAULT_TOKEN in {{ vault_secret_file }}
 
     - name: Display Vault configuration (self-signed certificates)
       ansible.builtin.debug:

@@ -76,15 +76,8 @@
 - name: Self-heal etcd on the servers
   when: "'k3s_master' in group_names"
   vars:
-    power_loss_etcd: "etcd-{{ power_loss_picluster.k3s_etcdctl_version }}-linux-{{ 'arm64' if ansible_facts['architecture'] == 'aarch64' else 'amd64' }}"
+    power_loss_etcd: "etcd-{{ k3s_etcdctl_version }}-linux-{{ 'arm64' if ansible_facts['architecture'] == 'aarch64' else 'amd64' }}"
   block:
-    # The API address and the etcd version, in their own namespace:
-    # vars/picluster.yml is not a vars file of this playbook
-    - name: Read the k3s API address and etcd version
-      ansible.builtin.include_vars:
-        file: "{{ playbook_dir }}/vars/picluster.yml"
-        name: power_loss_picluster
-
     # For the release archive's name: a run with --tags power-loss skips the
     # play's fact gathering
     - name: Read the CPU architecture
@@ -94,8 +87,8 @@
     # Checked against the release's SHA256SUMS; one directory per version
     - name: Download etcdctl
       ansible.builtin.get_url:
-        url: "https://github.com/etcd-io/etcd/releases/download/{{ power_loss_picluster.k3s_etcdctl_version }}/{{ power_loss_etcd }}.tar.gz"
-        checksum: "sha256:https://github.com/etcd-io/etcd/releases/download/{{ power_loss_picluster.k3s_etcdctl_version }}/SHA256SUMS"
+        url: "https://github.com/etcd-io/etcd/releases/download/{{ k3s_etcdctl_version }}/{{ power_loss_etcd }}.tar.gz"
+        checksum: "sha256:https://github.com/etcd-io/etcd/releases/download/{{ k3s_etcdctl_version }}/SHA256SUMS"
         dest: "/var/cache/{{ power_loss_etcd }}.tar.gz"
         mode: "0644"
       register: power_loss_etcdctl_download
@@ -123,7 +116,7 @@
         dest: /usr/local/sbin/k3s-etcd-selfheal
         mode: "0755"
       vars:
-        api_url: "https://{{ power_loss_picluster.k3s_api_vip }}:6443"
+        api_url: "https://{{ k3s_api_vip }}:6443"
 
     - name: Create the k3s drop-in directory
       ansible.builtin.file:

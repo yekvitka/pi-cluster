@@ -1,0 +1,43 @@
+---
+# Pinned tool versions. All managed by Renovate; update together with
+# the matching tool's configuration when a bump changes behaviour.
+
+# renovate: datasource=github-releases depName=k3s-io/k3s
+k3s_version: v1.36.5+k3s1
+
+# etcdctl matching the etcd k3s embeds ("etcd-version" in the k3s log).
+# Update with k3s; used by k3s-etcd-selfheal and the runbooks
+# renovate: datasource=github-releases depName=etcd-io/etcd
+k3s_etcdctl_version: v3.6.14
+
+# renovate: datasource=github-releases depName=hashicorp/vault
+vault_version: 2.1.1
+
+# renovate: datasource=github-releases depName=rustfs/rustfs
+rustfs_server_version: 1.0.0
+# renovate: datasource=github-releases depName=rustfs/cli
+rustfs_cli_version: v0.1.36
+
+# renovate: datasource=github-releases depName=restic/restic
+restic_version: 0.19.1
+
+# renovate: datasource=github-releases depName=fluxcd/flux2
+fluxcd_version: v2.9.5
+
+# renovate: datasource=github-releases depName=vmware-tanzu/velero
+velero_version: v1.18.2
+
+# renovate: datasource=github-releases depName=longhorn/longhorn
+longhorn_version: v1.12.1
+
+# renovate: datasource=github-releases depName=helm/helm
+helm_version: v4.3.0
+
+# renovate: datasource=docker depName=twinproduction/gatus
+gatus_version: v5.38.0
+
+# certbot on node1 (cert_renewal.yml); same version as in ansible/pyproject.toml
+# renovate: datasource=pypi depName=certbot
+certbot_version: 5.8.0
+# renovate: datasource=pypi depName=certbot-dns-ionos
+certbot_dns_ionos_version: 2024.11.9
