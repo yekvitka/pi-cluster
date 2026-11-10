@@ -128,12 +128,14 @@
             src: ../../../../kubernetes/platform/cilium/app/base/values.yaml
           register: cilium_base_values
           delegate_to: localhost
+          become: false
 
         - name: Read Cilium overlay values.yaml
           ansible.builtin.slurp:
             src: ../../../../kubernetes/platform/cilium/app/overlays/{{ overlay }}/values.yaml
           register: cilium_overlay_values
           delegate_to: localhost
+          become: false
 
         - name: Merge Cilium values
           ansible.builtin.set_fact:
@@ -168,12 +170,14 @@
             src: ../../../../kubernetes/platform/coredns/app/base/values.yaml
           register: coredns_base_values
           delegate_to: localhost
+          become: false
 
         - name: Read CoreDNS overlay values.yaml
           ansible.builtin.slurp:
             src: ../../../../kubernetes/platform/coredns/app/overlays/{{ overlay }}/values.yaml
           register: coredns_overlay_values
           delegate_to: localhost
+          become: false
 
         - name: Merge CoreDNS values
           ansible.builtin.set_fact:
@@ -208,12 +212,14 @@
             src: ../../../../kubernetes/platform/kube-vip/base/values.yaml
           register: kubevip_base_values
           delegate_to: localhost
+          become: false
 
         - name: Read kube-vip overlay values.yaml
           ansible.builtin.slurp:
             src: ../../../../kubernetes/platform/kube-vip/overlays/{{ overlay }}/values.yaml
           register: kubevip_overlay_values
           delegate_to: localhost
+          become: false
 
         - name: Merge kube-vip values
           ansible.builtin.set_fact:

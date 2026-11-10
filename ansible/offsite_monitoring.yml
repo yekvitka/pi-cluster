@@ -9,6 +9,7 @@
 - name: Gatus on the offsite VM
   hosts: oci
   gather_facts: false
+  become: true
   tasks:
     # Host networking only: Docker must not add its own iptables rules
     # (they would end up in the saved rules.v4). Set before the first start

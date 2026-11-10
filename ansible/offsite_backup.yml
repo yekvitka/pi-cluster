@@ -26,6 +26,7 @@
 - name: Offsite backup client key on node1
   hosts: s3
   gather_facts: false
+  become: true
   tasks:
     - name: SSH key for the offsite repository
       community.crypto.openssh_keypair:
@@ -62,6 +63,7 @@
 - name: Backup volume and SFTP-only repository user on the VM
   hosts: oci
   gather_facts: false
+  become: true
   tasks:
     - name: Check the backup volume
       ansible.builtin.command: "lsblk -bdno SIZE {{ offsite_backup_device }}"
@@ -159,6 +161,7 @@
 - name: Nightly restic copy from node1
   hosts: s3
   gather_facts: false
+  become: true
   tasks:
     - name: Restic configuration directory
       ansible.builtin.file:
@@ -214,6 +217,7 @@
               renewable: true
           register: offsite_vault_token
           delegate_to: localhost
+          become: false
 
         - name: Store the Vault snapshot token
           ansible.builtin.copy:

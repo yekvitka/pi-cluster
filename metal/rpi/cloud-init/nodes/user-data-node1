@@ -10,15 +10,17 @@ hostname: nodeX
 # cloud-init not managing hosts file. only hostname is added
 manage_etc_hosts: localhost
 
-# No default ubuntu user: login as root with SSH key only
-disable_root: false
+# No default ubuntu user. Ansible logs in as ansible (passwordless sudo, SSH
+# key only); root has no SSH keys, and sshd refuses it (ricsanfre.security)
+disable_root: true
 ssh_pwauth: false
 users:
-  - name: root
+  - name: ansible
     lock_passwd: true
-    ssh_authorized_keys:
-      # Replaced by `make prepare-nodeX` with the key in metal/rpi/cloud-init/root.pub
-      - SSH_PUB_KEY
+    shell: /bin/bash
+    sudo: "ALL=(ALL) NOPASSWD:ALL"
+    # Replaced by `make prepare-nodeX` with every key in metal/rpi/cloud-init/ansible.pub
+    ssh_authorized_keys: SSH_PUB_KEYS
 
 write_files:
   # The home router also hands out its IPv6 DNS servers over DHCPv6 (see network-config)

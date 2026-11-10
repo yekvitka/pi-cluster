@@ -6,6 +6,12 @@
   gather_facts: true
   tags: [external]
   become: true
+  pre_tasks:
+    # Ansible's own login first: the ansible user with sudo, root without SSH keys
+    - name: Ansible user
+      ansible.builtin.import_tasks: tasks/ansible_user.yml
+      tags: [ansible-user]
+
   roles:
     # OS basic setup tasks
     - role: basic_setup
@@ -38,6 +44,12 @@
   gather_facts: true
   tags: [node]
   become: true
+  pre_tasks:
+    # Ansible's own login first: the ansible user with sudo, root without SSH keys
+    - name: Ansible user
+      ansible.builtin.import_tasks: tasks/ansible_user.yml
+      tags: [ansible-user]
+
   roles:
     # OS basic setup tasks
     - role: basic_setup

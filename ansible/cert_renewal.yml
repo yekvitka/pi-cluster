@@ -13,6 +13,7 @@
 - name: Certbot with automatic renewal on node1
   hosts: s3
   gather_facts: false
+  become: true
   vars:
     certbot_venv: /opt/certbot
     certbot_domains:

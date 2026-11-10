@@ -2,7 +2,7 @@
 
 Goal: the control host (pimaster) moves from the UTM VM on the Mac to a second Oracle Cloud VM that works from any network, and the cluster is rebuilt from empty disks with Ansible logging in as a non-root `ansible` user with sudo. Same nodes, same services, same Git and Flux flow.
 
-Status (2026-11-10): decisions D1–D7 taken as recommended; phases 1–3 done. The new pimaster runs in Oracle: `make verify` passes there in 115 s, Ansible reaches every host, and each Terraform module plans no changes. Next: phase 4 ([Cluster 3.0](cluster-3.0.md) phase 4 is merged, so `ansible_user` now lives in `group_vars/all/`).
+Status (2026-11-10): decisions D1–D7 taken as recommended; phases 1–3 done. The new pimaster runs in Oracle: `make verify` passes there in 115 s, Ansible reaches every host, and each Terraform module plans no changes. Phase 4: PR 3 (`feature/ansible-user`) in progress.
 
 ## Why
 
@@ -70,8 +70,8 @@ Each decision is needed before the phase in brackets. The recommendation comes f
 | 1 | Oracle: account, storage, the VM | new VM `pimaster`; backup volume replaced (fresh repository) | user: console settings, `tofu apply` from the old pimaster |
 | 2 | The tunnel moves | gateway peer and rules for pimaster; offsite VM stops forwarding; laptop connects to pimaster | user: gateway script, offsite commands |
 | 3 | Bootstrap the new pimaster | repository, tools, keys, secrets moved, runner | user, with Claude over SSH |
-| 4 | Ansible as `ansible` (code) | the user created on the current nodes for a pre-flight; nothing else | merge; user approves the pre-flight commands |
-| 5 | Rebuild | everything | user: `make clean`, re-flash, `make init` from the new pimaster |
+| 4 | Ansible as `ansible` (code) | the user created on the current nodes by Ansible (pre-flight) | merge PR 3; user runs pre-flight |
+| 5 | Rebuild in place | `make clean`; `make init`; root SSH locked out | user: no re-flash, no router change |
 | 6 | Cutover and cleanup | old VM shut down, old keys removed | user |
 
 ### Phase 1: Oracle
@@ -268,40 +268,41 @@ Code (PR 3, after Cluster 3.0 phase 4):
   - CLAUDE.md, which is local only;
   - the Cluster 3.0 plan ("Not in 3.0") points here.
 
-Pre-flight on the current nodes, from the new pimaster with `master` (still root). The cluster is disposable, but this catches gaps before any disk is re-flashed:
+Pre-flight on the current nodes, from the new pimaster on `master` (connecting as root). Write `metal/rpi/cloud-init/ansible.pub` first (pimaster's key and the break-glass key, one per line), then:
 
 ```shell
 R=./ansible-runner/ansible-runner.sh
-$R ansible picluster -m ansible.builtin.user -a 'name=ansible shell=/bin/bash password_lock=true'
-$R ansible picluster -m ansible.posix.authorized_key -a "user=ansible key='{{ lookup(\"ansible.builtin.file\", \"~/.ssh/id_rsa.pub\") }}'"
-$R ansible picluster -m ansible.builtin.copy -a "dest=/etc/sudoers.d/90-ansible content='ansible ALL=(ALL) NOPASSWD:ALL\n' mode=0440 validate='visudo -cf %s'"
+# Create the ansible user
+$R ansible picluster -b -m ansible.builtin.user -a 'name=ansible shell=/bin/bash password_lock=true'
+# pimaster key (the runner mounts ~/.ssh/id_rsa.pub)
+$R ansible picluster -b -m ansible.posix.authorized_key -a "user=ansible key=\"$(cat ~/.ssh/id_rsa.pub)\" exclusive=false"
+# break-glass key (second line of ansible.pub)
+$R ansible picluster -b -m ansible.posix.authorized_key -a "user=ansible key=\"$(sed -n '2p' metal/rpi/cloud-init/ansible.pub)\" exclusive=false"
+# passwordless sudo
+$R ansible picluster -b -m ansible.builtin.copy -a "dest=/etc/sudoers.d/90-ansible content='ansible ALL=(ALL) NOPASSWD:ALL\n' mode=0440 validate='visudo -cf %s'"
 ```
 
 Then, on the PR 3 branch:
 
-- `ansible all -m ping`;
+- `ansible all -m ping` as `ansible`;
 - `ansible picluster -b -m command -a id` shows uid 0;
 - check-mode runs of `setup_picluster.yml`, `backup_configuration.yml`, `deploy_monitoring_agent.yml`, `cert_renewal.yml` and `configure_dns_authoritative.yml`.
 
-Each run reports the same changed tasks as a check-mode run as root on `master`. The only expected difference is sshd's `PermitRootLogin`.
+Each check-mode run as `ansible` must report the same changed tasks as the same run on `master` as `root`. The only expected difference is `PermitRootLogin` (no vs prohibit-password) from `ricsanfre.security`.
 
-Validation: `make verify` with the new CI check; the pre-flight above. Rollback: revert PR 3. Root login works until phase 5, because the pre-flight removes nothing.
+Validation: `make verify` with the new CI check; the pre-flight above. Rollback: revert PR 3. Root login still works until phase 5, because the pre-flight adds the user but changes nothing on root.
 
-### Phase 5: rebuild
+### Phase 5: rebuild in place
 
-From the new pimaster, with PR 3 merged, in this order:
+No re-flashing and no router changes (user decision, 2026-11-10). The nodes keep their disks; Ansible handles the user transition. The cloud-init changes in PR 3 go into the repo for future installs and are not exercised on this rebuild.
 
-1. `make clean` runs as `ansible` and proves the reset playbooks with the new user. It also wipes Vault and RustFS on node1's `DATA` SSD, which a re-flash would not do: cloud-init never reformats that disk (`overwrite: false`), and the disk never leaves node1.
-2. Write `metal/rpi/cloud-init/ansible.pub`: pimaster's public key and the break-glass public key, one per line.
-3. Re-flash from the old pimaster: it has USB passthrough on the Mac, and the cloud VM cannot write disks. The flow is the one in the quick start (`make burn-image`, `make prepare-nodeX`). Do node4 first (worker, SD card), boot it, and check from the new pimaster:
-   - `ssh ansible@10.0.0.14 sudo -n true` works;
-   - `ssh root@10.0.0.14` is refused;
-   - the rendered `user-data` on the boot partition lists both keys.
+From the new pimaster, with PR 3 merged and the pre-flight already done (ansible user exists on every node), in this order:
 
-   Then node1 (SD card only), node2 (SD), node3, node5 and node6 (SSD).
-4. On the new pimaster, forget the old host keys: `ssh-keygen -R` for each node's IP and name.
-5. `make init`, timed.
-6. The steps that are not part of `init`: `make configure-cert-renewal`, `make configure-offsite-backup` (fresh repository on the 100 GB volume; it re-enables the node1 timer) and `make configure-offsite-monitoring`.
+1. `ansible.pub` is already written from the pre-flight. Confirm: `wc -l metal/rpi/cloud-init/ansible.pub` shows 2.
+2. `make clean` — runs as `ansible`, proves the reset playbooks. It also wipes Vault and RustFS on node1's `DATA` SSD (which a re-flash would not do): cloud-init never reformats that disk (`overwrite: false`), and the disk never leaves node1.
+3. Confirm the ansible user still works: `ansible all -m ping`.
+4. `make init`, timed. Inside `init`, `setup_picluster.yml` runs `tasks/ansible_user.yml`, which clears root's `authorized_keys` and sets `PermitRootLogin no` via `ricsanfre.security`. DNS note: `dns-setup` runs as part of `init`; before it starts, check the live Bind9 serial on node1 (`sudo named-checkzone ...`) — if it exceeds the value that the bind9 role would write, the zone transfer fails silently. Workaround: bump the serial in the role template to `serial_today + 1` just before the run, or skip dns-setup and re-add host records with nsupdate manually.
+5. The steps not part of `init`: `make configure-cert-renewal`, `make configure-offsite-backup` (fresh repository on the 100 GB volume; it re-enables the node1 restic-offsite.timer) and `make configure-offsite-monitoring`.
 
 Validation: the same checks as the 2026-11-03 rebuild.
 

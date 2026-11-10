@@ -4,7 +4,7 @@ What runs in the cluster and how it fits 4 GB Raspberry Pis. Every app in the re
 
 ## Design
 
-- Five Raspberry Pis and an OpenWrt gateway. Ubuntu 24.04, installed by cloud-init; Ansible connects as `root` with the key in `metal/rpi/cloud-init/root.pub`.
+- Five Raspberry Pis and an OpenWrt gateway. Ubuntu 24.04, installed by cloud-init; Ansible connects as `ansible` (passwordless sudo) with the key in `metal/rpi/cloud-init/ansible.pub`.
 - The BCM2835 hardware watchdog runs on every Pi (`rpi_watchdog_sec`, basic_setup role): a hung node reboots itself.
 - Vault, RustFS and bind9 run on node1, outside the cluster: the cluster can be rebuilt without losing secrets or backups.
 - Flux deploys what `kubernetes/clusters/prod/infra/kustomization.yaml` lists. The other apps in `kubernetes/platform/` are planned and come one at a time with [Cluster 2.0](plans/cluster-2.0.md).

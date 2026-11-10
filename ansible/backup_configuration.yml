@@ -17,6 +17,7 @@
         path: s3/restic
       register: restic_vault_secret
       delegate_to: localhost
+      become: false
       tags: ["always"]
     - name: Set restic environment variables from Vault
       ansible.builtin.set_fact:

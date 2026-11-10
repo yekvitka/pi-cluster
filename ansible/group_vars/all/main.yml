@@ -1,11 +1,13 @@
 ---
 # Ansible connection and security defaults for every host.
 
-# Remote user name (cloud-init creates it; the roles and runner assume root)
-ansible_user: root
+# Remote user: cloud-init creates it with passwordless sudo, every node play
+# sets become (scripts/check-become.py). tasks/ansible_user.yml manages it
+ansible_user: ansible
 
 # Ansible ssh private key
 ansible_ssh_private_key_file: ~/.ssh/id_rsa
 
-# ricsanfre.security defaults to "no", which locks out ansible_user root
-security_ssh_permit_root_login: "prohibit-password"
+# The ansible user's public keys, one per line: the control host's key and the
+# break-glass key. Not in Git; cloud-init reads the same file (metal/rpi/Makefile)
+ansible_authorized_keys_file: "{{ playbook_dir }}/../metal/rpi/cloud-init/ansible.pub"
