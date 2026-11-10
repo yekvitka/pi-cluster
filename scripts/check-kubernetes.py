@@ -7,7 +7,7 @@ same library as kustomize-controller), using the variables of its
 cluster-settings ConfigMap and spec.postBuild.substitute, and skipping
 resources annotated kustomize.toolkit.fluxcd.io/substitute: disabled; validate
 every resource with kubeconform. The directories Flux applies directly
-(clusters/<env>/config, infra, apps) are built and validated too.
+(clusters/<env>/config, infra) are built and validated too.
 
 Strict substitution fails on a variable without a value or default, where Flux
 would substitute an empty string: a typo in a variable name fails here.

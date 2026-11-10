@@ -19,8 +19,7 @@ Edit these files. Everything not listed is the reference design and works as is.
 | File | Set |
 |---|---|
 | `ansible/inventory.yml` | the MAC address of each node (hostnames and IPs only if you change the IP plan or the number of nodes) |
-| `ansible/group_vars/all.yml` | `dns_domain` (your homelab subdomain), `ntp_timezone`, `iscsi_initiator_iqn_prefix`, `git_private_repo` |
-| `ansible/vars/picluster.yml` | `acme_issuer_email` |
+| `ansible/group_vars/all/site.yml` | `dns_domain` (your homelab subdomain), `ntp_timezone`, `iscsi_initiator_iqn_prefix`, `git_private_repo`, `acme_issuer_email` |
 | `kubernetes/clusters/prod/config/cluster-settings.yaml` | `CLUSTER_DOMAIN`, `S3_SERVER` |
 | `kubernetes/platform/flux-operator/instance/overlays/prod/values.yaml` | `instance.sync.url`: your fork |
 | `kubernetes/platform/cert-manager/config/components/acme-ionos/ionos-issuer.yaml` | ACME `email`; `groupName` (a name under your domain) |
@@ -33,7 +32,7 @@ The gateway's home network, Wi-Fi and time zone are passed when its image is bui
 
 ### The reference IP plan
 
-The cluster LAN is 10.0.0.0/24 behind the gateway: gateway 10.0.0.1, k3s API (kube-vip) 10.0.0.10, node1 10.0.0.11, nodes 10.0.0.12 and up, control host 10.0.0.20, load balancers 10.0.0.64/26 (Envoy Gateway on 10.0.0.68). To use other addresses, change them in `ansible/inventory.yml`, `ansible/group_vars/all.yml` (`default_gateway`, `dns_server`), `ansible/vars/picluster.yml` (`k3s_api_vip`), `ansible/host_vars/node1.yml` (DNS records), `cluster-settings.yaml`, `kubernetes/platform/cilium/config/base/ip-pool-lb.yaml`, `kubernetes/platform/kube-vip/overlays/prod/values.yaml`, the control-plane endpoints in `kubernetes/platform/kube-prometheus-stack/app/base/values.yaml`, `metal/rpi/cloud-init/nodes/network-config` and the addresses at the top of `metal/openwrt/gateway-setup.sh`.
+The cluster LAN is 10.0.0.0/24 behind the gateway: gateway 10.0.0.1, k3s API (kube-vip) 10.0.0.10, node1 10.0.0.11, nodes 10.0.0.12 and up, load balancers 10.0.0.64/26 (Envoy Gateway on 10.0.0.68). To use other addresses, change them in `ansible/inventory.yml`, `ansible/group_vars/all/site.yml` (`default_gateway`, `dns_server`), `ansible/group_vars/all/k3s.yml` (`k3s_api_vip`), `ansible/host_vars/node1.yml` (DNS records), `cluster-settings.yaml`, `kubernetes/platform/cilium/config/base/ip-pool-lb.yaml`, `kubernetes/platform/kube-vip/overlays/prod/values.yaml`, the control-plane endpoints in `kubernetes/platform/kube-prometheus-stack/app/base/values.yaml`, `metal/rpi/cloud-init/nodes/network-config` and the addresses at the top of `metal/openwrt/gateway-setup.sh`.
 
 ## 3. Secrets
 
@@ -74,7 +73,7 @@ make prepare-node1 USB=/dev/sdX SSD1_ID=<node1 SSD1 /dev/disk/by-id name>
 make prepare-node2 USB=/dev/sdX   # node3..node6 the same way
 ```
 
-Nodes get 10.0.0.1N on eth0 (DNS from the gateway) and their home network address on wlan0. `k3s_cluster_init_node` (`ansible/vars/picluster.yml`) names the server that starts the cluster.
+Nodes get 10.0.0.1N on eth0 (DNS from the gateway) and their home network address on wlan0. `k3s_cluster_init_node` (`ansible/group_vars/all/k3s.yml`) names the server that starts the cluster.
 
 ## 6. Build
 

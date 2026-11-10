@@ -19,7 +19,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # Homelab DNS domain: dns_domain in the Ansible configuration unless DOMAIN is set
-DOMAIN="${DOMAIN:-$(sed -n 's/^dns_domain: *//p' "$SCRIPT_DIR/../../ansible/group_vars/all.yml")}"
+DOMAIN="${DOMAIN:-$(sed -n 's/^dns_domain: *//p' "$SCRIPT_DIR/../../ansible/group_vars/all/site.yml")}"
 OPENWRT_VERSION="${OPENWRT_VERSION:-25.12.6}"
 SSH_PUBKEY="${SSH_PUBKEY:-$HOME/.ssh/id_rsa.pub}"
 # Generated on first build, needed for LuCI

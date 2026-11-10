@@ -43,7 +43,6 @@ NODE1_IP := $(shell awk '/^ +node1:$$/{f=1} f && /ansible_host:/{print $$2; exit
 	load-external-services-keys \
 	deploy-monitoring-agent \
 	configure-cert-renewal \
-	openwrt-certbot-tls \
 	configure-webui-auth \
 	configure-offsite-backup \
 	configure-offsite-monitoring \
@@ -162,10 +161,6 @@ configure-cert-renewal: ## Automatic Let's Encrypt renewal on node1 for Vault, R
 	$(RUNNER) ansible-playbook cert_renewal.yml
 	ssh root@$(GATEWAY_IP) "LUCI_CERT_PUBKEY='$$(ssh ansible@$(NODE1_IP) sudo cat /root/.ssh/luci_cert_ed25519.pub)' sh -s" < metal/openwrt/script/luci-cert-receiver.sh
 	ssh ansible@$(NODE1_IP) sudo RENEWED_LINEAGE=/etc/letsencrypt/live/gateway.$(DNS_DOMAIN) /etc/letsencrypt/renewal-hooks/deploy/homelab-certs.sh
-
-openwrt-certbot-tls: ## Issue the gateway (LuCI) certificate and deploy it
-	$(RUNNER) ansible-playbook generate_gateway_tls_certificate.yml
-	./metal/openwrt/script/openwrt-deploy-tls.sh
 
 configure-webui-auth: ## Basic auth credentials (Vault) for Longhorn, Prometheus and Alertmanager UIs
 	$(RUNNER) ansible-playbook configure_webui_auth.yml

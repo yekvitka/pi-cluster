@@ -2,7 +2,7 @@
 
 Goal: the control host (pimaster) moves from the UTM VM on the Mac to a second Oracle Cloud VM that works from any network, and the cluster is rebuilt from empty disks with Ansible logging in as a non-root `ansible` user with sudo. Same nodes, same services, same Git and Flux flow.
 
-Status (2026-11-10): decisions D1–D7 taken as recommended; phases 1–4 done. Phase 4: PR 3 merged (#80); the `ansible` user exists on every node, and check-mode runs as `ansible` match runs as root (only the root key removal differs, by design). Next: phase 5, the in-place rebuild, after `fix/dns-serial` merges.
+Status (2026-11-10): decisions D1–D7 taken as recommended; phases 1–5 done. The cluster was rebuilt in place from the Oracle pimaster with Ansible as `ansible`: `make clean` 8 minutes, `make init` 34 minutes, every Flux app ready 18 minutes later, every check below passed, and no node accepts root SSH ([times](../backup-and-recovery.md#full-rebuild)). Next: phase 6, cutover and cleanup.
 
 ## Why
 
@@ -216,7 +216,10 @@ On the new VM as `pimaster`, unless a step says otherwise. Log in from the old p
      ssh root@$ip 'cat >> .ssh/authorized_keys' < /tmp/pimaster-oci.pub
    done
    ssh ubuntu@10.99.0.2 'cat >> .ssh/authorized_keys' < /tmp/pimaster-oci.pub
+   ssh root@10.0.0.1 'cat >> /etc/dropbear/authorized_keys' < /tmp/pimaster-oci.pub
    ```
+
+   The gateway line was missing here and was run in phase 5 from the Mac: `make configure-cert-renewal` logs in to the gateway as root.
 
 6. Runner and checks on the new VM:
 
@@ -310,7 +313,7 @@ Validation: the same checks as the 2026-11-03 rebuild.
 - All Prometheus targets are up, and the Longhorn volumes are healthy.
 - An etcd snapshot reaches S3, and a Velero backup completes.
 - Gatus is all green.
-- The served certificates are valid, with no new ACME order.
+- The served certificates are valid, and node1's certbot places no new order (its lineages survive `make clean`). The cluster wildcard is ordered again on every rebuild: cert-manager keeps no state outside the cluster.
 - A manual offsite run completes and `restic snapshots` lists it.
 - `ansible all -m ping` works as `ansible`, and no node accepts root SSH.
 

@@ -14,19 +14,19 @@
 
 ```mermaid
 flowchart LR
-  eng(["👤 Engineer"]) -->|"① pull request"| gh
+  eng(["👤 Engineer<br/>laptop · any network"]) -->|"① pull request"| gh
 
   subgraph internet["🌍 Internet"]
     gh[("GitHub<br/>single source of truth")]
     le["Let's Encrypt<br/>IONOS DNS-01"]
     subgraph oci["☁️ Oracle Cloud · Always Free"]
+      pim["pimaster · control host<br/>Ansible runner · secrets<br/>Terraform state"]
       vm["offsite VM<br/>encrypted restic repository<br/>Gatus outside checks"]
     end
   end
 
-  subgraph home["🏠 Home network · 192.168.50.0/24"]
-    laptop["💻 Laptop<br/>browser · Lens · kubectl"]
-    gw["OpenWrt gateway<br/>NAT · DNS · WireGuard"]
+  subgraph home["🏠 Home"]
+    gw["OpenWrt gateway<br/>NAT · DNS · no inbound ports"]
   end
 
   subgraph lan["⚡ Cluster LAN · 10.0.0.0/24"]
@@ -39,7 +39,7 @@ flowchart LR
     subgraph kube["☸️ k3s · node6 API server + etcd · node2, node3 etcd · node4, node5 workers"]
       flux["Flux<br/>GitOps"]
       envoy["Envoy Gateway<br/>10.0.0.68 · TLS"]
-      apps["Grafana · Prometheus<br/>Alertmanager · Longhorn"]
+      apps["Grafana · Prometheus · Loki · Tempo<br/>Alertmanager · Longhorn · Rancher"]
       eso["External Secrets"]
       cm["cert-manager"]
       edns["external-dns"]
@@ -47,34 +47,40 @@ flowchart LR
     end
   end
 
+  eng ==>|"WireGuard"| pim
+  gw <==>|"WireGuard · the gateway dials out"| pim
+  gw <==>|"WireGuard"| vm
   gh -->|"② pull desired state"| flux
   flux -.->|"reconcile"| apps
-  laptop -->|"③ HTTPS"| gw --> envoy --> apps
-  cm -->|"④ DNS-01"| le
-  certbot -->|"④ DNS-01"| le
-  eso -->|"⑤ secrets"| vault
-  edns -->|"⑥ DNS records"| dns
-  velero -->|"⑦ daily backups"| s3
-  s3 ==>|"⑧ nightly · encrypted · WireGuard"| vm
-  vm -.->|"⑨ outside checks"| envoy
+  pim -->|"③ Ansible · ssh ansible@ · sudo"| lan
+  eng -.->|"④ HTTPS · through pimaster and the gateway"| envoy
+  envoy --> apps
+  cm -->|"⑤ DNS-01"| le
+  certbot -->|"⑤ DNS-01"| le
+  eso -->|"⑥ secrets"| vault
+  edns -->|"⑦ DNS records"| dns
+  velero -->|"⑧ daily backups"| s3
+  s3 ==>|"⑨ nightly · encrypted"| vm
+  vm -.->|"⑩ outside checks"| envoy
 
   classDef stateful fill:#fff4e5,stroke:#e08e00,color:#000
   classDef cloud fill:#e8f1ff,stroke:#3b6fd8,color:#000
   classDef k8s fill:#eefbf0,stroke:#2e9e4f,color:#000
   class vault,s3,dns,certbot stateful
-  class gh,le,vm cloud
+  class gh,le,vm,pim cloud
   class flux,envoy,apps,eso,cm,edns,velero k8s
 ```
 
 1. **Change = pull request.** Infrastructure, apps, versions and policies all change through Git; Renovate proposes the upgrades.
 2. **Flux pulls, the cluster converges.** No CI system holds cluster credentials; drift is reverted.
-3. **One entry point.** Envoy Gateway serves every web UI on 10.0.0.68 with a wildcard certificate; UIs without their own login get basic auth at the gateway.
-4. **Certificates renew themselves.** cert-manager in the cluster, certbot on node1 for Vault, RustFS and the router: DNS-01, so no port is ever opened.
-5. **Secrets never touch Git.** External Secrets reads them from Vault at runtime.
-6. **DNS follows the cluster.** external-dns writes records for new routes into bind9.
-7. **Backups are automatic.** Velero (resources and volumes) daily, etcd every 12 hours, all into RustFS.
-8. **And they leave the house encrypted.** Nightly restic copy to the Oracle VM through WireGuard; the VM never sees the key.
-9. **Watched from outside.** Gatus checks the core services and every certificate from the cloud, so an outage at home is still noticed.
+3. **The hosts are configured from the control host.** pimaster runs in Oracle Cloud and reaches the cluster LAN through the gateway's WireGuard tunnel. Ansible logs in as `ansible` with sudo; no node accepts root SSH.
+4. **One entry point.** Envoy Gateway serves every web UI on 10.0.0.68 with a wildcard certificate; UIs without their own login get basic auth at the gateway. From anywhere, the laptop reaches it over WireGuard through pimaster.
+5. **Certificates renew themselves.** cert-manager in the cluster, certbot on node1 for Vault, RustFS and the router: DNS-01, so no port is ever opened.
+6. **Secrets never touch Git.** External Secrets reads them from Vault at runtime.
+7. **DNS follows the cluster.** external-dns writes records for new routes into bind9.
+8. **Backups are automatic.** Velero (resources and volumes) daily, etcd every 12 hours, all into RustFS.
+9. **And they leave the house encrypted.** Nightly restic copy to the offsite VM through WireGuard; the VM never sees the key.
+10. **Watched from outside.** Gatus checks the core services and every certificate from the cloud, so an outage at home is still noticed.
 
 ## By the numbers
 
@@ -82,12 +88,12 @@ flowchart LR
 |---|---|
 | Hardware | 7 × Raspberry Pi 4 (6 servers + OpenWrt router), USB SSDs replacing SD cards, one switch |
 | Kubernetes | k3s 1.36, 5 nodes, 20 ARM cores, 22.6 GiB RAM, 1 API server, 3 etcd members |
-| Workloads | 57 pods, 17 Helm releases, 30 Flux Kustomizations |
-| Security | 4 auto-renewed Let's Encrypt certificates, 8 secrets synced from Vault |
-| Resilience | 3 copies of the data, 1 offsite and encrypted, Vault snapshotted nightly |
-| Exposure | 0 ports open to the internet; the router dials out to the cloud |
+| Workloads | 93 pods, 22 Helm releases, 37 Flux Kustomizations |
+| Security | 4 auto-renewed Let's Encrypt certificates, 11 secrets synced from Vault, no root SSH on any node |
+| Resilience | 3 copies of the data, 1 offsite and encrypted, Vault snapshotted nightly; about 1 hour from `make clean` to a ready cluster |
+| Exposure | 0 ports open at home: the router dials out to the cloud; the Oracle VMs accept WireGuard only |
 | Monitoring | 6 checks from outside (core services and every certificate), Prometheus inside |
-| Cloud bill | €0 (Oracle Always Free) |
+| Cloud bill | €0 (Oracle Always Free: control host and offsite VM) |
 
 ## Stack
 
@@ -99,7 +105,8 @@ flowchart LR
 | Security | cert-manager, certbot, Vault, External Secrets |
 | Storage | Longhorn (SSD nodes), RustFS (S3) |
 | Resilience | Velero, k3s etcd snapshots, restic offsite, Vault Raft snapshots |
-| Observability | Prometheus, Grafana, Alertmanager, Gatus |
+| Observability | Prometheus, Grafana, Alertmanager, Loki, Fluent Bit, Tempo, OpenTelemetry, Hubble, Gatus |
+| Management | Rancher |
 
 ## Design decisions
 
@@ -112,9 +119,11 @@ flowchart LR
 | One pod per service | 4 GB per node: resilience comes from fast rebuilds and backups, not replicas |
 | Measure, then decide | Rancher adds about 700 MB to every API server, so it runs only once the 8 GB node is the single API server |
 
-## Next: Cluster 2.0
+## Status
 
-No new spending beyond one Raspberry Pi 4 8 GB and SSDs: the 8 GB node becomes the only API server, two 4 GB nodes become etcd-only members, the 8 GB node and the storage nodes boot from SSDs. That frees the memory for Rancher, Loki and Tempo. The node layout runs since 2026-11-06 (8 GB node the only API server, node2 and node3 etcd-only), with those services on it; Istio was removed (2026-11-07): the 8 GB node has no CPU left for it; the plan, memory budget, phases and rollbacks are in [docs/plans/cluster-2.0.md](docs/plans/cluster-2.0.md).
+- [Cluster 2.0](docs/plans/cluster-2.0.md), done 2026-11-06: the 8 GB node is the only API server, two 4 GB nodes are etcd-only, and Rancher, Loki and Tempo fit. Istio was removed: the 8 GB node has no CPU left for it.
+- [Control host in Oracle Cloud](docs/plans/control-host-oci.md), done 2026-11-10: pimaster moved to an Oracle VM, and the cluster was rebuilt from it with a non-root Ansible user ([times](docs/backup-and-recovery.md#full-rebuild)).
+- [Cluster 3.0](docs/plans/cluster-3.0.md), in progress: the repository a team would sign off on.
 
 ## Use it
 
@@ -146,11 +155,11 @@ make init      # build from scratch: docs/quick-start.md
 - [Certificates](docs/certificates.md)
 - [Offsite: Oracle Cloud VM](docs/offsite.md) (optional)
 - [Quick start: your own cluster](docs/quick-start.md)
-- [Control host](docs/control-host.md)
+- [Control host](docs/control-host.md): the Oracle VM, remote access, access to the hosts
 - [Runbook: node to SSD boot](docs/runbooks/node-ssd-migration.md)
 - [Cluster 2.0](docs/plans/cluster-2.0.md)
 - [Cluster 3.0](docs/plans/cluster-3.0.md): the repository a team would sign off on
-- [Control host in Oracle Cloud](docs/plans/control-host-oci.md): pimaster on an Oracle VM, Ansible as a non-root user, full rebuild
+- [Control host in Oracle Cloud](docs/plans/control-host-oci.md): pimaster on an Oracle VM, Ansible as a non-root user, rebuild in place
 
 ## Credits
 
