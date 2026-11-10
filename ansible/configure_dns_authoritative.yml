@@ -1,9 +1,68 @@
 ---
+# Authoritative DNS (bind9) on node1. The cluster zone is dynamic: external-dns
+# adds records over RFC 2136, and each update raises the live serial above the
+# one in host_vars/node1.yml. Rewriting a dynamic zone's file under a running
+# named loses that way: a plain reload skips dynamic zones, and the next start
+# replays the old journal onto the new file. So, for every dynamic zone:
+# - the new file gets a serial above the live one (secondaries and caches see
+#   the change);
+# - the zone is frozen while the file is written (named writes its journal into
+#   the file and removes it), then thawed (named loads the new file).
+# The new file holds only the records in host_vars: external-dns adds its own
+# again within a minute. A first install (no named yet) skips all of this.
+
 - name: Configure DNS authoritative
   hosts: dns
   gather_facts: true
   tags: [dns]
   become: true
-  roles:
-    # DNS configuration
-    - role: ricsanfre.bind9
+  tasks:
+    - name: Read the live serial of each dynamic zone
+      ansible.builtin.command: "dig +short +norecurse SOA {{ item.name }} @127.0.0.1"
+      loop: "{{ bind9_zones | selectattr('ddns_update_key', 'defined') }}"
+      loop_control:
+        label: "{{ item.name }}"
+      register: dns_live_soa
+      changed_when: false
+      failed_when: false
+      check_mode: false
+
+    # SOA rdata: primary admin serial refresh retry expire minimum
+    - name: Live serials of the running zones
+      ansible.builtin.set_fact:
+        dns_live_serials: "{{ dns_live_serials | default({}) | combine({item.item.name: item.stdout.split()[2] | int}) }}"
+      loop: "{{ dns_live_soa.results }}"
+      loop_control:
+        label: "{{ item.item.name }}"
+      when: item.rc == 0 and item.stdout.split() | length == 7
+
+    - name: Serials above the live ones
+      ansible.builtin.set_fact:
+        dns_zones: "{{ dns_zones | default([]) + [item | combine({'serial': [item.serial | int, dns_live | int + 1] | max} if dns_live | int > 0 else {})] }}"
+      loop: "{{ bind9_zones }}"
+      loop_control:
+        label: "{{ item.name }}"
+      vars:
+        dns_live: "{{ (dns_live_serials | default({})).get(item.name, 0) }}"
+
+    - name: Zone files, with the dynamic zones frozen
+      block:
+        - name: Freeze the dynamic zones
+          ansible.builtin.command: "rndc freeze {{ item }}"
+          loop: "{{ dns_live_serials | default({}) | list }}"
+          changed_when: true
+
+        - name: Bind9
+          ansible.builtin.include_role:
+            name: ricsanfre.bind9
+          vars:
+            bind9_zones: "{{ dns_zones }}"
+
+        - name: Reload before the thaw
+          ansible.builtin.meta: flush_handlers
+
+      always:
+        - name: Thaw the dynamic zones
+          ansible.builtin.command: "rndc thaw {{ item }}"
+          loop: "{{ dns_live_serials | default({}) | list }}"
+          changed_when: true
