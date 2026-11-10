@@ -1,0 +1,73 @@
+#cloud-config
+hostname: pimaster
+
+users:
+  - name: pimaster
+    shell: /bin/bash
+    lock_passwd: true
+    sudo: "ALL=(ALL) NOPASSWD:ALL"
+    ssh_authorized_keys: ${jsonencode(ssh_authorized_keys)}
+
+package_update: true
+packages:
+  - wireguard-tools
+  - iptables-persistent
+  - git
+  - make
+  - jq
+  - curl
+  - rsync
+  - age
+
+write_files:
+  - path: /etc/wireguard/wg0.conf
+    permissions: "0600"
+    content: |
+      [Interface]
+      Address = 10.99.0.3/24
+      ListenPort = ${wg_listen_port}
+      PrivateKey = ${wg_private_key}
+      MTU = ${wg_mtu}
+      # Only the homelab domain goes to the gateway, everything else to Oracle's resolver
+      PostUp = resolvectl dns %i 10.0.0.1; resolvectl domain %i ~${dns_domain}
+
+      # Home OpenWrt gateway: dynamic IP, it connects and keeps the tunnel up.
+      # Routes: tunnel, cluster LAN
+      [Peer]
+      PublicKey = ${gateway_wg_public_key}
+      AllowedIPs = 10.99.0.1/32, 10.0.0.0/24
+
+      # offsite VM, over the VCN: reachable when the home uplink is down
+      [Peer]
+      PublicKey = ${offsite_wg_public_key}
+      Endpoint = ${offsite_private_ip}:${wg_listen_port}
+      AllowedIPs = 10.99.0.2/32
+      PersistentKeepalive = 25
+%{ for name, client in wg_clients }
+      # Remote access client: ${name}
+      [Peer]
+      PublicKey = ${client.public_key}
+      AllowedIPs = ${client.address}/32
+%{ endfor }
+  - path: /etc/sysctl.d/90-remote-access.conf
+    content: |
+      net.ipv4.ip_forward = 1
+
+runcmd:
+  # Oracle Ubuntu images allow only SSH in iptables: allow WireGuard,
+  # move SSH to the tunnel
+  - iptables -I INPUT 1 -p udp --dport ${wg_listen_port} -j ACCEPT
+  - iptables -I INPUT 2 -i wg0 -p tcp --dport 22 -j ACCEPT
+  - iptables -D INPUT -p tcp -m state --state NEW -m tcp --dport 22 -j ACCEPT || true
+  # Remote access clients: to the cluster LAN and the offsite VM only, the
+  # gateway filters by port (ctl_* rules in wireguard-oci.sh)
+  - iptables -I FORWARD 1 -i wg0 -o wg0 -s 10.99.0.16/28 -d 10.0.0.0/24 -j ACCEPT
+  - iptables -I FORWARD 2 -i wg0 -o wg0 -s 10.99.0.16/28 -d 10.99.0.2/32 -j ACCEPT
+  - iptables -I FORWARD 3 -i wg0 -o wg0 -d 10.99.0.16/28 -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+  # Saved before Docker is installed: Docker adds its own rules at every start,
+  # they must not end up in the saved set
+  - netfilter-persistent save
+  - sysctl --system
+  - DEBIAN_FRONTEND=noninteractive apt-get install -y docker.io docker-compose-v2
+  - usermod -aG docker pimaster
+  - systemctl enable --now wg-quick@wg0

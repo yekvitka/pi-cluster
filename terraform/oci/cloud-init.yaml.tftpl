@@ -21,6 +21,13 @@ write_files:
       [Peer]
       PublicKey = ${gateway_wg_public_key}
       AllowedIPs = 10.99.0.1/32, 10.0.0.0/24, 192.168.50.0/24
+%{ if pimaster_wg_public_key != "" }
+      # pimaster (control host) in the same VCN: it connects. The remote
+      # access clients behind it reach the Gatus UI
+      [Peer]
+      PublicKey = ${pimaster_wg_public_key}
+      AllowedIPs = 10.99.0.3/32, 10.99.0.16/28
+%{ endif }
 
 runcmd:
   # Oracle Ubuntu images allow only SSH in iptables: allow WireGuard,

@@ -83,16 +83,26 @@ To resolve cluster names, use the gateway (192.168.50.200) as DNS server for `ho
 
 Nodes configure their static IPs in cloud-init (`metal/rpi/cloud-init/nodes/network-config`). The DHCP static leases bound to the MAC addresses in `ansible/inventory.yml` keep those addresses reserved. When a node or MAC changes, update both the inventory and `gateway-setup.sh`, then re-run the script.
 
-## WireGuard tunnel to the Oracle Cloud VM
+## WireGuard tunnel to the Oracle Cloud VMs
 
-`script/wireguard-oci.sh` connects the gateway (10.99.0.1) to the offsite VM in Oracle Cloud (10.99.0.2, `terraform/oci`). The gateway initiates the tunnel and keeps it up (keepalive 25s), so the dynamic home IP needs no port forwarding. MTU 1380 (home uplink path MTU 1460). The gateway private key stays on the gateway (`/etc/config/network`).
+`script/wireguard-oci.sh` connects the gateway (10.99.0.1) to the VMs in Oracle Cloud (`terraform/oci`): the offsite VM (10.99.0.2) and, optionally, the control host pimaster (10.99.0.3, with its remote access clients 10.99.0.16/28). The gateway initiates the tunnel to each VM and keeps it up (keepalive 25s), so the dynamic home IP needs no port forwarding. MTU 1380 (home uplink path MTU 1460). The gateway private key stays on the gateway (`/etc/config/network`).
 
 ```shell
 ssh root@10.0.0.1 'sh -s' < metal/openwrt/script/wireguard-oci.sh    # 1. install, print the gateway public key
-ssh root@10.0.0.1 "OCI_ENDPOINT=<offsite_public_ip> OCI_PUBKEY=<VM public key> sh -s" < metal/openwrt/script/wireguard-oci.sh   # 2. add the VM peer
+ssh root@10.0.0.1 "OCI_ENDPOINT=<offsite_public_ip> OCI_PUBKEY=<offsite public key> sh -s" < metal/openwrt/script/wireguard-oci.sh   # 2. add the offsite peer
+ssh root@10.0.0.1 "PIMASTER_ENDPOINT=<pimaster_public_ip> PIMASTER_PUBKEY=<pimaster public key> sh -s" < metal/openwrt/script/wireguard-oci.sh   # 3. optional: add the pimaster peer
 ```
 
-Firewall zone `oci`: input and forward rejected, `lan` → `oci` allowed, SSH and the Gatus UI (tcp 22, 8080) from the home network (192.168.50.0/24) to the VM allowed. From the VM into the cluster LAN only the outside monitoring targets (`mon_*` rules): bind9 10.0.0.11:53, Envoy gateway 10.0.0.68:443, k3s API 10.0.0.10:6443, Vault 10.0.0.11:8200, RustFS 10.0.0.11:9091. The first install restarts netifd once (it loads protocol handlers at start), a few seconds without uplink.
+Re-runs keep each peer whose variables are not set.
+
+Firewall zone `oci`:
+
+- Input and forward are rejected, and `lan` → `oci` is allowed.
+- From the home network (192.168.50.0/24), SSH and the Gatus UI (tcp 22, 8080) to the offsite VM are allowed.
+- From the offsite VM into the cluster LAN, only the outside monitoring targets are allowed (`mon_*` rules): bind9 10.0.0.11:53, Envoy gateway 10.0.0.68:443, k3s API 10.0.0.10:6443, Vault 10.0.0.11:8200, RustFS 10.0.0.11:9091.
+- pimaster and its clients get the home network's access (`ctl_*` rules): SSH, LuCI and DNS on the gateway; SSH and web to the LAN; the k3s API; Vault; RustFS.
+
+The first install restarts netifd once (it loads protocol handlers at start), a few seconds without uplink.
 
 ## Node exporter
 

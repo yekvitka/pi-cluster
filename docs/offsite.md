@@ -1,12 +1,13 @@
 # Offsite: Oracle Cloud VM
 
-Optional: the cluster runs without it. An Oracle Cloud Always Free VM (`terraform/oci`, region eu-frankfurt-1) keeps an offsite copy of the backups and monitors the cluster from outside. Ampere A1 (arm64): 1 OCPU, 6 GB, Ubuntu 24.04, 50 GB boot + 150 GB backup volume (ext4 `offsite-backups`, mounted at `/backup`). Free tier, not pay-as-you-go: Oracle may reclaim an idle VM; `tofu apply` and the gateway script recreate it.
+Optional: the cluster runs without it. An Oracle Cloud Always Free VM (`terraform/oci`, region eu-frankfurt-1) keeps an offsite copy of the backups and monitors the cluster from outside. Ampere A1 (arm64): 1 OCPU, 6 GB, Ubuntu 24.04, 50 GB boot + 100 GB backup volume (ext4 `offsite-backups`, mounted at `/backup`). On a free account Oracle may stop an idle VM; on Pay As You Go, where the Always Free resources stay free, it does not. `tofu apply` and the gateway script recreate it.
 
 ## Access
 
 - The home public IP is dynamic (Play), so the VM opens no SSH to the internet. A WireGuard tunnel runs from the OpenWrt gateway (10.99.0.1) to the VM (10.99.0.2): the gateway connects out and keeps it up, no port forwarding at home.
 - Oracle security list: UDP 51820 and ICMP 3/4 only (the VCN default list is emptied). On the VM, iptables allows SSH and the Gatus UI on `wg0` only.
 - Gateway side: `metal/openwrt/script/wireguard-oci.sh`, firewall zone `oci`: nothing from the VM into home networks except the monitoring targets (`mon_*` rules).
+- With the control host in Oracle ([control host](control-host.md#oracle-cloud-vm)), pimaster (10.99.0.3) is a second peer of the VM. It connects over the VCN, so it reaches the VM even when the home uplink is down. The remote access clients behind it (10.99.0.16/28) reach the Gatus UI.
 - Secrets on the control host, not in Git: `~/.secrets/oci/` (API key and config), `~/.secrets/wireguard/oci-vm.key`. OCIDs and key paths in `terraform/oci/terraform.tfvars` (gitignored, see `terraform.tfvars.example`).
 - The first-boot config (`cloud-init.yaml.tftpl`) runs once: Terraform ignores later changes to it and to the image; the running VM is configured with Ansible (inventory group `oci`).
 

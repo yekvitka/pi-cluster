@@ -6,7 +6,7 @@ Independent modules, each with its own local state (`terraform.tfstate`, gitigno
 |---|---|---|---|
 | `minio/` | prod | RustFS buckets, users, policies (`make configure-minio`) | MinIO (RustFS is S3/MinIO compatible) |
 | `vault/` | prod | Vault policies, Kubernetes auth roles, secrets (`make configure-vault`) | Vault, Kubernetes |
-| `oci/` | prod | Oracle Cloud offsite VM, network, firewall ([docs/offsite.md](../docs/offsite.md)) | OCI |
+| `oci/` | prod | Oracle Cloud offsite VM, optional control host VM, network, firewall ([docs/offsite.md](../docs/offsite.md), [docs/control-host.md](../docs/control-host.md#oracle-cloud-vm)) | OCI |
 
 Resource definitions live in each module's `resources/` (JSON/YAML), fed through `locals` and `for_each`; the `.tf` files stay thin.
 

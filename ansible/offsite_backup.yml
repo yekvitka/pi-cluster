@@ -68,10 +68,10 @@
       register: offsite_device_size
       changed_when: false
 
-    - name: Validate the backup volume size (150 GB from terraform/oci)
+    - name: Validate the backup volume size (100 GB from terraform/oci)
       ansible.builtin.assert:
-        that: (offsite_device_size.stdout | int) == 150 * 1024 * 1024 * 1024
-        fail_msg: "{{ offsite_backup_device }} is not the 150 GB backup volume, not formatting it"
+        that: (offsite_device_size.stdout | int) == 100 * 1024 * 1024 * 1024
+        fail_msg: "{{ offsite_backup_device }} is not the 100 GB backup volume, not formatting it"
 
     # No force: an existing filesystem is never reformatted
     - name: Filesystem on the backup volume

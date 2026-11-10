@@ -55,3 +55,56 @@ variable "wg_mtu" {
   type        = number
   default     = 1380
 }
+
+# Control host in Oracle Cloud (docs/control-host.md): optional
+
+variable "pimaster_enabled" {
+  description = "Create the control host VM (pimaster). The offsite VM works without it"
+  type        = bool
+  default     = false
+}
+
+variable "pimaster_availability_domain_index" {
+  description = "Availability domain for pimaster (0-2). Change it if the A1 shape is out of capacity"
+  type        = number
+  default     = 0
+}
+
+variable "pimaster_ssh_authorized_keys" {
+  description = "SSH public keys of the pimaster user: your laptop, and the current control host for the first copy"
+  type        = list(string)
+  default     = []
+}
+
+variable "pimaster_wg_private_key_path" {
+  description = "WireGuard private key of pimaster, outside the repo (~/.secrets/wireguard/pimaster-oci.key)"
+  type        = string
+  default     = null
+}
+
+variable "pimaster_wg_public_key_path" {
+  description = "WireGuard public key of pimaster (~/.secrets/wireguard/pimaster-oci.pub): its peer on the offsite VM"
+  type        = string
+  default     = null
+}
+
+variable "wg_public_key_path" {
+  description = "WireGuard public key of the offsite VM (~/.secrets/wireguard/oci-vm.pub): its peer on pimaster"
+  type        = string
+  default     = null
+}
+
+variable "wg_clients" {
+  description = "Remote access clients of pimaster, addresses in 10.99.0.16/28: name => address and WireGuard public key"
+  type = map(object({
+    address    = string
+    public_key = string
+  }))
+  default = {}
+}
+
+variable "dns_domain" {
+  description = "Homelab DNS domain (dns_domain in Ansible): pimaster resolves it through the gateway"
+  type        = string
+  default     = null
+}
