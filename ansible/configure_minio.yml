@@ -123,9 +123,11 @@
       register: terraform_plan
       when: not (apply_only | default(false) | bool)
 
+    # The changed resources and the totals; provider warnings (the deprecated
+    # Vault data source) used to push them out of a last-lines view
     - name: Display Terraform plan summary
       ansible.builtin.debug:
-        msg: "{{ terraform_plan.stdout_lines[-20:] | join('\n') }}"
+        msg: "{{ terraform_plan.stdout_lines | select('match', '^(\\s+# |Plan: |No changes\\.|Changes to Outputs)') | list }}"
       when: not (apply_only | default(false) | bool)
 
     - name: Apply Terraform configuration
@@ -135,6 +137,11 @@
       environment: "{{ tofu_env }}"
       register: terraform_apply
       changed_when: "'Apply complete!' in terraform_apply.stdout"
+      when: not (plan_only | default(false) | bool)
+
+    - name: Display Terraform apply result
+      ansible.builtin.debug:
+        msg: "{{ terraform_apply.stdout_lines | select('match', '^Apply complete!') | list }}"
       when: not (plan_only | default(false) | bool)
 
     - name: Display Terraform outputs
