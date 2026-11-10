@@ -6,8 +6,8 @@ ANSIBLE_LOCAL_ROLES_DIR := $(HOME)/.ansible/roles
 ANSIBLE_LOCAL_COLLECTIONS_DIR := $(HOME)/.ansible/collections
 
 # Site values, read from the Ansible configuration
-DNS_DOMAIN := $(shell sed -n 's/^dns_domain: *//p' $(ANSIBLE_DIR)/group_vars/all.yml)
-GATEWAY_IP := $(shell sed -n 's/^default_gateway: *//p' $(ANSIBLE_DIR)/group_vars/all.yml)
+DNS_DOMAIN := $(shell sed -n 's/^dns_domain: *//p' $(ANSIBLE_DIR)/group_vars/all/site.yml)
+GATEWAY_IP := $(shell sed -n 's/^default_gateway: *//p' $(ANSIBLE_DIR)/group_vars/all/site.yml)
 NODE1_IP := $(shell awk '/^ +node1:$$/{f=1} f && /ansible_host:/{print $$2; exit}' $(ANSIBLE_DIR)/inventory.yml)
 
 .DEFAULT_GOAL := help

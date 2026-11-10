@@ -4,10 +4,6 @@
   gather_facts: true
   tags: [install]
   become: true
-  pre_tasks:
-    - name: Include picluster variables
-      ansible.builtin.include_vars: "vars/picluster.yml"
-
   roles:
     - role: k3s/prereq
 
@@ -15,49 +11,9 @@
   hosts: k3s_master
   tags: [install, master]
   become: true
-  vars:
-    vault_secret_file: "{{ lookup('ansible.builtin.env', 'HOME') }}/.secrets/vault.env"
   pre_tasks:
-    - name: Include picluster variables
-      ansible.builtin.include_vars: "vars/picluster.yml"
-
-    - name: Check Vault secret file exists on controller
-      ansible.builtin.stat:
-        path: "{{ vault_secret_file }}"
-      register: vault_secret_file_stat
-      delegate_to: localhost
-      become: false
-
-    - name: Validate Vault secret file exists
-      ansible.builtin.assert:
-        that:
-          - vault_secret_file_stat.stat.exists
-          - vault_secret_file_stat.stat.isreg
-        fail_msg: |
-          Vault secret file not found: {{ vault_secret_file }}
-
-          Run external services stage 1 first to generate it.
-      delegate_to: localhost
-      become: false
-
-    - name: Get Vault environment from secret file
-      ansible.builtin.set_fact:
-        vault_addr: "{{ lookup('ansible.builtin.ini', 'VAULT_ADDR type=properties file=' ~ vault_secret_file) }}"
-        vault_token: "{{ lookup('ansible.builtin.ini', 'VAULT_TOKEN type=properties file=' ~ vault_secret_file) }}"
-        vault_cacert: "{{ lookup('ansible.builtin.ini', 'VAULT_CACERT type=properties file=' ~ vault_secret_file, errors='ignore') | default('', true) }}"
-      delegate_to: localhost
-      become: false
-
-    - name: Validate Vault variables loaded from secret file
-      ansible.builtin.assert:
-        that:
-          - vault_addr is defined and vault_addr != ""
-          - vault_token is defined and vault_token != ""
-        fail_msg: |
-          Missing VAULT_ADDR or VAULT_TOKEN in {{ vault_secret_file }}
-        success_msg: "Vault environment loaded and validated"
-      delegate_to: localhost
-      become: false
+    - name: Load Vault session (vault_addr, vault_token, vault_cacert)
+      ansible.builtin.include_tasks: tasks/vault_session.yml
 
     - name: Fetch k3s cluster token on-demand from Vault
       community.hashi_vault.vault_kv2_get:
@@ -93,49 +49,9 @@
   hosts: k3s_worker
   tags: [install, worker]
   become: true
-  vars:
-    vault_secret_file: "{{ lookup('ansible.builtin.env', 'HOME') }}/.secrets/vault.env"
   pre_tasks:
-    - name: Include picluster variables
-      ansible.builtin.include_vars: "vars/picluster.yml"
-
-    - name: Check Vault secret file exists on controller
-      ansible.builtin.stat:
-        path: "{{ vault_secret_file }}"
-      register: vault_secret_file_stat
-      delegate_to: localhost
-      become: false
-
-    - name: Validate Vault secret file exists
-      ansible.builtin.assert:
-        that:
-          - vault_secret_file_stat.stat.exists
-          - vault_secret_file_stat.stat.isreg
-        fail_msg: |
-          Vault secret file not found: {{ vault_secret_file }}
-
-          Run external services stage 1 first to generate it.
-      delegate_to: localhost
-      become: false
-
-    - name: Get Vault environment from secret file
-      ansible.builtin.set_fact:
-        vault_addr: "{{ lookup('ansible.builtin.ini', 'VAULT_ADDR type=properties file=' ~ vault_secret_file) }}"
-        vault_token: "{{ lookup('ansible.builtin.ini', 'VAULT_TOKEN type=properties file=' ~ vault_secret_file) }}"
-        vault_cacert: "{{ lookup('ansible.builtin.ini', 'VAULT_CACERT type=properties file=' ~ vault_secret_file, errors='ignore') | default('', true) }}"
-      delegate_to: localhost
-      become: false
-
-    - name: Validate Vault variables loaded from secret file
-      ansible.builtin.assert:
-        that:
-          - vault_addr is defined and vault_addr != ""
-          - vault_token is defined and vault_token != ""
-        fail_msg: |
-          Missing VAULT_ADDR or VAULT_TOKEN in {{ vault_secret_file }}
-        success_msg: "Vault environment loaded and validated"
-      delegate_to: localhost
-      become: false
+    - name: Load Vault session (vault_addr, vault_token, vault_cacert)
+      ansible.builtin.include_tasks: tasks/vault_session.yml
 
     - name: Fetch k3s cluster token on-demand from Vault
       community.hashi_vault.vault_kv2_get:
@@ -168,9 +84,6 @@
 - name: Label K3S worker nodes
   hosts: k3s_master
   tags: [config]
-  pre_tasks:
-    - name: Include picluster variables
-      ansible.builtin.include_vars: "vars/picluster.yml"
   tasks:
     - name: Label k3s worker nodes
       ansible.builtin.command:
@@ -184,9 +97,6 @@
 - name: Get Kubernetes config file
   hosts: k3s_master
   tags: [kube-config]
-  pre_tasks:
-    - name: Include picluster variables
-      ansible.builtin.include_vars: "vars/picluster.yml"
   tasks:
     - name: Get k3s config file
       run_once: true
@@ -209,9 +119,6 @@
   tags: [install, cni]
   gather_facts: false
   become: false
-  pre_tasks:
-    - name: Include picluster variables
-      ansible.builtin.include_vars: "vars/picluster.yml"
   tasks:
 
     - name: Set overlay to prod in case not defined by an input argument

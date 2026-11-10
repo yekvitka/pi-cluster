@@ -5,10 +5,6 @@
   hosts: node1
   gather_facts: true
   become: true
-  pre_tasks:
-    - name: Include picluster variables
-      ansible.builtin.include_vars: "vars/picluster.yml"
-      tags: ["always"]
   roles:
     - role: prometheus.prometheus.node_exporter
 
@@ -16,9 +12,5 @@
   hosts: dns
   gather_facts: true
   become: true
-  pre_tasks:
-    - name: Include picluster variables
-      ansible.builtin.include_vars: "vars/picluster.yml"
-      tags: ["always"]
   roles:
     - role: prometheus.prometheus.bind_exporter

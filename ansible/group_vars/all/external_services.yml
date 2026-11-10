@@ -1,0 +1,62 @@
+---
+# External services on node1: Vault (secrets) and RustFS (S3).
+# See docs/platform.md for the architecture.
+
+#######################
+# Vault configuration #
+#######################
+
+vault_hostname: "vault.{{ dns_domain }}"
+vault_dns: "{{ vault_hostname }}"
+# Vault data on node1's SSD (/storage), not on the SD card
+vault_data_path: /storage/vault
+vault_enable_tls: true
+custom_ca: false
+vault_init: true
+vault_unseal: true
+vault_unseal_service: true
+# TLS verification: false only with a self-signed CA; with Let's Encrypt the
+# system bundle covers vault.<domain>:8200
+tls_skip_verify: "{{ not enable_letsencrypt }}"
+
+vault_custom_configuration: |
+  ui = true
+
+  telemetry {
+    disable_hostname = true
+    prometheus_retention_time = "12h"
+  }
+
+# Local file holding VAULT_ADDR, VAULT_TOKEN and optionally VAULT_CACERT.
+# Written by deploy_vault.yml stage 1; read by tasks/vault_session.yml.
+vault_secret_file: "{{ lookup('ansible.builtin.env', 'HOME') }}/.secrets/vault.env"
+
+###########################
+# RustFS S3 configuration #
+###########################
+
+# RustFS S3 Server (replaces MinIO)
+rustfs_hostname: "object-store.{{ dns_domain }}"
+rustfs_server_port: "9091"
+rustfs_console_port: "9092"
+rustfs_endpoint: "{{ rustfs_hostname }}:9091"
+rustfs_url: "https://{{ rustfs_hostname }}:9091"
+
+# RustFS data directories
+rustfs_server_datadirs:
+  - /storage/rustfs
+
+# RustFS admin credentials: read from Vault (s3/rustfsadmin) in deploy_rustfs.yml
+
+# RustFS site region
+rustfs_site_region: "eu-west-1"
+
+# TLS: Let's Encrypt certificates verify against the system CA bundle
+rustfs_enable_tls: true
+rustfs_validate_certificate: "{{ enable_letsencrypt }}"
+
+# Web console
+rustfs_console_enable: true
+
+# Use musl builds for ARM compatibility
+rustfs_use_musl: true

@@ -14,8 +14,6 @@
       ansible.builtin.debug:
         msg: "===== Stage 1/5: Destroy S3 Terraform resources ====="
 
-    - name: Include picluster variables
-      ansible.builtin.include_vars: "vars/picluster.yml"
 
     # A reset that already ran leaves an empty state: nothing to destroy, and
     # Vault (needed for the credentials) may be gone
@@ -196,8 +194,6 @@
       ansible.builtin.debug:
         msg: "===== Stage 3/5: Destroy Vault Terraform resources ====="
 
-    - name: Include picluster variables
-      ansible.builtin.include_vars: "vars/picluster.yml"
 
     # A reset that already ran leaves an empty state: nothing to destroy, and
     # Vault (needed for the credentials) may be gone
@@ -306,8 +302,6 @@
   become: true
   gather_facts: false
   tags: [vault, stage4]
-  vars_files:
-    - vars/picluster.yml
   tasks:
     - name: Stage 4 banner
       ansible.builtin.debug:

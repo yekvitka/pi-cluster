@@ -1,7 +1,7 @@
 ---
 # Variables required:
 # helm_bin_path: Path to install helm binary (default: /usr/local/bin/helm)
-# helm_version: Helm version (vars/picluster.yml)
+# helm_version: Helm version (group_vars/all/versions.yml)
 # k8s_platform: Autodetected from ansible_system (linux, etc)
 # k8s_arch: Autodetected from ansible_architecture (amd64, arm64, etc)
 

@@ -1,0 +1,37 @@
+---
+# Site values — the owner's settings. A newcomer edits these (plus the
+# inventory and kubernetes/clusters/prod/config/cluster-settings.yaml).
+# CI checks that dns_domain here matches CLUSTER_DOMAIN in cluster-settings.
+
+# Timezone (ricsanfre.ntp defaults to Europe/Madrid)
+ntp_timezone: Europe/Warsaw
+
+# GitOps repository: set true if the fork is private
+git_private_repo: false
+
+###################
+# Network
+###################
+default_gateway: 10.0.0.1
+dns_server: 10.0.0.1
+dns_domain: homelab.yekvitka.net
+
+# Derived hostnames
+gateway_hostname: "gateway.{{ dns_domain }}"
+
+#######################
+# iSCSI initiator
+#######################
+# Name prefix (IQN) for the nodes' iSCSI initiators: Longhorn attaches volumes over iSCSI
+iscsi_initiator_iqn_prefix: iqn.2026-10.com.yekvitka.homelab
+
+#################################
+# TLS certificates: Let's Encrypt
+#################################
+enable_letsencrypt: true
+
+# IONOS DNS-01 API endpoint
+ionos_api_endpoint: https://api.hosting.ionos.com
+
+# ACME account email (cert-manager and certbot)
+acme_issuer_email: admin@yekvitka.net

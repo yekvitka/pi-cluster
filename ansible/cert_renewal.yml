@@ -13,8 +13,6 @@
 - name: Certbot with automatic renewal on node1
   hosts: s3
   gather_facts: false
-  vars_files:
-    - vars/picluster.yml
   vars:
     certbot_venv: /opt/certbot
     certbot_domains:

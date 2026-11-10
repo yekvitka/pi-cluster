@@ -40,8 +40,6 @@
           or run in docker mode:
             make ansible-runner-setup
 
-    - name: Include picluster variables
-      ansible.builtin.include_vars: "vars/picluster.yml"
 
   tasks:
     - name: Set overlay to prod in case not defined by an input argument

@@ -2,7 +2,7 @@
 
 Goal: the same hardware and services as [Cluster 2.0](cluster-2.0.md), run from a repository a platform team would sign off on: every pull request checked by CI, no known security defects, the owner's values in one place, decisions and incidents written down, alerts that reach a person, restores that are proven. No new hardware and no new services, except alert delivery.
 
-Status (2026-11-10): phases 1 and 2 merged; phase 3 on its branch. Next: phase 4.
+Status (2026-11-10): phases 1–3 merged; phase 4 on its branch. Next: phase 5.
 
 ## Why
 

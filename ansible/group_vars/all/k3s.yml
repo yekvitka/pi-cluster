@@ -1,33 +1,18 @@
 ---
-# Pi Cluster variables
+# K3s cluster configuration.
 
-#######
-# K3S #
-#######
-
-# k3s version
-# renovate: datasource=github-releases depName=k3s-io/k3s
-k3s_version: v1.36.5+k3s1
-
-# k3s master node VIP (loadbalancer)
+# The VIP that kube-vip answers for the Kubernetes API
 k3s_api_vip: 10.0.0.10
 
-# k3s shared token: read from Vault (cluster/k3s) in k3s_install.yml
-
-# k3s config directory
+# k3s configuration directory
 k3s_config_directory: /etc/rancher/k3s
 
 # The server that starts a new cluster (cluster-init) when no server holds etcd
-# data yet. In a running cluster every server joins, through k3s_join_server
-# (host_vars) or the API address. Explicit, not "first host of k3s_master"
+# data yet. In a running cluster every server joins through k3s_join_server
+# (host_vars) or the API address. Explicit, not "first host of k3s_master".
 k3s_cluster_init_node: node6
 
-# etcdctl for k3s-etcd-selfheal and the runbooks: the etcd version k3s embeds
-# ("etcd-version" in the k3s log); update it with k3s
-k3s_etcdctl_version: v3.6.14
-
-# kubelet configuration
-
+# kubelet configuration applied to every node
 k3s_kubelet_config: |
   apiVersion: kubelet.config.k8s.io/v1beta1
   kind: KubeletConfiguration
@@ -48,8 +33,8 @@ k3s_kubelet_config: |
     imagefs.available: 15%
     nodefs.inodesFree: 5%
 
-# k3s server-config
-# Equivalent to start master installer with the following options
+# k3s server configuration
+# Equivalent to starting the master installer with:
 # --write-kubeconfig-mode '0600'
 # --flannel-backend=none
 # --disable-kube-proxy
@@ -65,7 +50,6 @@ k3s_kubelet_config: |
 # --kube-scheduler-arg 'bind-address=0.0.0.0'
 # --kubelet-arg 'config=/etc/rancher/k3s/kubelet.config'
 # --kube-controller-manager-arg 'terminated-pod-gc-threshold=10'
-
 k3s_server_config:
   # Disable Flannel CNI
   flannel-backend: none
@@ -133,8 +117,8 @@ k3s_server_config:
     - 'leader-elect-renew-deadline=180s'
     - 'leader-elect-retry-period=15s'
 
-# k3s agent-config
-# Equivalent to start agent installer with the following options
+# k3s agent configuration
+# Equivalent to starting the agent installer with:
 #  --node-label 'node_type=worker'
 #  --kubelet-arg 'config=/etc/rancher/k3s/kubelet.config'
 k3s_agent_config:
@@ -147,149 +131,3 @@ k3s_agent_config:
 k3s_registries:
   mirrors:
     "*":
-
-#################################
-# TLS Certificates: LetsEncrypt #
-#################################
-
-# Enable letsencrypt certificates
-enable_letsencrypt: true
-
-# IONOS API: the credentials come from the IONOS_PUBLIC_PREFIX and IONOS_SECRET
-# environment variables (deploy_vault.yml, deploy_rustfs.yml)
-ionos_api_endpoint: https://api.hosting.ionos.com
-
-# issuer email
-acme_issuer_email: admin@yekvitka.net
-
-###########################
-# RustFS S3 configuration #
-###########################
-
-# RustFS S3 Server (replaces MinIO)
-rustfs_hostname: "object-store.{{ dns_domain }}"
-rustfs_server_port: "9091"
-rustfs_console_port: "9092"
-rustfs_endpoint: "{{ rustfs_hostname }}:9091"
-rustfs_url: "https://{{ rustfs_hostname }}:9091"
-
-# renovate: datasource=github-releases depName=rustfs/rustfs
-rustfs_server_version: 1.0.0
-# renovate: datasource=github-releases depName=rustfs/cli
-rustfs_cli_version: v0.1.36
-
-# RustFS data dirs
-rustfs_server_datadirs:
-  - /storage/rustfs
-
-# RustFS admin credentials: read from Vault (s3/rustfsadmin) in deploy_rustfs.yml
-
-# RustFS site region configuration
-rustfs_site_region: "eu-west-1"
-
-# Enabling TLS
-rustfs_enable_tls: true
-# Let's Encrypt certificates verify against the system CA bundle
-rustfs_validate_certificate: "{{ enable_letsencrypt }}"
-
-# Enable console
-rustfs_console_enable: true
-
-# Use musl builds for ARM compatibility
-rustfs_use_musl: true
-
-########################
-# Restic configuration #
-########################
-
-# renovate: datasource=github-releases depName=restic/restic
-restic_version: 0.19.1
-
-# Restic S3 repository configuration
-restic_repository: "s3:{{ rustfs_url }}/restic"
-restic_use_ca_cert: true
-# Restic S3 credentials: created by terraform/minio, read from Vault (s3/restic)
-# in backup_configuration.yml
-
-#######################
-# Vault configuration #
-#######################
-
-vault_hostname: "vault.{{ dns_domain }}"
-# renovate: datasource=github-releases depName=hashicorp/vault
-vault_version: 2.1.1
-
-vault_dns: "{{ vault_hostname }}"
-# Vault data on node1 SSD1 (/storage), not on the SD card
-vault_data_path: /storage/vault
-vault_enable_tls: true
-custom_ca: false
-vault_init: true
-vault_unseal: true
-vault_unseal_service: true
-tls_skip_verify: "{{ not enable_letsencrypt }}"
-
-# Enable Prometheus integration
-vault_custom_configuration: |
-  ui = true
-
-  telemetry {
-    disable_hostname = true
-    prometheus_retention_time = "12h"
-  }
-
-#########################
-# Utils/CLI versions    #
-#########################
-
-# renovate: datasource=github-releases depName=fluxcd/flux2
-fluxcd_version: v2.9.5
-
-# renovate: datasource=github-releases depName=vmware-tanzu/velero
-velero_version: v1.18.2
-
-# renovate: datasource=github-releases depName=longhorn/longhorn
-longhorn_version: v1.12.1
-
-# renovate: datasource=github-releases depName=helm/helm
-helm_version: v4.3.0
-
-#######################
-# Gateway configuration
-#######################
-
-gateway_hostname: "gateway.{{ dns_domain }}"
-
-###################################
-# Offsite backup (Oracle Cloud VM) #
-###################################
-
-offsite_restic_password_file: "{{ lookup('ansible.builtin.env', 'HOME') }}/.secrets/restic-offsite.password"
-offsite_ssh_alias: offsite-backup
-offsite_restic_user: restic
-offsite_backup_device: /dev/sdb
-offsite_backup_label: offsite-backups
-offsite_backup_path: /backup
-offsite_backup_sources:
-  - /storage/rustfs
-  - /var/backups/vault
-# Not worth an offsite copy: Loki logs, 7-day retention
-offsite_backup_excludes:
-  - /storage/rustfs/k3s-loki
-offsite_vault_addr: "https://{{ vault_hostname }}:8200"
-offsite_vault_snapshot_dir: /var/backups/vault
-offsite_vault_secret_file: "{{ lookup('ansible.builtin.env', 'HOME') }}/.secrets/vault.env"
-offsite_backup_schedule: "*-*-* 05:00:00"
-offsite_restic_retention: "--group-by host,tags --keep-daily 7 --keep-weekly 4 --keep-monthly 6"
-# renovate: datasource=docker depName=twinproduction/gatus
-gatus_version: v5.38.0
-
-##########################
-# Certificate renewal    #
-##########################
-
-# certbot on node1 (cert_renewal.yml), same versions as pyproject.toml
-# renovate: datasource=pypi depName=certbot
-certbot_version: 5.8.0
-# renovate: datasource=pypi depName=certbot-dns-ionos
-certbot_dns_ionos_version: 2024.11.9
