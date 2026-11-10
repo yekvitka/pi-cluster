@@ -18,6 +18,8 @@ services:
       - ./../ansible:/ansible
       - ./../kubernetes:/kubernetes
       - ./../terraform:/terraform
+      # cloud-init/ansible.pub: the ansible user's keys (tasks/ansible_user.yml)
+      - ./../metal:/metal:ro
       - ${HOME}/.secrets:/home/runner/.secrets
       - ${HOME}/.ssh/id_rsa:/home/runner/.ssh/id_rsa:ro
       - ${HOME}/.ssh/id_rsa.pub:/home/runner/.ssh/id_rsa.pub:ro

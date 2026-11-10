@@ -26,7 +26,7 @@ Edit these files. Everything not listed is the reference design and works as is.
 | `kubernetes/platform/cert-manager/config/components/acme-ionos/ionos-issuer.yaml` | ACME `email`; `groupName` (a name under your domain) |
 | `kubernetes/platform/cert-manager/webhook-ionos/base/values.yaml` | the same `groupName` |
 | `metal/rpi/cloud-init/nodes/network-config` | the DNS search domain; your home network on wlan0 (subnet and router) |
-| `metal/rpi/cloud-init/root.pub` | the control host's SSH public key (not in Git) |
+| `metal/rpi/cloud-init/ansible.pub` | the ansible user's public keys, one per line: the control host's and the break-glass key (not in Git) |
 | `.github/renovate.json5` | your fork in the preset paths, if you run Renovate |
 
 The gateway's home network, Wi-Fi and time zone are passed when its image is built (step 4). For the local k3d cluster (`dev/`), set your domain and fork in `kubernetes/clusters/dev/config/` and in the dev overlay of the Flux instance too.
@@ -115,4 +115,4 @@ v webui/basic-auth password     # Longhorn, Prometheus, Alertmanager, user admin
 v s3/rustfsadmin key            # RustFS console, user rustfsadmin
 ```
 
-`VAULT_TOKEN` is the root token: it stays in that shell. As root on node1 the `vault` CLI works directly.
+`VAULT_TOKEN` is the root token: it stays in that shell. As `ansible` on node1 (`ssh ansible@10.0.0.11`) the `vault` CLI works with sudo (`sudo -i`).

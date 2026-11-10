@@ -20,6 +20,8 @@
   ansible.builtin.stat:
     path: /var/lib/rancher/k3s/server/db/etcd/member
   delegate_to: "{{ item }}"
+  # Root-only directory; a task file says so itself (scripts/check-become.py)
+  become: true
   loop: "{{ groups['k3s_master'] | difference([inventory_hostname]) }}"
   register: k3s_peer_etcd
 

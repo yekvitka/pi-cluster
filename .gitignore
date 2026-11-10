@@ -20,7 +20,7 @@
 # Metal: downloaded images, gateway config, per-machine SSH key for cloud-init
 /metal/openwrt/config
 /metal/openwrt/img
-/metal/rpi/cloud-init/root.pub
+/metal/rpi/cloud-init/ansible.pub
 
 # Editors and local assistant instructions
 .vscode/

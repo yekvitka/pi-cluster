@@ -19,7 +19,7 @@ Three copies, two locations, one of them offsite and encrypted.
 ## Restore checks
 
 - restic: `restic check --read-data-subset=5%` and a file restore compared with `sha256sum` (node1, `set -a; . /etc/restic/offsite.env`).
-- Vault: `vault operator raft snapshot inspect <file>` on a restored `vault.snap` (as root on node1).
+- Vault: `vault operator raft snapshot inspect <file>` on a restored `vault.snap` (with sudo on node1 (`ssh ansible@10.0.0.11 sudo ...`)).
 - etcd: `k3s etcd-snapshot ls` on a server; restore with `k3s server --cluster-reset --cluster-reset-restore-path=<snapshot>`.
 
 ## Power cycle

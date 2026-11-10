@@ -160,8 +160,8 @@ deploy-monitoring-agent: ## Node and bind exporters on node1
 
 configure-cert-renewal: ## Automatic Let's Encrypt renewal on node1 for Vault, RustFS and LuCI
 	$(RUNNER) ansible-playbook cert_renewal.yml
-	ssh root@$(GATEWAY_IP) "LUCI_CERT_PUBKEY='$$(ssh root@$(NODE1_IP) cat /root/.ssh/luci_cert_ed25519.pub)' sh -s" < metal/openwrt/script/luci-cert-receiver.sh
-	ssh root@$(NODE1_IP) RENEWED_LINEAGE=/etc/letsencrypt/live/gateway.$(DNS_DOMAIN) /etc/letsencrypt/renewal-hooks/deploy/homelab-certs.sh
+	ssh root@$(GATEWAY_IP) "LUCI_CERT_PUBKEY='$$(ssh ansible@$(NODE1_IP) sudo cat /root/.ssh/luci_cert_ed25519.pub)' sh -s" < metal/openwrt/script/luci-cert-receiver.sh
+	ssh ansible@$(NODE1_IP) sudo RENEWED_LINEAGE=/etc/letsencrypt/live/gateway.$(DNS_DOMAIN) /etc/letsencrypt/renewal-hooks/deploy/homelab-certs.sh
 
 openwrt-certbot-tls: ## Issue the gateway (LuCI) certificate and deploy it
 	$(RUNNER) ansible-playbook generate_gateway_tls_certificate.yml

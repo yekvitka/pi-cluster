@@ -1,0 +1,51 @@
+---
+# The ansible user: Ansible's SSH login on every node, passwordless sudo.
+# cloud-init creates it on a fresh install (metal/rpi/cloud-init); this keeps it
+# and its keys in line on a running node (setup_picluster.yml, tag ansible-user).
+#
+# Keys: every line of ansible_authorized_keys_file (the file cloud-init uses):
+# the control host's key and the break-glass key. Keys not in the file are removed.
+#
+# Connected as ansible (not root), root loses its SSH keys too: root logs in
+# only on the console. A run as root (ansible_user=root, before the switch)
+# never touches root's keys, so it cannot lock itself out.
+
+- name: Read the ansible user's keys
+  ansible.builtin.set_fact:
+    ansible_user_keys: "{{ lookup('ansible.builtin.file', ansible_authorized_keys_file).splitlines() | map('trim') | select('match', '^(ssh-|ecdsa-)') | list }}"
+
+- name: Check the ansible user's keys
+  ansible.builtin.assert:
+    that:
+      - ansible_user_keys | length > 0
+      # The control host must keep its own way in
+      - lookup('ansible.builtin.file', ansible_ssh_private_key_file ~ '.pub').split()[1] in (ansible_user_keys | join(' ')).split()
+    fail_msg: "{{ ansible_authorized_keys_file }} must hold the control host's public key ({{ ansible_ssh_private_key_file }}.pub), one key per line"
+    quiet: true
+
+- name: Ansible user
+  ansible.builtin.user:
+    name: ansible
+    shell: /bin/bash
+    password_lock: true
+
+- name: Ansible user's SSH keys
+  ansible.posix.authorized_key:
+    user: ansible
+    key: "{{ ansible_user_keys | join('\n') }}"
+    exclusive: true
+
+- name: Passwordless sudo for the ansible user
+  ansible.builtin.copy:
+    dest: /etc/sudoers.d/90-ansible
+    content: "ansible ALL=(ALL) NOPASSWD:ALL\n"
+    mode: "0440"
+    validate: visudo -cf %s
+
+# sshd refuses root as well (ricsanfre.security, PermitRootLogin no)
+- name: No SSH keys for root
+  ansible.builtin.copy:
+    dest: /root/.ssh/authorized_keys
+    content: ""
+    mode: "0600"
+  when: ansible_user != 'root'

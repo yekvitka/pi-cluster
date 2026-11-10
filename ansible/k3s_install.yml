@@ -84,6 +84,7 @@
 - name: Label K3S worker nodes
   hosts: k3s_master
   tags: [config]
+  become: true
   tasks:
     - name: Label k3s worker nodes
       ansible.builtin.command:
@@ -97,6 +98,7 @@
 - name: Get Kubernetes config file
   hosts: k3s_master
   tags: [kube-config]
+  become: true
   tasks:
     - name: Get k3s config file
       run_once: true
@@ -113,6 +115,7 @@
         mode: "0600"
       delegate_to: localhost
       run_once: true
+      become: false
 
 - name: Install Cilium CNI and CoreDNS
   hosts: localhost
