@@ -2,7 +2,7 @@
 
 Goal: the control host (pimaster) moves from the UTM VM on the Mac to a second Oracle Cloud VM that works from any network, and the cluster is rebuilt from empty disks with Ansible logging in as a non-root `ansible` user with sudo. Same nodes, same services, same Git and Flux flow.
 
-Status (2026-11-10): plan written, decisions D1–D7 open. Next: the decisions, then phase 1. Phase 4 (the Ansible change) starts after [Cluster 3.0](cluster-3.0.md) phase 4 is merged: that phase moves `ansible_user` into `group_vars/all/`.
+Status (2026-11-10): decisions D1–D7 taken as recommended. Next: PR 2, then phase 1. Phase 4 (the Ansible change) starts after [Cluster 3.0](cluster-3.0.md) phase 4 is merged: that phase moves `ansible_user` into `group_vars/all/`.
 
 ## Why
 
@@ -35,7 +35,7 @@ Tunnel addresses (10.99.0.0/24): .1 gateway, .2 offsite, .3 pimaster, .16/28 rem
 
 ## Decisions
 
-Each decision is needed before the phase in brackets. The recommendation comes first.
+Each decision is needed before the phase in brackets. The recommendation comes first. Taken by the user on 2026-11-10: all as recommended.
 
 - **D1 Oracle account type (phase 1).** Recommended: upgrade the tenancy to Pay As You Go. Oracle stops idle Always Free instances on free accounts. Its published rule calls a VM idle when, over 7 days, its 95th-percentile CPU, network and memory (A1 shapes) all stay below 20%, and a control host is idle most days. Pay As You Go accounts are exempt, Always Free resources stay free, and in practice A1 capacity is easier to get. Add a budget alert at 1 USD. Alternative: stay on the free account and restart the VM from the console after Oracle stops it.
 - **D2 Block storage (phase 1).** The offsite VM uses all 200 GB of Always Free block storage (50 GB boot + 150 GB backup volume), and a second VM needs at least a 47 GB boot volume. Recommended: replace the 150 GB backup volume with a 100 GB one, for a total of 50 + 50 + 100 = 200 GB at no cost. The restic repository holds 3.5 GiB, and it starts fresh after the rebuild (the cluster has no data). Alternative: keep 150 GB and pay for the extra 50 GB, about 2 USD a month at list price. This needs D1.
@@ -81,7 +81,7 @@ Code (PR 2, `terraform/oci`):
 - `oci_core_instance.pimaster`: `VM.Standard.A1.Flex` with the D3 size, the same Ubuntu 24.04 image data source, 50 GB boot volume, public subnet, public IP (the WireGuard endpoint), `hostname_label = "pimaster"`. A new variable `pimaster_ssh_authorized_keys` takes the old pimaster's key (for the bootstrap copy) and the Mac's key.
 - First-boot config `pimaster-cloud-init.yaml.tftpl`:
   - user `pimaster` in the `docker` group;
-  - packages `wireguard-tools docker.io docker-compose-v2 git make jq curl rsync age iptables-persistent`;
+  - packages `wireguard-tools git make jq curl rsync age iptables-persistent`. Docker (`docker.io docker-compose-v2`) is installed after the firewall rules are saved, so Docker's own rules never land in the saved set;
   - `wg0` at 10.99.0.3/24, listening on 51820, with these peers:
     - the gateway: AllowedIPs 10.99.0.1/32 and 10.0.0.0/24, no endpoint, the gateway dials;
     - offsite: endpoint at its VCN private IP, AllowedIPs 10.99.0.2/32, keepalive 25;
@@ -90,7 +90,7 @@ Code (PR 2, `terraform/oci`):
   - IP forwarding for the clients, to 10.0.0.0/24 and 10.99.0.2 only.
   - iptables as on the offsite VM: UDP 51820 in, SSH only on `wg0`, the public SSH rule removed.
 - The offsite first-boot config gets a pimaster peer (AllowedIPs 10.99.0.3/32 and 10.99.0.16/28, no endpoint), so a recreated offsite VM has it. The running VM gets it by hand in phase 2. The offsite template reads only pimaster's public key and pimaster's template reads only offsite's address and public key, so the two templates do not depend on each other in a cycle.
-- `ssh_authorized_keys` joins `ignore_changes` on both instances. It is first-boot only, like `user_data`. Without that, the new key on the new pimaster would make `tofu plan` change the offsite instance.
+- `ssh_authorized_keys` joins `ignore_changes` on the offsite instance. It is first-boot only, like `user_data`. Without that, the new key on the new pimaster would make `tofu plan` change the offsite instance. pimaster's keys are in its first-boot config, so it has no metadata key and no default `ubuntu` user.
 - D2: `oci_core_volume.backups` goes to 100 GB, and the size check in `offsite_backup.yml` follows. That playbook already formats an empty volume, mounts it and runs `restic init`.
 - Outputs: `pimaster_public_ip`, `pimaster_tunnel_ip`, `offsite_private_ip`. New keys in `terraform.tfvars.example`.
 
@@ -111,14 +111,16 @@ Steps:
    ssh ubuntu@10.99.0.2 sudo umount /backup
    ```
 
-4. Plan, read, apply:
+4. Plan, read, apply, in two steps. OCI cannot shrink a volume in place, so it is replaced explicitly, and before the new boot volume exists, so the total stays within 200 GB:
 
    ```shell
+   ./ansible-runner/ansible-runner.sh bash -lc 'cd /terraform/oci && tofu plan -replace=oci_core_volume.backups -target=oci_core_volume_attachment.backups -out tfplan'
+   ./ansible-runner/ansible-runner.sh bash -lc 'cd /terraform/oci && tofu apply tfplan'
    ./ansible-runner/ansible-runner.sh bash -lc 'cd /terraform/oci && tofu plan -out tfplan'
    ./ansible-runner/ansible-runner.sh bash -lc 'cd /terraform/oci && tofu apply tfplan'
    ```
 
-   Expected plan: `oci_core_instance.pimaster` is added and, with D2, the backup volume and its attachment are replaced. Nothing else changes, and the offsite instance stays. If A1 reports "Out of host capacity", retry later or move pimaster to another availability domain.
+   Expected plans: first, the backup volume and its attachment are replaced. Second, `oci_core_instance.pimaster` is added. Nothing else changes, and the offsite instance stays. If A1 reports "Out of host capacity", retry later or set `pimaster_availability_domain_index`.
 
 Validation: the instance is Running in the console. The serial console shows that cloud-init finished. Rollback: `tofu destroy -target=oci_core_instance.pimaster`. A replaced backup volume cannot be brought back (accepted: no data).
 
