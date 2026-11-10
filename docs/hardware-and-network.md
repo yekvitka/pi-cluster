@@ -4,8 +4,8 @@
 
 | Host | IP | Role |
 |---|---|---|
-| gateway | 10.0.0.1 / 192.168.50.200 | OpenWrt router: firewall/NAT, DHCP, DNS forwarder, NTP, WireGuard to the offsite VM ([metal/openwrt](../metal/openwrt/README.md)) |
-| pimaster | 192.168.50.100 / 10.0.0.20 | Ansible control node, VM on the shared home/cluster segment ([control host](control-host.md)) |
+| gateway | 10.0.0.1 / 192.168.50.200 | OpenWrt router: firewall/NAT, DHCP, DNS forwarder, NTP, WireGuard to the Oracle Cloud VMs ([metal/openwrt](../metal/openwrt/README.md)) |
+| pimaster | 10.99.0.3 (WireGuard) | Control host: Ansible runner, secrets, Terraform state. Oracle Cloud VM (Always Free, Frankfurt) ([control host](control-host.md)) |
 | node1 | 10.0.0.11 | External services: bind9 (authoritative DNS), Vault, RustFS (S3), certbot, offsite backup push |
 | node2, node3 | 10.0.0.12–13 | k3s etcd-only servers (no API server). node3 boots from a USB SSD and is a Longhorn storage node |
 | node4 | 10.0.0.14 | k3s worker, boots from SD card, no Longhorn |
@@ -17,7 +17,11 @@
 
 ## IP plan
 
-10.0.0.0/24: .1 gateway, .10 k3s API (kube-vip), .11-.19 nodes, .20 pimaster, .64/26 Cilium LoadBalancer pool (.68 Envoy gateway), .150-.249 DHCP.
+10.0.0.0/24: .1 gateway, .10 k3s API (kube-vip), .11-.19 nodes, .64/26 Cilium LoadBalancer pool (.68 Envoy gateway), .150-.249 DHCP.
+
+10.99.0.0/24 (WireGuard, the gateway dials out to both VMs): .1 gateway, .2 offsite, .3 pimaster, .16/28 remote clients of pimaster (laptop .18, phone .19).
+
+Ansible logs in to the nodes as `ansible` (passwordless sudo); no node accepts root SSH ([access](control-host.md#access-to-the-hosts)).
 
 DNS domain: `homelab.yekvitka.net`, served by bind9 on node1; the gateway forwards it. external-dns publishes cluster records through RFC 2136.
 

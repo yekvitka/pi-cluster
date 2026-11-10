@@ -64,11 +64,11 @@ Default zones are kept: `lan → wan` accepted and masqueraded, `wan → lan` re
 | `allow_wan_vault` | node1 | 8200 |
 | `allow_wan_rustfs` | node1 | 9091, 9092 (RustFS API, console) |
 
-## pimaster and home network access
+## Home network access
 
-pimaster sits on the shared segment with a cluster LAN address (10.0.0.20) and uses the gateway (10.0.0.1) as DNS server: see [pimaster](../../docs/control-host.md).
+The control host (pimaster) reaches the cluster LAN through the WireGuard tunnel (`ctl_*` rules, [below](#wireguard-tunnel-to-the-oracle-cloud-vms)); a control host on the home network instead: see [control host](../../docs/control-host.md#a-control-host-on-the-home-network).
 
-Other home devices reach the cluster through the gateway. Traffic from the home network is routed, not NATed, so they need a route to the cluster LAN. Add it on the home router (all home devices), or per device:
+Home devices reach the cluster through the gateway. Traffic from the home network is routed, not NATed, so they need a route to the cluster LAN. Add it on the home router (all home devices), or per device:
 
 ```shell
 # netplan, under the home network interface
@@ -114,4 +114,4 @@ ssh root@10.0.0.1 'sh -s' < metal/openwrt/script/node-exporter.sh
 
 ## LuCI TLS certificate
 
-`make openwrt-certbot-tls` (repo root, as `pimaster`) requests a Let's Encrypt certificate for `gateway.homelab.yekvitka.net` (IONOS DNS-01) and deploys it with `script/openwrt-deploy-tls.sh` to `root@10.0.0.1` (`REMOTE_HOST` overrides it). Renewal is automatic since `make configure-cert-renewal`: certbot on node1 renews it and pushes it to the gateway (`script/luci-cert-receiver.sh`, see [docs/certificates.md](../../docs/certificates.md)); this target is only needed for a first install.
+`make configure-cert-renewal` (repo root) has certbot on node1 issue `gateway.homelab.yekvitka.net` (IONOS DNS-01), installs the receiver on the gateway (`script/luci-cert-receiver.sh`) and pushes the certificate; certbot on node1 renews it and pushes it again. See [docs/certificates.md](../../docs/certificates.md).

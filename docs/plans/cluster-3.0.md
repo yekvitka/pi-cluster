@@ -2,7 +2,7 @@
 
 Goal: the same hardware and services as [Cluster 2.0](cluster-2.0.md), run from a repository a platform team would sign off on: every pull request checked by CI, no known security defects, the owner's values in one place, decisions and incidents written down, alerts that reach a person, restores that are proven. No new hardware and no new services, except alert delivery.
 
-Status (2026-11-10): phases 1–3 merged; phase 4 on its branch. Next: phase 5.
+Status (2026-11-10): phases 1–4 merged. The full rebuild drill of phase 8 ran on 2026-11-10 with the [control host move](control-host-oci.md) ([times](../backup-and-recovery.md#full-rebuild)). Next: phase 5.
 
 ## Why
 
@@ -126,12 +126,12 @@ Validation: a test alert (`amtool alert add`) arrives and resolves; a temporary 
 - **Monthly `restic check`** on node1 (a systemd timer); a failed run alerts.
 - **Terraform state encrypted** (OpenTofu state encryption, passphrase in `~/.secrets`, migrated with an unencrypted fallback): one apply per module, by the user.
 - **Recovery objectives** written down: how much data each failure can lose and how long recovery takes (a node, node6, node1, the house).
-- **Optional, the user decides:** the full rebuild drill on the 2.0 layout (`make clean`, `make init`; last done 2026-11-03, on four nodes).
+- **Optional, the user decides:** the full rebuild drill on the 2.0 layout (`make clean`, `make init`): done 2026-11-10, about an hour from `make clean` to every Flux app ready ([times](../backup-and-recovery.md#full-rebuild)).
 
 ## Not in 3.0
 
 - A second API server: no hardware.
-- A dedicated Ansible user instead of root: cloud-init, the roles and the runner assume root, and host key checking (phase 1) closes the main risk. Planned with the next rebuild in [Control host in Oracle Cloud](control-host-oci.md).
+- A dedicated Ansible user instead of root: done outside this plan, with the 2026-11-10 rebuild in [Control host in Oracle Cloud](control-host-oci.md). Ansible logs in as `ansible` with sudo, and no node accepts root SSH.
 - Default-deny NetworkPolicies (phase 7).
 - Moving the playbooks (phase 4).
 

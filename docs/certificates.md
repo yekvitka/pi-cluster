@@ -15,6 +15,6 @@ The LuCI certificate goes to the gateway with a node1 SSH key that dropbear rest
 
 Gatus on the [offsite VM](offsite.md) checks every certificate from outside and fails below 7 days left.
 
-The certbot steps of `deploy_vault.yml`, `deploy_rustfs.yml` and `make openwrt-certbot-tls` (certificates on the control host) are only needed for a first install.
+`deploy_vault.yml` and `deploy_rustfs.yml` take the Vault and RustFS certificates from certbot on the control host (`~/.certbot`): on a rebuild they are reused, so `make init` places no new order. `make configure-cert-renewal` issues any certificate node1 does not have yet, the gateway's included, and pushes the gateway's.
 
 Test the renewal path without changing anything (Let's Encrypt staging): `/opt/certbot/bin/certbot renew --dry-run` on node1.

@@ -32,7 +32,7 @@ The gateway's home network, Wi-Fi and time zone are passed when its image is bui
 
 ### The reference IP plan
 
-The cluster LAN is 10.0.0.0/24 behind the gateway: gateway 10.0.0.1, k3s API (kube-vip) 10.0.0.10, node1 10.0.0.11, nodes 10.0.0.12 and up, control host 10.0.0.20, load balancers 10.0.0.64/26 (Envoy Gateway on 10.0.0.68). To use other addresses, change them in `ansible/inventory.yml`, `ansible/group_vars/all/site.yml` (`default_gateway`, `dns_server`), `ansible/group_vars/all/k3s.yml` (`k3s_api_vip`), `ansible/host_vars/node1.yml` (DNS records), `cluster-settings.yaml`, `kubernetes/platform/cilium/config/base/ip-pool-lb.yaml`, `kubernetes/platform/kube-vip/overlays/prod/values.yaml`, the control-plane endpoints in `kubernetes/platform/kube-prometheus-stack/app/base/values.yaml`, `metal/rpi/cloud-init/nodes/network-config` and the addresses at the top of `metal/openwrt/gateway-setup.sh`.
+The cluster LAN is 10.0.0.0/24 behind the gateway: gateway 10.0.0.1, k3s API (kube-vip) 10.0.0.10, node1 10.0.0.11, nodes 10.0.0.12 and up, load balancers 10.0.0.64/26 (Envoy Gateway on 10.0.0.68). To use other addresses, change them in `ansible/inventory.yml`, `ansible/group_vars/all/site.yml` (`default_gateway`, `dns_server`), `ansible/group_vars/all/k3s.yml` (`k3s_api_vip`), `ansible/host_vars/node1.yml` (DNS records), `cluster-settings.yaml`, `kubernetes/platform/cilium/config/base/ip-pool-lb.yaml`, `kubernetes/platform/kube-vip/overlays/prod/values.yaml`, the control-plane endpoints in `kubernetes/platform/kube-prometheus-stack/app/base/values.yaml`, `metal/rpi/cloud-init/nodes/network-config` and the addresses at the top of `metal/openwrt/gateway-setup.sh`.
 
 ## 3. Secrets
 
