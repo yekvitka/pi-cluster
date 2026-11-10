@@ -21,11 +21,10 @@ NODE1_IP := $(shell awk '/^ +node1:$$/{f=1} f && /ansible_host:/{print $$2; exit
 	ansible-local-setup \
 	ansible-local-galaxy \
 	ansible-local-lint \
-	ansible-local-syntax-check-external-services \
 	uv-lock-check \
 	lint \
+	verify \
 	lint-ci \
-	syntax-check-external-services \
 	lint-fix-whitespace \
 	init \
 	os-upgrade \
@@ -85,22 +84,22 @@ ansible-local-galaxy: ## Install the Galaxy roles and collections into the local
 ansible-local-lint: ansible-local-setup ## yamllint with the local uv environment
 	cd $(ANSIBLE_DIR) && uv run yamllint .
 
-ansible-local-syntax-check-external-services: ansible-local-galaxy ## Syntax-check external_services.yml with the local uv environment
-	cd $(ANSIBLE_DIR) && uv run ansible-playbook --syntax-check external_services.yml
-
 uv-lock-check: ## Check that uv.lock matches pyproject.toml
 	cd $(ANSIBLE_DIR) && uv lock --check
 
-# Lint
+# Checks: the scripts CI runs (.github/workflows/ci.yml), here in the runner
 
 lint: ## yamllint in the runner: Ansible and the Kubernetes manifests
-	$(RUNNER) yamllint .
-	$(RUNNER) bash -lc 'cd /kubernetes && yamllint .'
+	$(RUNNER) /repo/scripts/check-yaml.sh
 
-lint-ci: lint ## The lint CI runs
+verify: ## Everything CI checks, in the runner: YAML, Ansible, Kubernetes, Terraform, shell
+	$(RUNNER) /repo/scripts/check-yaml.sh
+	$(RUNNER) /repo/scripts/check-ansible.sh
+	$(RUNNER) /repo/scripts/check-kubernetes.py
+	$(RUNNER) /repo/scripts/check-terraform.sh
+	$(RUNNER) /repo/scripts/check-shell.sh
 
-syntax-check-external-services: ansible-runner-setup ## Syntax-check external_services.yml in the runner
-	cd ansible && ../$(RUNNER) ansible-playbook --syntax-check external_services.yml
+lint-ci: verify ## Alias of verify
 
 lint-fix-whitespace: ## Trim trailing spaces and add final newlines in YAML files
 	$(RUNNER) /bin/bash -lc 'cd /runner && find . -type f \( -name "*.yml" -o -name "*.yaml" \) ! -path "./.ansible/*" -print0 | xargs -0 sed -i -E "s/[[:space:]]+$$//"'

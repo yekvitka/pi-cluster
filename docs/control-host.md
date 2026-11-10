@@ -54,4 +54,4 @@ sudo lvextend -r -l +100%FREE /dev/ubuntu-vg/ubuntu-lv
 
 The runner mounts `~/.ssh/known_hosts`: Ansible checks host keys and trusts a new host on first use; after a node is reprovisioned, remove its old key with `ssh-keygen -R <ip>`.
 
-The Ansible runner wrapper uses `docker exec -it`: from a non-interactive shell wrap it, `script -qec "./ansible-runner/ansible-runner.sh <cmd>" /dev/null`.
+The runner wrapper asks Docker for a TTY only when it runs in one, so scripts and non-interactive shells call it directly. Start the runner as the user who owns `~/.ssh` and `~/.secrets`, never as root (`make ansible-runner-setup` refuses). `make verify` runs every CI check in the runner.

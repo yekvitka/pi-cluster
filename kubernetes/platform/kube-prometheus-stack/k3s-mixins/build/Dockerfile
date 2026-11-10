@@ -11,16 +11,23 @@ RUN ls -la *
 RUN apk add git
 
 # Install jsonnet and the jsonnet-bundler
-RUN go install github.com/google/go-jsonnet/cmd/jsonnet@latest
-RUN go install github.com/jsonnet-bundler/jsonnet-bundler/cmd/jb@latest
+# renovate: datasource=github-releases depName=google/go-jsonnet
+ARG JSONNET_VERSION=v0.22.0
+RUN go install github.com/google/go-jsonnet/cmd/jsonnet@${JSONNET_VERSION}
+# renovate: datasource=github-releases depName=jsonnet-bundler/jsonnet-bundler
+ARG JB_VERSION=v0.6.0
+RUN go install github.com/jsonnet-bundler/jsonnet-bundler/cmd/jb@${JB_VERSION}
 
 # Install gojsontoyaml
-RUN go install github.com/brancz/gojsontoyaml@latest
+# renovate: datasource=github-releases depName=brancz/gojsontoyaml
+ARG GOJSONTOYAML_VERSION=v0.1.0
+RUN go install github.com/brancz/gojsontoyaml@${GOJSONTOYAML_VERSION}
 
 # Init Jsonnet project
 RUN jb init
 
-# Install mixinx
+# Install mixins from their branches: running this build is how the mixins get
+# updated; its output is committed and reviewed
 RUN jb install github.com/kubernetes-monitoring/kubernetes-mixin@master
 RUN jb install github.com/prometheus-operator/kube-prometheus/jsonnet/kube-prometheus@main
 RUN jb install github.com/povilasv/coredns-mixin@master

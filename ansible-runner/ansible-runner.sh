@@ -12,8 +12,10 @@ if [[ "${MODE}" == "local" ]]; then
 fi
 
 # Run the command in the runner container, in a login shell (loads the runner
-# user's profile and venv)
-CMD="docker exec -it ansible-runner \
-     /bin/bash -lic"
+# user's profile and venv). A TTY only when there is one: scripts and CI have none
+TTY=""
+if [ -t 0 ] && [ -t 1 ]; then
+    TTY="-t"
+fi
 
-$CMD "$(printf ' %q' "$@")"
+exec docker exec -i ${TTY:+"$TTY"} ansible-runner /bin/bash -lc "$(printf ' %q' "$@")"

@@ -8,7 +8,7 @@ MIXINS_DIR="./templates"
 
 # Function to escape YAML content
 escape_yaml() {
-  local file_path="$1"
+  file_path="$1"
   echo "Escaping $file_path..."
   # Read the file content, process, and overwrite it
   sed -i \
@@ -22,7 +22,7 @@ escape_yaml() {
 
 # Clean the templates directory
 echo "Cleaning templates directory..."
-rm -rf ${MIXINS_DIR}/*
+rm -rf "${MIXINS_DIR:?}"/*
 echo "Templates directory cleaned."
 
 # Convert Jsonnet to YAML
