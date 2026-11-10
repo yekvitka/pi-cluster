@@ -51,6 +51,13 @@ rustfs_server_datadirs:
 # RustFS site region
 rustfs_site_region: "eu-west-1"
 
+# State bucket for terraform/minio (S3 backend). deploy_rustfs.yml creates it
+# with versioning, so the module never manages the bucket its state lives in.
+# terraform/vault keeps local state: it runs before RustFS exists.
+tofu_state_bucket: "terraform-state"
+rustfs_buckets:
+  - name: "{{ tofu_state_bucket }}"
+
 # TLS: Let's Encrypt certificates verify against the system CA bundle
 rustfs_enable_tls: true
 rustfs_validate_certificate: "{{ enable_letsencrypt }}"

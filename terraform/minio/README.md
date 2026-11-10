@@ -39,4 +39,4 @@ Validate without RustFS:
 ./ansible-runner/ansible-runner.sh bash -lc 'cd /terraform/minio && tofu init -backend=false -input=false && tofu validate && tofu fmt -check'
 ```
 
-The state (`terraform.tfstate`) stays on the control host and is not in Git.
+The state is on RustFS (S3 backend, bucket `terraform-state`, key `minio/terraform.tfstate`, versioned, with a lock file), shared by `make configure-minio` and the Deploy workflow. `deploy_rustfs.yml` creates the bucket, so this module never manages the bucket its own state lives in. `configure_minio.yml` passes the bucket, endpoint and credentials. Moving an existing local state there: [runbook](../../docs/runbooks/github-actions-runner.md#3-move-the-minio-state-to-rustfs).

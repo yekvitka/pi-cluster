@@ -296,6 +296,14 @@
     - role: ricsanfre.rustfs
 
   post_tasks:
+    # The role creates the bucket (rustfs_buckets) and the client alias;
+    # versioning keeps every earlier state file recoverable
+    - name: Enable versioning on the Terraform state bucket
+      ansible.builtin.command: >-
+        {{ rustfs_client_bin | default('/usr/local/bin/rc') }} bucket version enable
+        {{ rustfs_alias | default('myrustfs') }}/{{ tofu_state_bucket }}
+      changed_when: false
+
     - name: Display RustFS installation information
       ansible.builtin.debug:
         msg: |

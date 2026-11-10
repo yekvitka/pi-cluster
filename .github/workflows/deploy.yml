@@ -1,0 +1,190 @@
+---
+# Continuous delivery from master, on the self-hosted runner on pimaster.
+#
+# Push to master:
+#   - Flux reconcile (automatic): the cluster picks up kubernetes/ at once
+#     instead of at the next poll.
+#   - terraform/minio changed: plan (automatic), then apply of that exact plan
+#     after approval of the terraform-apply environment.
+#   - ansible/ or terraform/vault changed: a notice; those are applied by hand
+#     (Ansible plays are too broad to run unattended, the Vault module is the
+#     bootstrap layer with local state).
+#
+# Run workflow (workflow_dispatch): one Ansible playbook, --check --diff first,
+# then (dry_run unticked) the real run after approval of ansible-deploy.
+#
+# The repository is public: workflow files and Actions logs are not private.
+# scripts/runner-job-guard.sh on the runner host only lets this workflow from
+# master run there, and scripts/deploy-run.sh keeps full output on pimaster.
+# Setup: docs/runbooks/github-actions-runner.md.
+name: Deploy
+'on':
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+    inputs:
+      playbook:
+        description: Ansible playbook
+        required: true
+        type: choice
+        options:
+          - configure_webui_auth.yml
+          - configure_dns_authoritative.yml
+          - deploy_monitoring_agent.yml
+          - backup_configuration.yml
+          - setup_picluster.yml
+      extra_args:
+        description: Extra ansible-playbook arguments (e.g. --tags node --limit node4)
+        required: false
+        default: ''
+      dry_run:
+        description: Dry run only (--check --diff)
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+# One deploy at a time, never cancelled: a run waiting for approval holds the
+# group, so nothing touches the runner's workspace between plan and apply
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  changes:
+    name: Changed areas
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      ansible: ${{ steps.diff.outputs.ansible }}
+      minio: ${{ steps.diff.outputs.minio }}
+      vault: ${{ steps.diff.outputs.vault }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Diff against the previous master
+        id: diff
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          # New branch or force push: no usable base, treat everything as changed
+          if git cat-file -e "${BEFORE}^{commit}" 2>/dev/null; then
+            files="$(git diff --name-only "$BEFORE" HEAD)"
+          else
+            files="$(git ls-files)"
+          fi
+          for area in ansible:ansible/ minio:terraform/minio/ vault:terraform/vault/; do
+            key="${area%%:*}" prefix="${area#*:}"
+            if grep -q "^${prefix}" <<<"$files"; then
+              echo "${key}=true" >>"$GITHUB_OUTPUT"
+            else
+              echo "${key}=false" >>"$GITHUB_OUTPUT"
+            fi
+          done
+
+  flux:
+    name: Flux reconcile
+    if: github.event_name == 'push'
+    runs-on: [self-hosted, pimaster]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Reconcile flux-system with its source
+        run: scripts/deploy-run.sh flux flux reconcile kustomization flux-system -n flux-system --with-source
+
+  minio-plan:
+    name: Terraform minio plan
+    needs: changes
+    if: needs.changes.outputs.minio == 'true'
+    runs-on: [self-hosted, pimaster]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Plan (saved as terraform/minio/tfplan on the runner)
+        run: scripts/deploy-run.sh minio-plan ansible-playbook configure_minio.yml -e plan_only=true
+
+  minio-apply:
+    name: Terraform minio apply
+    needs: minio-plan
+    environment: terraform-apply
+    runs-on: [self-hosted, pimaster]
+    timeout-minutes: 15
+    steps:
+      # Same commit, and clean: false keeps the saved (untracked) tfplan
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          clean: false
+          persist-credentials: false
+      - name: Apply the approved plan
+        run: scripts/deploy-run.sh minio-apply ansible-playbook configure_minio.yml -e apply_only=true
+      - name: Remove the plan (it holds secret values)
+        if: always()
+        run: rm -f terraform/minio/tfplan
+
+  manual:
+    name: Changes to apply by hand
+    needs: changes
+    if: needs.changes.outputs.ansible == 'true' || needs.changes.outputs.vault == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Step summary
+        env:
+          ANSIBLE: ${{ needs.changes.outputs.ansible }}
+          VAULT: ${{ needs.changes.outputs.vault }}
+        run: |
+          {
+            echo "## Changes not deployed automatically"
+            if [ "$ANSIBLE" = true ]; then
+              echo "- \`ansible/\`: Actions → Deploy → Run workflow, pick the playbook (dry run first)."
+            fi
+            if [ "$VAULT" = true ]; then
+              echo "- \`terraform/vault/\`: run \`make configure-vault\` on pimaster."
+            fi
+          } >>"$GITHUB_STEP_SUMMARY"
+
+  ansible-check:
+    name: Ansible dry run (${{ inputs.playbook }})
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: [self-hosted, pimaster]
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - name: ansible-playbook --check --diff
+        env:
+          PLAYBOOK: ${{ inputs.playbook }}
+          EXTRA_ARGS: ${{ inputs.extra_args }}
+        run: |
+          read -ra extra <<<"$EXTRA_ARGS"
+          scripts/deploy-run.sh ansible-check ansible-playbook "$PLAYBOOK" --check --diff "${extra[@]}"
+
+  ansible-apply:
+    name: Ansible run (${{ inputs.playbook }})
+    needs: ansible-check
+    if: github.event_name == 'workflow_dispatch' && !inputs.dry_run
+    environment: ansible-deploy
+    runs-on: [self-hosted, pimaster]
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - name: ansible-playbook
+        env:
+          PLAYBOOK: ${{ inputs.playbook }}
+          EXTRA_ARGS: ${{ inputs.extra_args }}
+        run: |
+          read -ra extra <<<"$EXTRA_ARGS"
+          scripts/deploy-run.sh ansible-apply ansible-playbook "$PLAYBOOK" "${extra[@]}"

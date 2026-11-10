@@ -62,63 +62,92 @@
         success_msg: "✓ MinIO credentials successfully retrieved from Vault for Terraform"
 
   tasks:
+    # One environment for every tofu command: the providers (Vault, RustFS)
+    # and the S3 backend, which stores the state on RustFS
+    - name: Set the OpenTofu environment
+      ansible.builtin.set_fact:
+        tofu_env:
+          VAULT_ADDR: "{{ vault_addr }}"
+          VAULT_TOKEN: "{{ vault_token }}"
+          VAULT_CACERT: "{{ vault_cacert if (not enable_letsencrypt | default(false)) else '' }}"
+          TF_VAR_minio_endpoint: "{{ rustfs_endpoint }}"
+          TF_VAR_minio_use_ssl: "true"
+          TF_VAR_minio_admin_user: "{{ minio_root_user }}"
+          TF_VAR_minio_admin_password: "{{ minio_root_password }}"
+          TF_VAR_vault_address: "{{ vault_addr }}"
+          TF_VAR_vault_token: "{{ vault_token }}"
+          AWS_ENDPOINT_URL_S3: "{{ rustfs_url }}"
+          AWS_ACCESS_KEY_ID: "{{ minio_root_user }}"
+          AWS_SECRET_ACCESS_KEY: "{{ minio_root_password }}"
+      no_log: true
+
+    # tofu_migrate_state=true: one time, copies a local terraform.tfstate into
+    # the bucket (docs/runbooks/github-actions-runner.md). Without it, a local
+    # state file stops the run here, before tofu offers to overwrite anything.
+    - name: Check for a local state file
+      ansible.builtin.stat:
+        path: "{{ terraform_project_dir }}/terraform.tfstate"
+      register: local_tfstate
+
+    - name: Stop while a local state file is still in terraform/minio
+      ansible.builtin.fail:
+        msg: |
+          terraform/minio/terraform.tfstate exists, but the state lives in the
+          RustFS bucket {{ tofu_state_bucket }}.
+          - Not moved yet: follow docs/runbooks/github-actions-runner.md,
+            "Move the minio state to RustFS" (run with -e tofu_migrate_state=true).
+          - Already moved: the local file is stale, move it to ~/tfstate-backup/.
+      when:
+        - local_tfstate.stat.exists
+        - not (tofu_migrate_state | default(false) | bool)
+
     - name: Initialize Terraform
       ansible.builtin.command:
-        cmd: tofu init -no-color
+        cmd: >-
+          tofu init -no-color -input=false -backend-config=bucket={{ tofu_state_bucket }}
+          {{ '-migrate-state -force-copy' if (tofu_migrate_state | default(false) | bool) else '' }}
         chdir: "{{ terraform_project_dir }}"
+      environment: "{{ tofu_env }}"
       register: terraform_init
-      changed_when: "'Terraform has been successfully initialized!' in terraform_init.stdout"
+      changed_when: "'successfully initialized' in terraform_init.stdout"
 
+    # plan_only=true: stop after the plan (Deploy workflow, before approval).
+    # apply_only=true: apply the saved tfplan as it is (after approval); OpenTofu
+    # refuses it if the state changed since the plan.
     - name: Plan Terraform changes
       ansible.builtin.command:
-        cmd: >-
-          tofu plan
-          -no-color
-          -out=tfplan
+        cmd: tofu plan -no-color -input=false -out=tfplan
         chdir: "{{ terraform_project_dir }}"
-      environment:
-        VAULT_ADDR: "{{ vault_addr }}"
-        VAULT_TOKEN: "{{ vault_token }}"
-        VAULT_CACERT: "{{ vault_cacert if (not enable_letsencrypt | default(false)) else '' }}"
-        TF_VAR_minio_endpoint: "{{ rustfs_endpoint }}"
-        TF_VAR_minio_use_ssl: "true"
-        TF_VAR_minio_admin_user: "{{ minio_root_user }}"
-        TF_VAR_minio_admin_password: "{{ minio_root_password }}"
-        TF_VAR_vault_address: "{{ vault_addr }}"
-        TF_VAR_vault_token: "{{ vault_token }}"
+      environment: "{{ tofu_env }}"
       changed_when: false
       register: terraform_plan
+      when: not (apply_only | default(false) | bool)
 
     - name: Display Terraform plan summary
       ansible.builtin.debug:
         msg: "{{ terraform_plan.stdout_lines[-20:] | join('\n') }}"
+      when: not (apply_only | default(false) | bool)
 
     - name: Apply Terraform configuration
       ansible.builtin.command:
-        cmd: tofu apply -no-color -auto-approve tfplan
+        cmd: tofu apply -no-color -input=false -auto-approve tfplan
         chdir: "{{ terraform_project_dir }}"
-      environment:
-        VAULT_ADDR: "{{ vault_addr }}"
-        VAULT_TOKEN: "{{ vault_token }}"
-        VAULT_CACERT: "{{ vault_cacert if (not enable_letsencrypt | default(false)) else '' }}"
-        TF_VAR_minio_endpoint: "{{ rustfs_endpoint }}"
-        TF_VAR_minio_use_ssl: "true"
-        TF_VAR_minio_admin_user: "{{ minio_root_user }}"
-        TF_VAR_minio_admin_password: "{{ minio_root_password }}"
-        TF_VAR_vault_address: "{{ vault_addr }}"
-        TF_VAR_vault_token: "{{ vault_token }}"
+      environment: "{{ tofu_env }}"
       register: terraform_apply
       changed_when: "'Apply complete!' in terraform_apply.stdout"
-      no_log: false
+      when: not (plan_only | default(false) | bool)
 
     - name: Display Terraform outputs
       ansible.builtin.command:
         cmd: tofu output -no-color -json
         chdir: "{{ terraform_project_dir }}"
+      environment: "{{ tofu_env }}"
       register: terraform_outputs
       changed_when: false
+      when: not (plan_only | default(false) | bool)
 
     - name: Display MinIO configuration information
+      when: not (plan_only | default(false) | bool)
       ansible.builtin.debug:
         msg: |
          ╔════════════════════════════════════════════════════════════╗

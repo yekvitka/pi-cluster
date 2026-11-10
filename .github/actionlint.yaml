@@ -1,0 +1,5 @@
+---
+# Custom label of the self-hosted runner on pimaster (deploy.yml)
+self-hosted-runner:
+  labels:
+    - pimaster
