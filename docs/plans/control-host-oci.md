@@ -78,7 +78,7 @@ Each decision is needed before the phase in brackets. The recommendation comes f
 
 Code (PR 2, `terraform/oci`):
 
-- `oci_core_instance.pimaster`: `VM.Standard.A1.Flex` with the D3 size, the same Ubuntu 24.04 image data source, 50 GB boot volume, public subnet, public IP (the WireGuard endpoint), `hostname_label = "pimaster"`. A new variable `pimaster_ssh_authorized_keys` takes the old pimaster's key (for the bootstrap copy) and the Mac's key.
+- `oci_core_instance.pimaster`: `VM.Standard.A1.Flex` with the D3 size, the same Ubuntu 24.04 image data source, 50 GB boot volume, public subnet, public IP (the WireGuard endpoint), `hostname_label = "pimaster"`. A new variable `pimaster_ssh_authorized_keys` takes the old pimaster's key (for the bootstrap copy) and the Mac's key. The VM is created only with `pimaster_enabled = true` (off by default), so for anyone else the module still builds only the offsite VM.
 - First-boot config `pimaster-cloud-init.yaml.tftpl`:
   - user `pimaster` in the `docker` group;
   - packages `wireguard-tools git make jq curl rsync age iptables-persistent`. Docker (`docker.io docker-compose-v2`) is installed after the firewall rules are saved, so Docker's own rules never land in the saved set;
@@ -103,7 +103,7 @@ Steps:
    (umask 077; wg genkey | tee ~/.secrets/wireguard/pimaster-oci.key | wg pubkey > ~/.secrets/wireguard/pimaster-oci.pub)
    ```
 
-   Then fill the new values in `terraform/oci/terraform.tfvars`: the two SSH public keys, and the laptop's `~/.secrets/wireguard/laptop.pub` in `wg_clients`.
+   Then set the new values in `terraform/oci/terraform.tfvars`, as in `terraform.tfvars.example`: `pimaster_enabled = true`, the two SSH public keys, the key paths, `dns_domain`, and the laptop's `~/.secrets/wireguard/laptop.pub` in `wg_clients`.
 3. D2 only: stop the offsite copy, which would fail every night until phase 5, and unmount the volume that is about to be replaced:
 
    ```shell
@@ -188,7 +188,7 @@ On the new VM as `pimaster`, unless a step says otherwise. Log in from the old p
    ssh-keygen -t rsa -b 4096 -N '' -C pimaster@oci -f ~/.ssh/id_rsa
    ```
 
-2. On the Mac, the break-glass key (D6), with a passphrase. Its public key goes into `ansible.pub` in phase 5:
+2. A console password for Oracle's serial console, the break-glass access of D4: `sudo passwd pimaster`, kept in the password manager. The user has a locked password otherwise, and SSH stays key-only. On the Mac, the break-glass key (D6), with a passphrase. Its public key goes into `ansible.pub` in phase 5:
 
    ```shell
    ssh-keygen -t ed25519 -C picluster-breakglass -f ~/.ssh/picluster-breakglass
