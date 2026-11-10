@@ -2,45 +2,59 @@
 # k3s-etcd-selfheal: ExecStartPre of k3s on the etcd servers.
 # Managed by Ansible (ansible/tasks/power_loss.yml).
 #
-# A hard power cut can corrupt the local etcd database (2026-11-08, node3): k3s
-# then panics in bbolt on every start, before etcd is ready. After two such
-# starts in a row, this script asks the cluster to remove this member (node
-# annotation; k3s's member removal controller runs on the API server), moves the
-# database aside and lets k3s rejoin as a new member. Losing this member's data is
-# fine: the other members have it.
+# A hard power cut can corrupt the local etcd database: k3s then fails on every
+# start, before etcd is ready (a bbolt panic, or "failed to read consistent
+# index"). After two such starts in a row, this script removes this member from
+# etcd, moves the database aside and lets k3s rejoin as a new member. Losing this
+# member's data is fine: the other members have it.
 #
-# Needs the API ({{ api_url }}) and the other members up. Never runs on its own
-# database twice in one boot. node6, the only API server, cannot heal itself this
-# way: docs/runbooks/node-ssd-migration.md "Corrupted etcd member".
+# Two ways to remove the member:
+# - etcd-only servers ask the cluster through the API ({{ api_url }}): a node
+#   annotation, handled by k3s's member removal controller.
+# - a server that runs the API server cannot rely on the API (node6 is the only
+#   one): it removes the member with etcdctl through the other members, only when
+#   every one of them is healthy (after the removal they are the whole cluster),
+#   after a snapshot from one of them.
 #
+# Never runs on its own database twice in one boot.
 # Test without changes: DRYRUN=1 /usr/local/sbin/k3s-etcd-selfheal
 set -u
 
-NODE="$(hostname)"
 DB=/var/lib/rancher/k3s/server/db
 DONE=/run/k3s-etcd-selfheal.done
-KC="k3s kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml --server {{ api_url }} --request-timeout=15s"
-ANN=etcd.k3s.cattle.io
 
 log() { echo "k3s-etcd-selfheal: $*"; }
 
 [ -d "$DB/etcd/member" ] || exit 0
 [ -e "$DONE" ] && exit 0
 
-# Starts since etcd was last ready that panicked in bbolt before etcd got ready
+# Starts since etcd was last ready that failed opening the etcd database
 failed=$(journalctl -b -u k3s.service --no-pager -o cat 2>/dev/null | awk '
   /Starting k3s v/ { ready = 0; counted = 0 }
   /ready to serve client requests/ { if (!ready) { ready = 1; n = 0 } }
-  /^panic: (freepages|assertion failed|page [0-9]+ |invalid page|unexpected page)/ { if (!ready && !counted) { n++; counted = 1 } }
+  /^panic: (freepages|assertion failed|page [0-9]+ |invalid page|unexpected page)/ ||
+  /level=fatal .*failed to read consistent index/ { if (!ready && !counted) { n++; counted = 1 } }
   END { print n + 0 }')
 
+move_db_aside() {
+  rm -rf "$DB".corrupt-*
+  mv "$DB" "$DB.corrupt-$(date +%Y%m%d-%H%M%S)"
+  touch "$DONE"
+  log "member $1 removed, database moved aside: k3s joins as a new member"
+}
+{% if k3s_etcd_only | default(false) | bool %}
+
+NODE="$(hostname)"
+ANN=etcd.k3s.cattle.io
+KC="k3s kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml --server {{ api_url }} --request-timeout=15s"
+
 if [ "${DRYRUN:-0}" = 1 ]; then
-  log "dry run: $failed start(s) panicked opening the etcd database since etcd was last ready (heals at 2)"
+  log "dry run: $failed start(s) failed opening the etcd database since etcd was last ready (heals at 2)"
   exit 0
 fi
 [ "$failed" -ge 2 ] || exit 0
 
-log "$failed starts panicked opening the etcd database: resetting this member"
+log "$failed starts failed opening the etcd database: resetting this member"
 if ! member=$($KC get node "$NODE" -o jsonpath="{.metadata.annotations.etcd\.k3s\.cattle\.io/node-name}" 2>&1); then
   log "API not reachable ($member): k3s retries"
   exit 0
@@ -49,8 +63,8 @@ removed=$($KC get node "$NODE" -o jsonpath="{.metadata.annotations.etcd\.k3s\.ca
 
 if [ -z "$member" ] && [ -n "$removed" ]; then
   # k3s clears the member name when it removes the member: an earlier run
-  # requested the removal and stopped waiting before it happened
-  # (2026-11-08: the API needed more than 2 minutes after a power cut)
+  # requested the removal and stopped waiting before it happened (right after a
+  # power cut the API can need more than 2 minutes)
   log "member $removed already removed"
   member="$removed"
 elif [ -z "$member" ]; then
@@ -73,8 +87,60 @@ else
   fi
 fi
 
-rm -rf "$DB".corrupt-*
-mv "$DB" "$DB.corrupt-$(date +%Y%m%d-%H%M%S)"
-touch "$DONE"
-log "member $member removed, database moved aside: k3s joins as a new member"
+move_db_aside "$member"
 exit 0
+{% else %}
+
+TLS=/var/lib/rancher/k3s/server/tls/etcd
+ETCDCTL="/usr/local/bin/etcdctl --cacert $TLS/server-ca.crt --cert $TLS/client.crt --key $TLS/client.key --dial-timeout=5s --command-timeout=15s"
+# The other members' client URLs and this member's peer URL
+PEERS="{{ groups['k3s_master'] | difference([inventory_hostname]) | map('extract', hostvars, 'ip') | map('regex_replace', '^(.*)$', 'https://\\1:2379') | join(',') }}"
+SELF_PEER="https://{{ ip }}:2380"
+SNAPSHOT=/var/lib/rancher/k3s/server/selfheal-snapshot.db
+
+[ "${DRYRUN:-0}" = 1 ] || [ "$failed" -ge 2 ] || exit 0
+[ "${DRYRUN:-0}" = 1 ] || log "$failed starts failed opening the etcd database: resetting this member"
+
+# Every other member healthy: after the removal they are the whole cluster
+if ! health=$($ETCDCTL --endpoints "$PEERS" endpoint health 2>&1); then
+  log "not every other member is healthy, nothing changed: $(echo "$health" | tr '\n' ' ')"
+  exit 0
+fi
+if ! members=$($ETCDCTL --endpoints "$PEERS" member list 2>&1); then
+  log "member list failed, nothing changed: $members"
+  exit 0
+fi
+# member list: ID, status, name, peer URLs, client URLs, learner
+member=$(echo "$members" | awk -F', ' -v p="$SELF_PEER" '$4 == p { print $1 }')
+others=$(echo "$members" | awk -F', ' -v p="$SELF_PEER" 'NF && $4 != p' | wc -l)
+expected=$(echo "$PEERS" | tr ',' '\n' | wc -l)
+if [ "$others" -ne "$expected" ]; then
+  log "etcd has $others other members, $expected expected: nothing changed"
+  exit 0
+fi
+
+if [ "${DRYRUN:-0}" = 1 ]; then
+  log "dry run: $failed start(s) failed opening the etcd database since etcd was last ready (heals at 2); other members healthy; this member: ${member:-not in the cluster}"
+  exit 0
+fi
+
+if [ -n "$member" ]; then
+  # A copy of the cluster's data before changing its membership
+  if ! out=$($ETCDCTL --endpoints "${PEERS%%,*}" snapshot save "$SNAPSHOT.part" 2>&1); then
+    log "snapshot failed, nothing changed: $(echo "$out" | tail -1)"
+    exit 0
+  fi
+  mv "$SNAPSHOT.part" "$SNAPSHOT"
+  if ! out=$($ETCDCTL --endpoints "$PEERS" member remove "$member" 2>&1); then
+    log "member remove failed, nothing changed: $out"
+    exit 0
+  fi
+else
+  # An earlier run removed it and stopped before moving the database
+  log "this member is not in the cluster any more"
+  member="(already removed)"
+fi
+
+move_db_aside "$member"
+exit 0
+{% endif %}

@@ -4,6 +4,11 @@
 # controllers and an etcd member. Tainted: only system pods and Rancher (they
 # tolerate the taint) run here. No Longhorn (k3s_longhorn_storage defaults to false)
 
+# Joins through node3, an etcd member that does not depend on node6. The API
+# virtual IP is node6's own: after a full outage node6 could not reach any
+# other member through it and could only start from its own database
+k3s_join_server: "{{ hostvars['node3'].ip }}"
+
 # k3s server with Rancher's load measured at 1.8-1.9 GB on 4 GB masters;
 # as the only API server it serves every client, so more headroom: the scheduler
 # does not hand this memory to pods. Re-measured in phase 6
