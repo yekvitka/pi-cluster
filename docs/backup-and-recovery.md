@@ -19,8 +19,31 @@ Three copies, two locations, one of them offsite and encrypted.
 ## Restore checks
 
 - restic: `restic check --read-data-subset=5%` and a file restore compared with `sha256sum` (node1, `set -a; . /etc/restic/offsite.env`).
-- Vault: `vault operator raft snapshot inspect <file>` on a restored `vault.snap` (with sudo on node1 (`ssh ansible@10.0.0.11 sudo ...`)).
+- Vault: `vault operator raft snapshot inspect <file>` on a restored `vault.snap` (on node1 with sudo: `ssh ansible@10.0.0.11`).
 - etcd: `k3s etcd-snapshot ls` on a server; restore with `k3s server --cluster-reset --cluster-reset-restore-path=<snapshot>`.
+
+## Full rebuild
+
+`make clean`, then `make init`, then `make configure-cert-renewal`, `make configure-offsite-backup` and `make configure-offsite-monitoring`. The nodes keep their OS; Vault, RustFS and k3s start empty.
+
+Measured 2026-11-10, from the control host in Oracle Cloud (about 40 ms to the nodes), Ansible as `ansible`:
+
+| Step | Time |
+|---|---|
+| `make clean` (k3s reset 316 s, Vault and RustFS reset 171 s) | 8.1 min |
+| `make init` | 33.9 min |
+| — `os-upgrade` | 291 s |
+| — `external-setup` | 158 s |
+| — `nodes-setup` | 187 s |
+| — `dns-setup` | 39 s |
+| — `external-services` (Vault, RustFS, Terraform) | 307 s |
+| — `configure-webui-auth`, `configure-os-backup`, `deploy-monitoring-agent` | 4 + 108 + 63 s |
+| — `k3s-install` (node6 first, then node2, node3, the workers) | 836 s |
+| — `k3s-bootstrap` (Flux installed; the apps follow) | 37 s |
+| Flux: every Kustomization and HelmRelease ready after `init` | 18 min |
+| `make configure-cert-renewal`, `make configure-offsite-backup`, `make configure-offsite-monitoring` | 42 + 63 + 7 s |
+
+About an hour from `make clean` to a ready cluster, without a manual step. Checks that passed: 37 Flux Kustomizations, 22 HelmReleases and 11 ExternalSecrets ready, 71 Prometheus targets up, 5 Longhorn volumes healthy, an etcd snapshot in RustFS `k3s-etcd`, a Velero backup (3422 items, 5 CSI snapshots) in 2.8 minutes, Gatus green, a manual offsite run (113 MiB, 28 s) with a fresh Vault snapshot, no node accepting root SSH. The node1 certificates came from the existing certbot lineages (no new order); the cluster wildcard `pi-cluster-tls` is ordered again on every rebuild, since cert-manager keeps no state outside the cluster (Let's Encrypt allows 5 identical certificates a week). Rancher's Fleet pods restart a few times while Rancher starts.
 
 ## Power cycle
 
