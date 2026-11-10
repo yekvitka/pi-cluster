@@ -40,36 +40,12 @@ own checkout (`docker compose -p deploy run`). The long-running
 `ansible-runner` container and the working clone `/home/pimaster/pi-cluster`
 are never touched, so a feature branch checked out there is safe.
 
-## 1. Install the runner (pimaster, as `pimaster`)
+## 1. GitHub settings (before the runner starts)
 
-`pimaster` must be in the `docker` group (it is). On GitHub: **Settings →
-Actions → Runners → New self-hosted runner → Linux**,
-architecture ARM64 (the Oracle VM is an Ampere A1). Use the download
-commands and version shown on that page, into `~/actions-runner`. Then:
-
-```bash
-cd ~/actions-runner
-./config.sh --url https://github.com/yekvitka/pi-cluster --token <TOKEN> \
-  --name pimaster --labels pimaster --work _work --unattended
-
-# Host-side guard: a copy outside the work directory, so no job can change it
-install -m 755 ~/pi-cluster/scripts/runner-job-guard.sh ~/actions-runner/job-guard.sh
-echo "ACTIONS_RUNNER_HOOK_JOB_STARTED=$HOME/actions-runner/job-guard.sh" >> .env
-
-sudo ./svc.sh install pimaster
-sudo ./svc.sh start
-```
-
-After any change to `scripts/runner-job-guard.sh`, re-run the `install` line.
-The runner updates itself. Logs: `journalctl -u 'actions.runner.*' -f`.
-
-## 2. GitHub settings
-
-**Settings → Actions → General**
-
-- Fork pull request workflows from outside collaborators: **Require approval
-  for all outside collaborators**.
-- Workflow permissions: **Read repository contents** (the default).
+Do this first. A job that names an environment that doesn't exist yet
+creates it without protection rules and runs straight away: on 2026-11-10
+the first queued `minio-apply` ran unapproved this way (a no-op plan, so
+nothing changed).
 
 **Settings → Environments**: create `terraform-apply` and `ansible-deploy`,
 each with:
@@ -77,7 +53,45 @@ each with:
 - Required reviewers: `yekvitka`
 - Deployment branches and tags: **Selected branches → `master`**
 
+**Settings → Actions → General**
+
+- Fork pull request workflows from outside collaborators: **Require approval
+  for all outside collaborators**.
+- Workflow permissions: **Read repository contents** (the default).
+
 The environments hold no secrets. Credentials stay on pimaster.
+
+## 2. Install the runner (pimaster, as `pimaster`)
+
+`pimaster` must be in the `docker` group (it is) and have sudo for the
+service. On GitHub: **Settings → Actions → Runners → New self-hosted runner →
+Linux**, architecture ARM64 (the Oracle VM is an Ampere A1). Use the download
+commands and version shown on that page, into `~/actions-runner`. Then:
+
+```bash
+cd ~/actions-runner
+./config.sh --url https://github.com/yekvitka/pi-cluster --token <TOKEN> \
+  --name pimaster --labels pimaster --work _work --unattended
+
+# Host-side guard, root-owned: jobs run as pimaster and can't change it
+sudo install -d -m 755 /usr/local/libexec
+sudo install -o root -g root -m 755 ~/pi-cluster/scripts/runner-job-guard.sh \
+  /usr/local/libexec/gha-job-guard.sh
+echo "ACTIONS_RUNNER_HOOK_JOB_STARTED=/usr/local/libexec/gha-job-guard.sh" >> .env
+
+# PATH for jobs: svc.sh copies the current shell's PATH into .path, which in
+# a VS Code terminal includes the editor's own directories
+echo "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" > .path
+
+sudo ./svc.sh install pimaster
+sudo ./svc.sh start
+```
+
+After any change to `scripts/runner-job-guard.sh` on master, re-run the
+`sudo install` line. The runner updates itself. Logs:
+`journalctl -u 'actions.runner.*' -f`; the guard's exit code per job is in
+`~/actions-runner/_diag/Worker_*.log` (`gha-job-guard.sh`, then
+`Finished process … with exit code`).
 
 ## 3. Move the minio state to RustFS
 
