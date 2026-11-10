@@ -1,0 +1,8 @@
+# gitleaks: the default rules, plus what is known not to be a secret
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Names of Kubernetes Secrets (lowercase, dashes), not their values"
+regexTarget = "line"
+regexes = ['''CredentialSecret:\s*"[a-z0-9-]+"''']

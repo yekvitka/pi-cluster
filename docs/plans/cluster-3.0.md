@@ -2,7 +2,7 @@
 
 Goal: the same hardware and services as [Cluster 2.0](cluster-2.0.md), run from a repository a platform team would sign off on: every pull request checked by CI, no known security defects, the owner's values in one place, decisions and incidents written down, alerts that reach a person, restores that are proven. No new hardware and no new services, except alert delivery.
 
-Status (2026-11-09): phases 1 and 2 on their branches. Next: phase 3.
+Status (2026-11-10): phases 1 and 2 merged; phase 3 on its branch. Next: phase 4.
 
 ## Why
 
@@ -70,13 +70,16 @@ Validation: render equality for every Flux path except the deleted apps and the 
   - **kubernetes:** render every Flux path, substitute cluster-settings (`flux envsubst --strict`), validate with kubeconform (Kubernetes schemas and a CRD catalog).
   - **terraform:** `tofu fmt -check`, `tofu init -backend=false`, `tofu validate` per module.
   - **shell:** shellcheck of every shell script.
-  - **runner image:** hadolint.
-  - **secrets:** gitleaks over the whole history.
-- `make verify` runs the same checks in the runner, through the same scripts CI calls; kubeconform and the flux CLI join the runner image.
-- `ansible-runner.sh` asks Docker for a TTY only when it has one: no `script -qec` wrapper outside a terminal.
+  - **dockerfiles:** hadolint (`.hadolint.yaml`: distribution package versions stay unpinned).
+  - **secrets:** gitleaks over the whole history (`.gitleaks.toml`: Kubernetes Secret names are not secrets).
+  - **renovate:** `renovate-config-validator --strict`.
+- `make verify` runs the same checks in the runner, through the same scripts CI calls (`scripts/`); the flux CLI, kubeconform and shellcheck join the runner image, which mounts the repository at `/repo`.
+- `ansible-runner.sh` asks Docker for a TTY only when it has one: no `script -qec` wrapper outside a terminal. The runner refuses to start as root (it would mount root's keys and secrets).
 - On GitHub, by the user: branch protection on `master` (pull request required, CI jobs required, no force push).
 
-Validation: every check passes locally in the runner, actionlint is clean, the first CI run on the PR is green.
+Found by the new checks and fixed in the same PR: the dev cluster-settings lacked `TRUSTED_INTERNAL_POD_CIDR` (Flux would have substituted an empty string); the mixin generator installed its Go tools at `@latest`, and its `rm -rf` could expand to `/*` with an empty variable. For later: `terraform/minio` reads Vault secrets through a deprecated data source; the ephemeral resource that replaces it also keeps them out of the state (phase 8).
+
+Validation (2026-11-10): every check passes in the new runner image (85 s), actionlint and hadolint are clean, the Renovate validator passes. The first CI run on GitHub is the last proof.
 
 ### Phase 4: structure
 

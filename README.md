@@ -1,5 +1,7 @@
 <img src="docs/images/pi-cluster-banner.png" alt="pi-cluster: a Raspberry Pi Kubernetes cluster in a rack, built with Raspberry Pi, Linux and Kubernetes" width="100%">
 
+[![CI](https://github.com/yekvitka/pi-cluster/actions/workflows/ci.yml/badge.svg)](https://github.com/yekvitka/pi-cluster/actions/workflows/ci.yml)
+
 **A production-grade Kubernetes platform on Raspberry Pis.** GitOps from end to end, TLS everywhere, secrets in Vault, encrypted offsite backups, monitored from outside. Every component is declared in this repository and the whole platform can be rebuilt from it.
 
 ## First principles

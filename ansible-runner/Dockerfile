@@ -7,6 +7,13 @@ COPY --from=ghcr.io/opentofu/opentofu:1.12.6 /usr/local/bin/tofu /usr/local/bin/
 
 FROM ghcr.io/astral-sh/uv:0.12.17 AS uv
 
+# For make verify: the flux CLI (postBuild substitution), kubeconform, shellcheck
+FROM ghcr.io/fluxcd/flux-cli:v2.9.5 AS flux
+
+FROM ghcr.io/yannh/kubeconform:v0.8.0 AS kubeconform
+
+FROM koalaman/shellcheck:v0.11.0 AS shellcheck
+
 FROM python:3.14-slim
 ENV UV_LINK_MODE=copy
 ENV UV_PROJECT_ENVIRONMENT=/home/runner/.venv
@@ -28,6 +35,9 @@ COPY --from=tofu /usr/local/bin/tofu /usr/local/bin/tofu
 # Install kubectl and Helm from dedicated images
 COPY --from=kubectl /usr/local/bin/kubectl /usr/local/bin/kubectl
 COPY --from=helm /usr/bin/helm /usr/local/bin/helm
+COPY --from=flux /usr/local/bin/flux /usr/local/bin/flux
+COPY --from=kubeconform /kubeconform /usr/local/bin/kubeconform
+COPY --from=shellcheck /bin/shellcheck /usr/local/bin/shellcheck
 
 ENV USER=runner
 ENV FOLDER=/home/runner

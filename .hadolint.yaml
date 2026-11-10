@@ -1,0 +1,7 @@
+---
+# Distribution package versions stay unpinned: they disappear from the
+# repositories and the build breaks. The base images are pinned (Renovate)
+ignored:
+  - DL3008
+  - DL3018
+failure-threshold: warning

@@ -2,6 +2,8 @@
   $schema: 'https://docs.renovatebot.com/renovate-schema.json',
   extends: [
     'config:recommended',
+    // Actions pinned to commit SHAs (.github/workflows), kept current
+    'helpers:pinGitHubActionDigests',
     'github>yekvitka/pi-cluster//.github/renovate/clusters.json5',
     'github>yekvitka/pi-cluster//.github/renovate/customManagers.json5',
     'github>yekvitka/pi-cluster//.github/renovate/grafanaDashboards.json5',

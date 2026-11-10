@@ -1,4 +1,6 @@
 ---
+# Every check runs on each pull request and on master. The jobs call the
+# scripts in scripts/; make verify runs the same scripts in the Ansible runner.
 name: CI
 'on':
   pull_request:
@@ -6,26 +8,166 @@ name: CI
     branches:
       - master
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # renovate: datasource=github-releases depName=opentofu/opentofu
+  TOFU_VERSION: 1.12.6
+  # renovate: datasource=github-releases depName=fluxcd/flux2
+  FLUX_VERSION: 2.9.5
+  # renovate: datasource=github-releases depName=yannh/kubeconform
+  KUBECONFORM_VERSION: v0.8.0
+  # renovate: datasource=github-releases depName=koalaman/shellcheck
+  SHELLCHECK_VERSION: v0.11.0
+  # renovate: datasource=docker depName=hadolint/hadolint
+  HADOLINT_VERSION: v2.15.1
+  # renovate: datasource=docker depName=ghcr.io/gitleaks/gitleaks
+  GITLEAKS_VERSION: v8.30.1
+  # renovate: datasource=docker depName=rhysd/actionlint
+  ACTIONLINT_VERSION: 1.7.12
+  # renovate: datasource=npm depName=renovate
+  RENOVATE_VERSION: 44.225.2
+
 jobs:
-  lint:
-    name: Lint
+  yaml:
+    name: YAML and workflows
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Set up Python
-        uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
-          python-version: '3.x'
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2  # v10.3.3
+        with:
+          enable-cache: true
+          cache-dependency-glob: ansible/uv.lock
+      - name: Python tools from ansible/uv.lock
+        run: uv sync --frozen --project ansible
+      - name: yamllint
+        run: uv run --project ansible scripts/check-yaml.sh
+      - name: actionlint
+        run: docker run --rm -v "$PWD:/repo:ro" -w /repo "rhysd/actionlint:${ACTIONLINT_VERSION}" -color
 
-      - name: Install yamllint
-        run: pip3 install yamllint
+  ansible:
+    name: Ansible
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2  # v10.3.3
+        with:
+          enable-cache: true
+          cache-dependency-glob: ansible/uv.lock
+      - name: Python tools from ansible/uv.lock
+        run: uv sync --frozen --project ansible
+      - name: Galaxy roles and collections
+        working-directory: ansible
+        # Galaxy times out now and then
+        run: |
+          for attempt in 1 2 3; do
+            uv run ansible-galaxy role install -r requirements.yml --timeout 120 &&
+              uv run ansible-galaxy collection install -r requirements.yml && break
+            [ "$attempt" = 3 ] && exit 1
+            sleep 15
+          done
+      - name: ansible-lint and syntax check
+        run: uv run --project ansible scripts/check-ansible.sh
 
-      - name: Lint Ansible
-        working-directory: ./ansible
-        run: yamllint .
+  kubernetes:
+    name: Kubernetes manifests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2  # v10.3.3
+        with:
+          enable-cache: true
+          cache-dependency-glob: ansible/uv.lock
+      - name: Python tools from ansible/uv.lock
+        run: uv sync --frozen --project ansible
+      - uses: fluxcd/flux2/action@dd233c4fadef306a62b7893204f8e3817fecc2b2  # v2.9.5
+        with:
+          version: ${{ env.FLUX_VERSION }}
+      - name: kubeconform, checked against the release checksums
+        run: |
+          base="https://github.com/yannh/kubeconform/releases/download/${KUBECONFORM_VERSION}"
+          curl -fsSLO "$base/kubeconform-linux-amd64.tar.gz"
+          curl -fsSL "$base/CHECKSUMS" | grep ' kubeconform-linux-amd64.tar.gz$' | sha256sum -c -
+          sudo tar -xzf kubeconform-linux-amd64.tar.gz -C /usr/local/bin kubeconform
+      - name: Render every Flux Kustomization, substitute, validate
+        run: uv run --project ansible scripts/check-kubernetes.py
 
-      - name: Lint Kubernetes manifests
-        working-directory: ./kubernetes
-        run: yamllint .
+  terraform:
+    name: Terraform
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4  # v2.0.2
+        with:
+          tofu_version: ${{ env.TOFU_VERSION }}
+          tofu_wrapper: false
+      - name: fmt, init, validate
+        run: scripts/check-terraform.sh
+
+  shell:
+    name: Shell scripts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - name: shellcheck
+        run: |
+          curl -fsSL "https://github.com/koalaman/shellcheck/releases/download/${SHELLCHECK_VERSION}/shellcheck-${SHELLCHECK_VERSION}.linux.x86_64.tar.xz" | tar -xJ
+          sudo install "shellcheck-${SHELLCHECK_VERSION}/shellcheck" /usr/local/bin/shellcheck
+      - name: Check every shell script
+        run: scripts/check-shell.sh
+
+  dockerfiles:
+    name: Dockerfiles
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - name: hadolint (.hadolint.yaml)
+        run: |
+          mapfile -t dockerfiles < <(git ls-files '*Dockerfile')
+          docker run --rm -v "$PWD:/repo:ro" -w /repo "hadolint/hadolint:${HADOLINT_VERSION}" hadolint "${dockerfiles[@]}"
+
+  secrets:
+    name: Secrets in the history
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: gitleaks (.gitleaks.toml)
+        run: docker run --rm -v "$PWD:/repo:ro" "ghcr.io/gitleaks/gitleaks:${GITLEAKS_VERSION}" git /repo --config /repo/.gitleaks.toml --redact --no-banner
+
+  renovate:
+    name: Renovate configuration
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - name: renovate-config-validator
+        run: npx --yes --package "renovate@${RENOVATE_VERSION}" renovate-config-validator --strict .github/renovate.json5 .github/renovate/*.json5
