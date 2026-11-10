@@ -2,7 +2,7 @@
 
 Goal: the control host (pimaster) moves from the UTM VM on the Mac to a second Oracle Cloud VM that works from any network, and the cluster is rebuilt from empty disks with Ansible logging in as a non-root `ansible` user with sudo. Same nodes, same services, same Git and Flux flow.
 
-Status (2026-11-10): decisions D1–D7 taken as recommended; phases 1–3 done. The new pimaster runs in Oracle: `make verify` passes there in 115 s, Ansible reaches every host, and each Terraform module plans no changes. Phase 4: PR 3 (`feature/ansible-user`) in progress.
+Status (2026-11-10): decisions D1–D7 taken as recommended; phases 1–4 done. Phase 4: PR 3 merged (#80); the `ansible` user exists on every node, and check-mode runs as `ansible` match runs as root (only the root key removal differs, by design). Next: phase 5, the in-place rebuild, after `fix/dns-serial` merges.
 
 ## Why
 
@@ -301,7 +301,7 @@ From the new pimaster, with PR 3 merged and the pre-flight already done (ansible
 1. `ansible.pub` is already written from the pre-flight. Confirm: `wc -l metal/rpi/cloud-init/ansible.pub` shows 2.
 2. `make clean` — runs as `ansible`, proves the reset playbooks. It also wipes Vault and RustFS on node1's `DATA` SSD (which a re-flash would not do): cloud-init never reformats that disk (`overwrite: false`), and the disk never leaves node1.
 3. Confirm the ansible user still works: `ansible all -m ping`.
-4. `make init`, timed. Inside `init`, `setup_picluster.yml` runs `tasks/ansible_user.yml`, which clears root's `authorized_keys` and sets `PermitRootLogin no` via `ricsanfre.security`. DNS note: `dns-setup` runs as part of `init`; before it starts, check the live Bind9 serial on node1 (`sudo named-checkzone ...`) — if it exceeds the value that the bind9 role would write, the zone transfer fails silently. Workaround: bump the serial in the role template to `serial_today + 1` just before the run, or skip dns-setup and re-add host records with nsupdate manually.
+4. `make init`, timed. Inside `init`, `setup_picluster.yml` runs `tasks/ansible_user.yml`, which clears root's `authorized_keys` and sets `PermitRootLogin no` via `ricsanfre.security`. `dns-setup` rewrites the bind9 zones on the running node1: since `fix/dns-serial` it freezes each dynamic zone, writes it with a serial above the live one and thaws it, so the external-dns serial (2024102015 on 2026-11-10) no longer breaks the zone. That branch merges before `make init`.
 5. The steps not part of `init`: `make configure-cert-renewal`, `make configure-offsite-backup` (fresh repository on the 100 GB volume; it re-enables the node1 restic-offsite.timer) and `make configure-offsite-monitoring`.
 
 Validation: the same checks as the 2026-11-03 rebuild.
