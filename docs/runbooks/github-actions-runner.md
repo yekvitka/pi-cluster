@@ -43,7 +43,8 @@ are never touched, so a feature branch checked out there is safe.
 ## 1. Install the runner (pimaster, as `pimaster`)
 
 `pimaster` must be in the `docker` group (it is). On GitHub: **Settings →
-Actions → Runners → New self-hosted runner → Linux x64**. Use the download
+Actions → Runners → New self-hosted runner → Linux**,
+architecture ARM64 (the Oracle VM is an Ampere A1). Use the download
 commands and version shown on that page, into `~/actions-runner`. Then:
 
 ```bash
