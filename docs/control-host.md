@@ -1,6 +1,6 @@
 # Control host (pimaster)
 
-The control host runs the Ansible runner container and holds what never goes to Git: `~/.secrets`, `~/.certbot`, `~/.kube`, `~/.ssh` and the local Terraform state. It is not managed by Ansible. Any Linux host with Docker that reaches the cluster LAN (10.0.0.0/24) can be one; this cluster's runs in Oracle Cloud.
+The control host runs the Ansible runner container and the self-hosted GitHub Actions runner of the [Deploy workflow](runbooks/github-actions-runner.md), and holds what never goes to Git: `~/.secrets`, `~/.certbot`, `~/.kube`, `~/.ssh` and the local Terraform state (`terraform/vault`, `terraform/oci`; `terraform/minio` keeps its state on RustFS). It is not managed by Ansible. Any Linux host with Docker that reaches the cluster LAN (10.0.0.0/24) can be one; this cluster's runs in Oracle Cloud.
 
 ## Oracle Cloud VM
 

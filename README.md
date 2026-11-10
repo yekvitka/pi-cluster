@@ -12,68 +12,13 @@
 
 ## Architecture
 
-```mermaid
-flowchart LR
-  eng(["👤 Engineer<br/>laptop · any network"]) -->|"① pull request"| gh
+<a href="docs/diagrams/architecture.mmd"><img src="docs/images/architecture.png" alt="Architecture: the engineer opens pull requests on GitHub; Flux pulls the desired state into k3s; the self-hosted runner on pimaster in Oracle Cloud picks up Deploy jobs after approval and runs Ansible, OpenTofu and Flux reconcile over the gateway's WireGuard tunnel; node1 holds Vault, RustFS, bind9 and certbot; backups go nightly, encrypted, to the offsite VM, which also checks the services from outside." width="100%"></a>
 
-  subgraph internet["🌍 Internet"]
-    gh[("GitHub<br/>single source of truth")]
-    le["Let's Encrypt<br/>IONOS DNS-01"]
-    subgraph oci["☁️ Oracle Cloud · Always Free"]
-      pim["pimaster · control host<br/>Ansible runner · secrets<br/>Terraform state"]
-      vm["offsite VM<br/>encrypted restic repository<br/>Gatus outside checks"]
-    end
-  end
-
-  subgraph home["🏠 Home"]
-    gw["OpenWrt gateway<br/>NAT · DNS · no inbound ports"]
-  end
-
-  subgraph lan["⚡ Cluster LAN · 10.0.0.0/24"]
-    subgraph node1["node1 · state lives outside the cluster"]
-      vault["🔐 Vault<br/>secrets"]
-      s3["🗄️ RustFS<br/>S3 backup store"]
-      dns["bind9<br/>homelab DNS"]
-      certbot["certbot<br/>auto-renew"]
-    end
-    subgraph kube["☸️ k3s · node6 API server + etcd · node2, node3 etcd · node4, node5 workers"]
-      flux["Flux<br/>GitOps"]
-      envoy["Envoy Gateway<br/>10.0.0.68 · TLS"]
-      apps["Grafana · Prometheus · Loki · Tempo<br/>Alertmanager · Longhorn · Rancher"]
-      eso["External Secrets"]
-      cm["cert-manager"]
-      edns["external-dns"]
-      velero["Velero<br/>+ etcd snapshots"]
-    end
-  end
-
-  eng ==>|"WireGuard"| pim
-  gw <==>|"WireGuard · the gateway dials out"| pim
-  gw <==>|"WireGuard"| vm
-  gh -->|"② pull desired state"| flux
-  flux -.->|"reconcile"| apps
-  pim -->|"③ Ansible · ssh ansible@ · sudo"| lan
-  eng -.->|"④ HTTPS · through pimaster and the gateway"| envoy
-  envoy --> apps
-  cm -->|"⑤ DNS-01"| le
-  certbot -->|"⑤ DNS-01"| le
-  eso -->|"⑥ secrets"| vault
-  edns -->|"⑦ DNS records"| dns
-  velero -->|"⑧ daily backups"| s3
-  s3 ==>|"⑨ nightly · encrypted"| vm
-  vm -.->|"⑩ outside checks"| envoy
-
-  classDef stateful fill:#fff4e5,stroke:#e08e00,color:#000
-  classDef cloud fill:#e8f1ff,stroke:#3b6fd8,color:#000
-  classDef k8s fill:#eefbf0,stroke:#2e9e4f,color:#000
-  class vault,s3,dns,certbot stateful
-  class gh,le,vm,pim cloud
-  class flux,envoy,apps,eso,cm,edns,velero k8s
-```
+<sub>Source: <a href="docs/diagrams/architecture.mmd">docs/diagrams/architecture.mmd</a>, rendered by <code>scripts/render-diagrams.sh</code> (an image, so it also shows in GitHub Mobile).</sub>
 
 1. **Change = pull request.** Infrastructure, apps, versions and policies all change through Git; Renovate proposes the upgrades.
-2. **Flux pulls, the cluster converges.** No CI system holds cluster credentials; drift is reverted.
-3. **The hosts are configured from the control host.** pimaster runs in Oracle Cloud and reaches the cluster LAN through the gateway's WireGuard tunnel. Ansible logs in as `ansible` with sudo; no node accepts root SSH.
+2. **Flux pulls, the cluster converges.** GitHub-hosted CI holds no credentials; drift is reverted.
+3. **Deploys run on the control host.** pimaster runs in Oracle Cloud and reaches the cluster LAN through the gateway's WireGuard tunnel. Its self-hosted GitHub Actions runner dials out to GitHub and runs the [Deploy workflow](docs/runbooks/github-actions-runner.md): a Flux reconcile on every merge, OpenTofu and Ansible only after approval. A guard on the host lets nothing else run there, which matters in a public repository. Ansible logs in as `ansible` with sudo; no node accepts root SSH.
 4. **One entry point.** Envoy Gateway serves every web UI on 10.0.0.68 with a wildcard certificate; UIs without their own login get basic auth at the gateway. From anywhere, the laptop reaches it over WireGuard through pimaster.
 5. **Certificates renew themselves.** cert-manager in the cluster, certbot on node1 for Vault, RustFS and the router: DNS-01, so no port is ever opened.
 6. **Secrets never touch Git.** External Secrets reads them from Vault at runtime.
@@ -101,6 +46,7 @@ flowchart LR
 |---|---|
 | Provisioning | cloud-init, Ansible (in a container), OpenTofu |
 | GitOps | Flux (flux-operator), Renovate, system-upgrade-controller |
+| CI/CD | GitHub Actions: checks on hosted runners, the Deploy workflow on a guarded self-hosted runner with approval gates |
 | Network | Cilium (eBPF, no kube-proxy), kube-vip, Envoy Gateway, external-dns, OpenWrt, WireGuard |
 | Security | cert-manager, certbot, Vault, External Secrets |
 | Storage | Longhorn (SSD nodes), RustFS (S3) |

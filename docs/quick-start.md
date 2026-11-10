@@ -48,7 +48,7 @@ No secret is in Git. Two come from you; the rest are generated during the build.
 | Web UI basic auth, bind9 update key | `make init` | Vault |
 | Offsite (optional): OCI API key, WireGuard key, restic password | you ([offsite](offsite.md)) | `~/.secrets` |
 
-Keep an encrypted copy of `~/.secrets` and `terraform/*/terraform.tfstate` outside the control host: without them Vault cannot be unsealed and the offsite backup cannot be read.
+Keep an encrypted copy of `~/.secrets` and the local Terraform state (`terraform/vault` and `terraform/oci`, `terraform.tfstate`; `terraform/minio`'s is in the versioned RustFS bucket `terraform-state`) outside the control host: without them Vault cannot be unsealed and the offsite backup cannot be read.
 
 ## 4. Gateway
 
