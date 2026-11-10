@@ -131,7 +131,7 @@ Validation: a test alert (`amtool alert add`) arrives and resolves; a temporary 
 ## Not in 3.0
 
 - A second API server: no hardware.
-- A dedicated Ansible user instead of root: cloud-init, the roles and the runner assume root, and host key checking (phase 1) closes the main risk.
+- A dedicated Ansible user instead of root: cloud-init, the roles and the runner assume root, and host key checking (phase 1) closes the main risk. Planned with the next rebuild in [Control host in Oracle Cloud](control-host-oci.md).
 - Default-deny NetworkPolicies (phase 7).
 - Moving the playbooks (phase 4).
 

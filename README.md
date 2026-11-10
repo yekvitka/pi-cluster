@@ -150,6 +150,7 @@ make init      # build from scratch: docs/quick-start.md
 - [Runbook: node to SSD boot](docs/runbooks/node-ssd-migration.md)
 - [Cluster 2.0](docs/plans/cluster-2.0.md)
 - [Cluster 3.0](docs/plans/cluster-3.0.md): the repository a team would sign off on
+- [Control host in Oracle Cloud](docs/plans/control-host-oci.md): pimaster on an Oracle VM, Ansible as a non-root user, full rebuild
 
 ## Credits
 
