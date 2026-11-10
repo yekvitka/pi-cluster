@@ -82,8 +82,25 @@
       no_log: true
 
     # tofu_migrate_state=true: one time, copies a local terraform.tfstate into
-    # the bucket (docs/runbooks/github-actions-runner.md). Without it, init
-    # stops if a local state still needs moving.
+    # the bucket (docs/runbooks/github-actions-runner.md). Without it, a local
+    # state file stops the run here, before tofu offers to overwrite anything.
+    - name: Check for a local state file
+      ansible.builtin.stat:
+        path: "{{ terraform_project_dir }}/terraform.tfstate"
+      register: local_tfstate
+
+    - name: Stop while a local state file is still in terraform/minio
+      ansible.builtin.fail:
+        msg: |
+          terraform/minio/terraform.tfstate exists, but the state lives in the
+          RustFS bucket {{ tofu_state_bucket }}.
+          - Not moved yet: follow docs/runbooks/github-actions-runner.md,
+            "Move the minio state to RustFS" (run with -e tofu_migrate_state=true).
+          - Already moved: the local file is stale, move it to ~/tfstate-backup/.
+      when:
+        - local_tfstate.stat.exists
+        - not (tofu_migrate_state | default(false) | bool)
+
     - name: Initialize Terraform
       ansible.builtin.command:
         cmd: >-
