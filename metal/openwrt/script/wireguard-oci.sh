@@ -1,24 +1,35 @@
 #!/bin/sh
-# WireGuard tunnel from the gateway to the Oracle Cloud VM (terraform/oci):
-# offsite backups and outside monitoring. The gateway has a dynamic public IP
-# (behind the home router), so it connects out and keeps the tunnel up: no port
-# forwarding on either router.
+# WireGuard tunnel from the gateway to the Oracle Cloud VMs (terraform/oci):
+# offsite (backups, outside monitoring) and, optionally, pimaster (the control
+# host and the hub for remote access clients). The gateway has a dynamic public
+# IP (behind the home router), so it connects out to each VM and keeps the
+# tunnel up: no port forwarding on either router.
 #
 # Run on the gateway as root. Safe to re-run, no reboot.
 #   1. sh wireguard-oci.sh
 #      installs WireGuard, creates the gateway key (kept on the gateway) and
 #      prints its public key (gateway_wg_public_key in terraform/oci)
-#   2. OCI_ENDPOINT=<offsite_public_ip> OCI_PUBKEY=<VM public key> sh wireguard-oci.sh
-#      adds the VM as peer
+#   2. OCI_ENDPOINT=<offsite_public_ip> OCI_PUBKEY=<offsite public key> sh wireguard-oci.sh
+#      PIMASTER_ENDPOINT=<pimaster_public_ip> PIMASTER_PUBKEY=<pimaster public key> sh wireguard-oci.sh
+#      add the VMs as peers. Later runs keep a peer whose variables are not set
 set -e
 
 WG_ADDR=10.99.0.1/24
 OCI_WG_IP=10.99.0.2
+PIMASTER_WG_IP=10.99.0.3
+# Remote access clients (laptop, phone): they connect to pimaster, which
+# forwards them through this tunnel. Same access as pimaster (ctl_* rules)
+REMOTE_NET=10.99.0.16/28
 OCI_PORT=51820
 # Home uplink path MTU 1460 minus 80 bytes of WireGuard overhead
 MTU=1380
 # Home network (wan side): may SSH to the VM
 HOME_NET=192.168.50.0/24
+
+OCI_ENDPOINT=${OCI_ENDPOINT:-$(uci -q get network.oci_vm.endpoint_host || true)}
+OCI_PUBKEY=${OCI_PUBKEY:-$(uci -q get network.oci_vm.public_key || true)}
+PIMASTER_ENDPOINT=${PIMASTER_ENDPOINT:-$(uci -q get network.pimaster_vm.endpoint_host || true)}
+PIMASTER_PUBKEY=${PIMASTER_PUBKEY:-$(uci -q get network.pimaster_vm.public_key || true)}
 
 command -v wg >/dev/null || { apk update && apk add wireguard-tools kmod-wireguard luci-proto-wireguard; }
 # netifd loads protocol handlers when it starts: restart it once after the install
@@ -34,17 +45,27 @@ uci set network.wg_oci.mtu="$MTU"
 uci -q delete network.wg_oci.addresses || true
 uci add_list network.wg_oci.addresses="$WG_ADDR"
 
-if [ -n "$OCI_ENDPOINT" ] && [ -n "$OCI_PUBKEY" ]; then
-  uci -q delete network.oci_vm || true
-  uci set network.oci_vm=wireguard_wg_oci
-  uci set network.oci_vm.description='Oracle Cloud VM (offsite)'
-  uci set network.oci_vm.public_key="$OCI_PUBKEY"
-  uci set network.oci_vm.endpoint_host="$OCI_ENDPOINT"
-  uci set network.oci_vm.endpoint_port="$OCI_PORT"
-  uci set network.oci_vm.persistent_keepalive='25'
-  uci set network.oci_vm.route_allowed_ips='1'
-  uci add_list network.oci_vm.allowed_ips="$OCI_WG_IP/32"
-fi
+# Arguments: uci section, description, endpoint, public key, allowed IPs...
+wg_peer() {
+  section=$1 description=$2 endpoint=$3 pubkey=$4
+  shift 4
+  if [ -z "$endpoint" ] || [ -z "$pubkey" ]; then
+    return 0
+  fi
+  uci -q delete "network.$section" || true
+  uci set "network.$section=wireguard_wg_oci"
+  uci set "network.$section.description=$description"
+  uci set "network.$section.public_key=$pubkey"
+  uci set "network.$section.endpoint_host=$endpoint"
+  uci set "network.$section.endpoint_port=$OCI_PORT"
+  uci set "network.$section.persistent_keepalive=25"
+  uci set "network.$section.route_allowed_ips=1"
+  for ip in "$@"; do
+    uci add_list "network.$section.allowed_ips=$ip"
+  done
+}
+wg_peer oci_vm 'Oracle Cloud VM (offsite)' "$OCI_ENDPOINT" "$OCI_PUBKEY" "$OCI_WG_IP/32"
+wg_peer pimaster_vm 'Oracle Cloud VM (pimaster)' "$PIMASTER_ENDPOINT" "$PIMASTER_PUBKEY" "$PIMASTER_WG_IP/32" "$REMOTE_NET"
 
 # Zone for the tunnel: nothing from the VM into home networks (rules added
 # per service later), cluster LAN and home network may reach the VM
@@ -104,6 +125,39 @@ uci set firewall.mon_luci.src_ip="$OCI_WG_IP"
 uci set firewall.mon_luci.proto='tcp'
 uci set firewall.mon_luci.dest_port='443'
 uci set firewall.mon_luci.target='ACCEPT'
+
+# pimaster and its remote access clients: the same rules as the home network
+# (gateway-setup.sh fw_rule). Arguments: name, protocol, ports, destination in
+# the cluster LAN ("any": the whole LAN, empty: the gateway itself)
+ctl_rule() {
+  uci -q delete "firewall.$1" || true
+  uci set "firewall.$1=rule"
+  uci set "firewall.$1.name=Allow-OCI-Control-$1"
+  uci set "firewall.$1.src=oci"
+  uci add_list "firewall.$1.src_ip=$PIMASTER_WG_IP"
+  uci add_list "firewall.$1.src_ip=$REMOTE_NET"
+  uci set "firewall.$1.proto=$2"
+  uci set "firewall.$1.dest_port=$3"
+  if [ -n "$4" ]; then
+    uci set "firewall.$1.dest=lan"
+    [ "$4" = "any" ] || uci set "firewall.$1.dest_ip=$4"
+  fi
+  uci set "firewall.$1.target=ACCEPT"
+}
+ctl_rule ctl_ssh tcp 22                         # gateway
+ctl_rule ctl_luci tcp 443
+ctl_rule ctl_dns tcpudp 53
+ctl_rule ctl_lan_ssh tcp 22 any                 # Ansible, SSH to the nodes
+ctl_rule ctl_lan_web tcp '80 443' any           # Envoy gateway (web UIs)
+ctl_rule ctl_k3s_api tcp 6443 10.0.0.10         # k3s API (kube-vip)
+ctl_rule ctl_vault tcp 8200 10.0.0.11           # Vault
+ctl_rule ctl_rustfs tcp '9091 9092' 10.0.0.11   # RustFS API, console
+
+# Rules of the earlier remote access through the offsite VM: the ctl_* rules
+# replace them
+for rule in remote_ssh remote_luci remote_dns remote_lan_ssh remote_lan_web remote_k3s_api remote_vault remote_rustfs; do
+  uci -q delete "firewall.$rule" || true
+done
 
 uci commit network
 uci commit firewall

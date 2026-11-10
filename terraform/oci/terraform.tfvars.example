@@ -8,3 +8,15 @@ region                = "<home region, e.g. eu-frankfurt-1>"
 ssh_public_key_path   = "/home/runner/.ssh/id_rsa.pub"
 wg_private_key_path   = "/home/runner/.secrets/wireguard/oci-vm.key"
 gateway_wg_public_key = "<printed by metal/openwrt/script/wireguard-oci.sh>"
+
+# Optional: the control host in Oracle Cloud (docs/control-host.md)
+# pimaster_enabled             = true
+# pimaster_ssh_authorized_keys = ["<your laptop's SSH public key>", "<current control host: ~/.ssh/id_rsa.pub>"]
+# pimaster_wg_private_key_path = "/home/runner/.secrets/wireguard/pimaster-oci.key"
+# pimaster_wg_public_key_path  = "/home/runner/.secrets/wireguard/pimaster-oci.pub"
+# wg_public_key_path           = "/home/runner/.secrets/wireguard/oci-vm.pub"
+# dns_domain                   = "<dns_domain in ansible/group_vars>"
+# wg_clients = {
+#   laptop = { address = "10.99.0.18", public_key = "<laptop WireGuard public key>" }
+#   phone  = { address = "10.99.0.19", public_key = "<phone WireGuard public key>" }
+# }
