@@ -1,0 +1,66 @@
+---
+config:
+  flowchart:
+    # Labels wrap at 400 px instead of 200, so "GitHub Actions runner"
+    # and similar phrases stay on one line
+    wrappingWidth: 400
+---
+%% Architecture diagram for README.md. Edit here, then run
+%% scripts/render-diagrams.sh and commit the PNG (GitHub Mobile shows no Mermaid).
+flowchart LR
+  eng(["👤 Engineer<br/>laptop · any network"]) -->|"① pull request"| gh
+
+  subgraph internet["🌍 Internet"]
+    gh[("GitHub<br/>single source of truth")]
+    le["Let's Encrypt<br/>IONOS DNS-01"]
+    subgraph oci["☁️ Oracle Cloud · Always Free"]
+      pim["pimaster · control host<br/>GitHub Actions runner · job guard<br/>Ansible runner · secrets"]
+      vm["offsite VM<br/>encrypted restic repository<br/>Gatus outside checks"]
+    end
+  end
+
+  subgraph home["🏠 Home"]
+    gw["OpenWrt gateway<br/>NAT · DNS · no inbound ports"]
+  end
+
+  subgraph lan["⚡ Cluster LAN · 10.0.0.0/24"]
+    subgraph node1["node1 · state lives outside the cluster"]
+      vault["🔐 Vault<br/>secrets"]
+      s3["🗄️ RustFS<br/>S3 backups · Terraform state"]
+      dns["bind9<br/>homelab DNS"]
+      certbot["certbot<br/>auto-renew"]
+    end
+    subgraph kube["☸️ k3s · node6 API server + etcd · node2, node3 etcd · node4, node5 workers"]
+      flux["Flux<br/>GitOps"]
+      envoy["Envoy Gateway<br/>10.0.0.68 · TLS"]
+      apps["Grafana · Prometheus · Loki · Tempo<br/>Alertmanager · Longhorn · Rancher"]
+      eso["External Secrets"]
+      cm["cert-manager"]
+      edns["external-dns"]
+      velero["Velero<br/>+ etcd snapshots"]
+    end
+  end
+
+  eng ==>|"WireGuard"| pim
+  gw <==>|"WireGuard · the gateway dials out"| pim
+  gw <==>|"WireGuard"| vm
+  gh -->|"② pull desired state"| flux
+  gh -->|"③ Deploy jobs · approval gate<br/>the runner dials out"| pim
+  flux -.->|"reconcile"| apps
+  pim -->|"③ Ansible · OpenTofu · Flux reconcile"| lan
+  eng -.->|"④ HTTPS · through pimaster and the gateway"| envoy
+  envoy --> apps
+  cm -->|"⑤ DNS-01"| le
+  certbot -->|"⑤ DNS-01"| le
+  eso -->|"⑥ secrets"| vault
+  edns -->|"⑦ DNS records"| dns
+  velero -->|"⑧ daily backups"| s3
+  s3 ==>|"⑨ nightly · encrypted"| vm
+  vm -.->|"⑩ outside checks"| envoy
+
+  classDef stateful fill:#fff4e5,stroke:#e08e00,color:#000
+  classDef cloud fill:#e8f1ff,stroke:#3b6fd8,color:#000
+  classDef k8s fill:#eefbf0,stroke:#2e9e4f,color:#000
+  class vault,s3,dns,certbot stateful
+  class gh,le,vm,pim cloud
+  class flux,envoy,apps,eso,cm,edns,velero k8s
