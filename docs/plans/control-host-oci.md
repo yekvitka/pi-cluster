@@ -2,7 +2,7 @@
 
 Goal: the control host (pimaster) moves from the UTM VM on the Mac to a second Oracle Cloud VM that works from any network, and the cluster is rebuilt from empty disks with Ansible logging in as a non-root `ansible` user with sudo. Same nodes, same services, same Git and Flux flow.
 
-Status (2026-11-10): decisions D1–D7 taken as recommended; phases 1–3 done. The new pimaster runs in Oracle: `make verify` passes there in 115 s, Ansible reaches every host, and each Terraform module plans no changes. Phase 4: PR 3 (`feature/ansible-user`) in progress.
+Status (2026-11-10): decisions D1–D7 taken as recommended; phases 1–4 done. Phase 4: PR 3 merged (#80); the `ansible` user exists on every node, and check-mode runs as `ansible` match runs as root (only the root key removal differs, by design). Next: phase 5, the in-place rebuild, after `fix/dns-serial` merges.
 
 ## Why
 
