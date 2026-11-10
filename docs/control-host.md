@@ -78,11 +78,11 @@ Optional (`pimaster_enabled` in `terraform/oci`). The control host runs as an Al
   [Peer]
   PublicKey = <~/.secrets/wireguard/pimaster-oci.pub>
   Endpoint = <pimaster_public_ip>:51820
-  AllowedIPs = 10.99.0.0/24, 10.0.0.0/24
+  AllowedIPs = 10.0.0.0/24, 10.99.0.2/32, 10.99.0.3/32
   PersistentKeepalive = 25
   ```
 
-  Then SSH or VS Code Remote-SSH to `pimaster@10.99.0.3`, on any network, at home too: traffic goes through Frankfurt, about 40 ms per round trip.
+  Then SSH or VS Code Remote-SSH to `pimaster@10.99.0.3`, on any network, at home too: traffic goes through Frankfurt, about 40 ms per round trip. The two VMs are /32 routes because at home the laptop already has a `10.99.0.0/24` route through the gateway (192.168.50.200). macOS keeps that route over a VPN route of the same size, and the gateway lets the home network reach only the offsite VM, so SSH to pimaster would be refused.
 - **First boot:** `pimaster-cloud-init.yaml.tftpl` creates the `pimaster` user (with the keys from `pimaster_ssh_authorized_keys`, no default `ubuntu` user), WireGuard, the firewall and Docker. It runs once, and Terraform ignores later changes to it.
   - Peers later: edit `/etc/wireguard/wg0.conf`, then `sudo bash -c 'wg syncconf wg0 <(wg-quick strip wg0)'`.
   - The saved iptables rules exclude Docker's own. Never run `netfilter-persistent save` while Docker runs: add a rule with `iptables` and by hand to `/etc/iptables/rules.v4`.
