@@ -1,6 +1,6 @@
 # Terraform (OpenTofu)
 
-Independent modules, each with its own local state (`terraform.tfstate`, gitignored, kept on the control host). Run them inside the Ansible runner.
+Independent modules, each with its own state. Run them inside the Ansible runner. `minio/` keeps its state on RustFS (S3 backend) and is applied by the Deploy workflow after approval ([runbook](../docs/runbooks/github-actions-runner.md)). `vault/` and `oci/` keep local state (`terraform.tfstate`, gitignored, on the control host): the Vault module runs before RustFS exists, so it stays `make configure-vault`.
 
 | Module | Status | Manages | Provider |
 |---|---|---|---|

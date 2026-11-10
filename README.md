@@ -157,6 +157,7 @@ make init      # build from scratch: docs/quick-start.md
 - [Quick start: your own cluster](docs/quick-start.md)
 - [Control host](docs/control-host.md): the Oracle VM, remote access, access to the hosts
 - [Runbook: node to SSD boot](docs/runbooks/node-ssd-migration.md)
+- [Runbook: Deploy workflow and self-hosted runner](docs/runbooks/github-actions-runner.md): CD from master
 - [Cluster 2.0](docs/plans/cluster-2.0.md)
 - [Cluster 3.0](docs/plans/cluster-3.0.md): the repository a team would sign off on
 - [Control host in Oracle Cloud](docs/plans/control-host-oci.md): pimaster on an Oracle VM, Ansible as a non-root user, rebuild in place
