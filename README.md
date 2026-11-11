@@ -107,6 +107,7 @@ make init      # build from scratch: docs/quick-start.md
 - [Cluster 2.0](docs/plans/cluster-2.0.md)
 - [Cluster 3.0](docs/plans/cluster-3.0.md): the repository a team would sign off on
 - [Control host in Oracle Cloud](docs/plans/control-host-oci.md): pimaster on an Oracle VM, Ansible as a non-root user, rebuild in place
+- [Review follow-up](docs/plans/review-2026-11.md): every finding of the 2026-11-11 review, with steps
 
 ## Credits
 
